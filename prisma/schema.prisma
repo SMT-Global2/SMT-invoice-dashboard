@@ -1,0 +1,100 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @map("_id") @default(auto()) @db.ObjectId
+  firstName     String?
+  lastName      String?
+  phoneNumber   String?
+
+  username      String    @unique
+  password      String?
+
+  invoice       Invoice[] @relation("InvoiceToUser")
+  check         Invoice[] @relation("CheckToUser")
+  package       Invoice[] @relation("PackageToUser")
+  pickup        Invoice[] @relation("PickupToUser")
+  delivery      Invoice[] @relation("DeliveryToUser")
+
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now())
+}
+
+model PartyCode {
+    id           String    @id @map("_id") @default(auto()) @db.ObjectId
+    code         String    @unique
+    customerName String?
+    city         String?
+
+    invoice Invoice[]
+
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @default(now())
+}
+
+
+model Invoice {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  invoiceNumber     Int    @unique
+  generatedDate     DateTime
+
+  partyCode         String    
+  party             PartyCode  @relation(fields: [partyCode], references: [code])
+
+  imageLinks        String[]
+  isOtc             Boolean   @default(false)
+
+  invoiceUsername   String
+  invoiceTimestamp  DateTime?
+  invoicedBy        User @relation("InvoiceToUser", fields: [invoiceUsername], references: [username])
+
+
+  checkUsername     String?
+  checkTimestamp    DateTime?
+  checkedBy         User? @relation("CheckToUser",fields: [checkUsername], references: [username])
+  checkStatus       CheckStatus @default(NOT_CHECKED)
+
+
+  packageTimestamp  DateTime?
+  packageUsername   String?
+  packedBy          User? @relation("PackageToUser",fields: [packageUsername], references: [username])
+  packageStatus     PackageStatus @default(NOT_PACKED)
+
+  pickupUsername    String?
+  pickupTimestamp   DateTime?
+  pickedUpBy        User? @relation("PickupToUser",fields: [pickupUsername], references: [username])
+
+  deliveredUsername         String?
+  deliveredTimestamp        DateTime?
+  deliveredBy               User? @relation("DeliveryToUser",fields: [deliveredUsername], references: [username])
+  deliveredLocationLink     String?
+  deliveryStatus            DeliveryStatus @default(NOT_DELIVERED)
+
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now())
+}
+
+
+enum CheckStatus {
+  NOT_CHECKED
+  CHECKED
+}
+
+enum PackageStatus {
+  NOT_PACKED
+  PACKED
+}
+
+enum DeliveryStatus {
+  NOT_DELIVERED
+  PICKED_UP
+  DELIVERED
+}

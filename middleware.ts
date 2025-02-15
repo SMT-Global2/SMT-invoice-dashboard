@@ -1,6 +1,13 @@
-export { auth as middleware } from '@/lib/auth';
+import { withAuth } from 'next-auth/middleware';
 
-// Don't invoke Middleware on some paths
+export default withAuth({
+  pages: {
+    signIn: '/login',
+  },
+});
+
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
+  matcher: [
+    '/dashboard/:path*',
+  ],
 };
