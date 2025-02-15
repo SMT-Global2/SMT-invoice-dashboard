@@ -1,72 +1,115 @@
 import 'server-only';
+import mongoose, { Schema, model, models } from 'mongoose';
+import { z } from 'zod';
 
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
-import {
-  pgTable,
-  text,
-  numeric,
-  integer,
-  timestamp,
-  pgEnum,
-  serial
-} from 'drizzle-orm/pg-core';
-import { count, eq, ilike } from 'drizzle-orm';
-import { createInsertSchema } from 'drizzle-zod';
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-export const db = drizzle(neon(process.env.POSTGRES_URL!));
+// MongoDB connection
+let cached = (global as any).mongoose;
 
-export const statusEnum = pgEnum('status', ['active', 'inactive', 'archived']);
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null };
+}
 
-export const products = pgTable('products', {
-  id: serial('id').primaryKey(),
-  imageUrl: text('image_url').notNull(),
-  name: text('name').notNull(),
-  status: statusEnum('status').notNull(),
-  price: numeric('price', { precision: 10, scale: 2 }).notNull(),
-  stock: integer('stock').notNull(),
-  availableAt: timestamp('available_at').notNull()
+export async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      return mongoose;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
+}
+
+// Product Schema
+const productSchema = new Schema({
+  imageUrl: { type: String, required: true },
+  name: { type: String, required: true },
+  status: { 
+    type: String, 
+    required: true,
+    enum: ['active', 'inactive', 'archived']
+  },
+  price: { 
+    type: Number, 
+    required: true,
+    get: (v: number) => (v/100).toFixed(2),
+    set: (v: number) => v * 100
+  },
+  stock: { type: Number, required: true },
+  availableAt: { type: Date, required: true }
+}, {
+  timestamps: true
 });
 
-export type SelectProduct = typeof products.$inferSelect;
-export const insertProductSchema = createInsertSchema(products);
+export const Product = models.Product || model('Product', productSchema);
 
+// Zod schema for validation
+export const insertProductSchema = z.object({
+  imageUrl: z.string(),
+  name: z.string(),
+  status: z.enum(['active', 'inactive', 'archived']),
+  price: z.number(),
+  stock: z.number(),
+  availableAt: z.date()
+});
+
+export type ProductType = z.infer<typeof insertProductSchema>;
+
+// Product operations
 export async function getProducts(
   search: string,
   offset: number
 ): Promise<{
-  products: SelectProduct[];
+  products: ProductType[];
   newOffset: number | null;
   totalProducts: number;
 }> {
-  // Always search the full table, not per page
-  if (search) {
-    return {
-      products: await db
-        .select()
-        .from(products)
-        .where(ilike(products.name, `%${search}%`))
-        .limit(1000),
-      newOffset: null,
-      totalProducts: 0
-    };
-  }
-
-  if (offset === null) {
-    return { products: [], newOffset: null, totalProducts: 0 };
-  }
-
-  let totalProducts = await db.select({ count: count() }).from(products);
-  let moreProducts = await db.select().from(products).limit(5).offset(offset);
-  let newOffset = moreProducts.length >= 5 ? offset + 5 : null;
-
+  await connectDB();
+  
+  const query = search 
+    ? { name: { $regex: search, $options: 'i' } }
+    : {};
+    
+  const limit = 10;
+  const products = await Product.find(query)
+    .skip(offset)
+    .limit(limit)
+    .lean() as (ProductType & { _id: unknown; __v: number; })[];
+    
+  const totalProducts = await Product.countDocuments(query);
+  const newOffset = offset + limit < totalProducts ? offset + limit : null;
+  
   return {
-    products: moreProducts,
+    products: products.map(({ imageUrl, name, status, price, stock, availableAt }) => ({
+      imageUrl,
+      name,
+      status,
+      price,
+      stock,
+      availableAt
+    })),
     newOffset,
-    totalProducts: totalProducts[0].count
+    totalProducts
   };
 }
 
-export async function deleteProductById(id: number) {
-  await db.delete(products).where(eq(products.id, id));
+export async function deleteProductById(id: string) {
+  await connectDB();
+  return Product.findByIdAndDelete(id);
 }
