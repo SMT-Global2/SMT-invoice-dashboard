@@ -1,21 +1,35 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import moment from 'moment'
-import { Invoice } from '@prisma/client'
+import { CheckStatus, PackageStatus } from '@prisma/client'
 
-interface InvoiceData {
+export interface InvoiceData {
   date: Date
   invoiceNumber: number
   partyCode: string
   medicalName: string
   city: string
-  image: string | null
+  image: string[]
   timestamp: string
-  generatedDate: Date
+  generatedDate: Date | null
+}
+
+export interface CheckInvoiceData extends InvoiceData {
+  checkUsername : string | null
+  checkTimestamp : Date | null
+  checkStatus : CheckStatus
+}
+
+export interface PackInvoiceData extends InvoiceData {
+  packUsername : string | null
+  packTimestamp : Date | null
+  packStatus : PackageStatus
 }
 
 interface InvoiceState {
   invoices: InvoiceData[]
+  checkInvoices: CheckInvoiceData[]
+  packInvoices: PackInvoiceData[]
   selectedDate: Date | null
   currentPage: number
   itemsPerPage: number
@@ -28,6 +42,8 @@ interface InvoiceState {
   setCurrentPage: (page: number) => void
   updateInvoiceImage: (sr: number, image: string) => void
   fetchInvoices: (date?: Date | null) => Promise<void>
+  fetchCheckInvoices: () => Promise<void>
+  fetchPackInvoices: () => Promise<void>
   handleInvoices: () => Promise<void>
 }
 
@@ -38,7 +54,7 @@ export const useInvoiceStore = create<InvoiceState>()(
       invoiceStartNo: -1,
       selectedDate: null,
       currentPage: 1,
-      itemsPerPage: 10,
+      itemsPerPage: 100,
       isLoading: false,
       error: null,
 
@@ -53,7 +69,7 @@ export const useInvoiceStore = create<InvoiceState>()(
         const invoices = [...get().invoices]
         const index = invoices.findIndex(item => item.invoiceNumber === sr)
         if (index !== -1) {
-          invoices[index].image = image
+          invoices[index].image.push(image)
           set({ invoices })
         }
       },
@@ -110,9 +126,9 @@ export const useInvoiceStore = create<InvoiceState>()(
                 partyCode: '',
                 medicalName: '-',
                 city: '-',
-                image: null,
+                image: [],
                 timestamp: moment().toISOString(),
-                generatedDate: moment().toDate()
+                generatedDate: null
               });
             }
             currentNo++;
@@ -127,6 +143,30 @@ export const useInvoiceStore = create<InvoiceState>()(
           });
         }
       },
+
+      fetchCheckInvoices: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          const response = await fetch('/api/invoice/check');
+          const { data } = await response.json();
+          set({ checkInvoices: data, isLoading: false });
+        } catch (error) {
+          set({ error: 'Failed to fetch check invoices', isLoading: false });
+        }
+      },
+
+      fetchPackInvoices: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          const response = await fetch('/api/invoice/pack');
+          const { data } = await response.json();
+          set({ packInvoices: data, isLoading: false });
+        } catch (error) {
+          set({ error: 'Failed to fetch pack invoices', isLoading: false });
+        }
+      },
+
+
       
     }),
     {

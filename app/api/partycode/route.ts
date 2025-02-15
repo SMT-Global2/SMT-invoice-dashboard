@@ -14,7 +14,7 @@ export async function GET(request: Request) {
         // { city: { contains: search, mode: 'insensitive' } }
       ]
     },
-    take: 10, 
+    take: 100, 
     orderBy: {
       code: 'asc'
     }

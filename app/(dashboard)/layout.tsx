@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import {
   Home,
   LineChart,
@@ -11,7 +11,10 @@ import {
   Settings,
   ShoppingCart,
   Users2,
-  LogOut
+  LogOut,
+  FileText, 
+  CheckCircle, 
+  Truck
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -33,6 +36,7 @@ export default function DashboardLayout({
         <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
           <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <MobileNav />
+            <User />
             <SignoutButton />
           </header>
           <main className="grid flex-1 items-start gap-2 p-4 sm:px-6 sm:py-0 md:gap-4 bg-muted/40">
@@ -62,19 +66,19 @@ function DesktopNav() {
         </NavItem>
 
         <NavItem href="/invoice" label="Invoices">
-          <ShoppingCart className="h-5 w-5" />
+          <FileText className="h-5 w-5" />
         </NavItem>
 
         <NavItem href="/checking" label="Chcecking">
-          <Package className="h-5 w-5" />
+          <CheckCircle className="h-5 w-5" />
         </NavItem>
 
         <NavItem href="/packing" label="Packing">
-          <Users2 className="h-5 w-5" />
+          <Package className="h-5 w-5" />
         </NavItem>
 
         <NavItem href="/delivery" label="Delivery">
-          <LineChart className="h-5 w-5" />
+          <Truck className="h-5 w-5" />
         </NavItem>
 
       </nav>
@@ -111,33 +115,45 @@ function MobileNav() {
             href="/invoice"
             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
           >
-            <ShoppingCart className="h-5 w-5" />
+            <FileText className="h-5 w-5" />
             Invoices
           </Link>
           <Link
             href="/checking"
             className="flex items-center gap-4 px-2.5 text-foreground"
           >
-            <Package className="h-5 w-5" />
+            <CheckCircle className="h-5 w-5" />
             Checking
           </Link>
           <Link
             href="/packing"
             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
           >
-            <Users2 className="h-5 w-5" />
+            <Package className="h-5 w-5" />
             Packing
           </Link>
           <Link
             href="/delivery"
             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
           >
-            <LineChart className="h-5 w-5" />
+            <Truck className="h-5 w-5" />
             Delivery
           </Link>
         </nav>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function User() {
+  const { data: session } = useSession();
+
+  if (!session) return null;
+
+  return (
+    <div className="text-sm font-medium">
+      Hi, {session.user?.name}!
+    </div>
   );
 }
 

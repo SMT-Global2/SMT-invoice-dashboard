@@ -27,21 +27,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { useInvoiceStore } from '@/store/useInvoiceStore';
-import { Check, ChevronsUpDown } from "lucide-react"
+import { InvoiceData , useInvoiceStore } from '@/store/useInvoiceStore';
+import { Check, ChevronsUpDown, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-
-interface InvoiceData {
-  invoiceNumber: number;
-  date: Date;
-  partyCode: string;
-  medicalName: string;
-  city: string;
-  image: string | null;
-  timestamp: string;
-}
+import { ShowImage } from '@/components/show-image';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 
 interface PartyCode {
   id: string;
@@ -51,6 +44,9 @@ interface PartyCode {
 }
 
 export default function InvoicePage() {
+  const [uploadingImage, setUploadingImage] = useState<number | null>(null);
+  const { toast } = useToast();
+
   const {
     invoices,
     selectedDate,
@@ -116,14 +112,59 @@ export default function InvoicePage() {
   }, [searchTerm]);
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageData = reader.result as string;
-        updateInvoiceImage(invoiceNumber, imageData);
-      };
-      reader.readAsDataURL(file);
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploadingImage(invoiceNumber);
+
+      // Convert File to URL path
+      const filePath = URL.createObjectURL(file);
+      console.log({filePath});
+
+      const formData = new FormData();
+      formData.append('file', filePath);
+      formData.append('upload_preset', 'ml_default');
+      formData.append('timestamp', Date.now().toString());
+      formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+      formData.append('signature', process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET!);
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+
+      updateInvoiceImage(invoiceNumber, data.secure_url);
+      
+      toast({
+        title: 'Success',
+        description: 'Image uploaded successfully',
+        duration: 2000,
+      });
+
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to upload image. Please try again.',
+        duration: 2000, // 2 seconds
+      });
+    } finally {
+      setUploadingImage(null);
+      // Clean up the URL to prevent memory leaks
+      if (filePath) {
+        URL.revokeObjectURL(filePath);
+      }
     }
   };
 
@@ -136,7 +177,7 @@ export default function InvoicePage() {
         partyCode: '',
         medicalName: '-',
         city: '-',
-        image: null,
+        image: [],
       };
       // TODO: Add updateInvoices action to store
       setInvoices(newData);
@@ -216,7 +257,7 @@ export default function InvoicePage() {
                               {row.partyCode || "Select Party"}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="p-0">
+                          <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
                             <Command>
                               <CommandInput 
                                 placeholder="Party Code" 
@@ -224,7 +265,8 @@ export default function InvoicePage() {
                                 onValueChange={(value) => handleSearchChange(row.invoiceNumber, value)}
                               />
                               <CommandEmpty>No party found.</CommandEmpty>
-                              <CommandGroup>
+                              <div className="max-h-[200px] overflow-y-auto">
+                                <CommandGroup>
                                 {partyCodes.map((party) => (
                                   <CommandItem
                                     key={party.id}
@@ -240,10 +282,11 @@ export default function InvoicePage() {
                                         row.partyCode === party.code ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    {party.code} - {party.customerName}
+                                    {party.code} - {party?.customerName}
                                   </CommandItem>
                                 ))}
-                              </CommandGroup>
+                                </CommandGroup>
+                              </div>
                             </Command>
                           </PopoverContent>
                         </Popover>
@@ -259,11 +302,26 @@ export default function InvoicePage() {
                               onChange={handleImageUpload(row.invoiceNumber)}
                               className="absolute inset-0 opacity-0 w-full cursor-pointer"
                             />
-                            <Button variant="outline" className="w-32">
-                              Upload Image
+                            <Button 
+                              variant="outline" 
+                              className="gap-2" 
+                              disabled={uploadingImage === row.invoiceNumber}
+                            >
+                              {uploadingImage === row.invoiceNumber ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  Upload Image
+                                  <Upload className='w-5 h-5'/>
+                                </>
+                              )}
                             </Button>
                           </div>
-                          {row?.image && (
+                          <ShowImage images={row?.image}/>
+                          {/* {row?.images && (
                             <Button
                               variant="outline"
                               onClick={() => {
@@ -272,7 +330,7 @@ export default function InvoicePage() {
                             >
                               View
                             </Button>
-                          )}
+                          )} */}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -292,7 +350,7 @@ export default function InvoicePage() {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>{row.timestamp}</TableCell>
+                      <TableCell>{row.generatedDate ? row.generatedDate.toLocaleTimeString() : '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -306,16 +364,70 @@ export default function InvoicePage() {
                     className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
                   />
                 </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
+                
+                {/* First page */}
+                {totalPages > 0 && (
+                  <PaginationItem className={currentPage === 1 ? 'hidden sm:block' : ''}>
                     <PaginationLink
-                      onClick={() => handlePageChange(page)}
-                      isActive={currentPage === page}
+                      onClick={() => handlePageChange(1)}
+                      isActive={currentPage === 1}
                     >
-                      {page}
+                      1
                     </PaginationLink>
                   </PaginationItem>
-                ))}
+                )}
+
+                {/* Left ellipsis */}
+                {currentPage > 3 && (
+                  <PaginationItem className="hidden sm:block">
+                    <PaginationLink className="cursor-default">...</PaginationLink>
+                  </PaginationItem>
+                )}
+
+                {/* Mobile: Show only current page */}
+                {currentPage !== 1 && currentPage !== totalPages && (
+                  <PaginationItem className="sm:hidden">
+                    <PaginationLink isActive>{currentPage}</PaginationLink>
+                  </PaginationItem>
+                )}
+
+                {/* Desktop: Show surrounding pages */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => {
+                    if (totalPages <= 5) return true;
+                    return page === currentPage - 1 || page === currentPage || page === currentPage + 1;
+                  })
+                  .filter(page => page !== 1 && page !== totalPages)
+                  .map((page) => (
+                    <PaginationItem key={page} className="hidden sm:block">
+                      <PaginationLink
+                        onClick={() => handlePageChange(page)}
+                        isActive={currentPage === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+
+                {/* Right ellipsis */}
+                {currentPage < totalPages - 2 && (
+                  <PaginationItem className="hidden sm:block">
+                    <PaginationLink className="cursor-default">...</PaginationLink>
+                  </PaginationItem>
+                )}
+
+                {/* Last page */}
+                {totalPages > 1 && (
+                  <PaginationItem className={currentPage === totalPages ? 'hidden sm:block' : ''}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(totalPages)}
+                      isActive={currentPage === totalPages}
+                    >
+                      {totalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+
                 <PaginationItem>
                   <PaginationNext 
                     onClick={() => handlePageChange(currentPage + 1)}
