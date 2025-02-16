@@ -318,25 +318,26 @@ export default function InvoicePage() {
                               onChange={handleImageUpload(row.invoiceNumber)}
                               className="absolute inset-0 opacity-0 w-full cursor-pointer"
                             />
-                            <Button 
-                              variant="outline" 
-                              className="gap-2" 
-                              disabled={uploadingImage === row.invoiceNumber}
-                            >
-                              {
-                                uploadingImage === row.invoiceNumber ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Uploading...
-                                  </>
-                                ) : (
-                                  <>
-                                    Upload Image
-                                    <Upload className='w-5 h-5'/>
-                                  </>
-                                )
-                              }
-                            </Button>
+                              <Button 
+                                variant="outline" 
+                                className="gap-2" 
+                                disabled={row.invoiceTimestamp !== null ||uploadingImage === row.invoiceNumber}
+                              >
+                                {
+                                  uploadingImage === row.invoiceNumber ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    
+                                    <>
+                                      Upload Image
+                                      <Upload className='w-5 h-5'/>
+                                    </>
+                                  )
+                                }
+                              </Button>
                           </div>
                           <ShowImage images={row?.image}/>
                           {/* {row?.images && (

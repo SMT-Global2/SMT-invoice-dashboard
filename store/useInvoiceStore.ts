@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import moment from 'moment'
-import { CheckStatus, PackageStatus } from '@prisma/client'
+import { CheckStatus, Invoice, PackageStatus } from '@prisma/client'
 
 export interface InvoiceData {
   date: Date
@@ -96,7 +96,11 @@ export const useInvoiceStore = create<InvoiceState>()(
           const HANDLE_LIMIT = 300;
 
           // Get invoice start number
-          const startNoResponse = await fetch('/api/invoice/startNo');
+          const [startNoResponse , todayResponse] = await Promise.all([
+            fetch('/api/invoice/startNo'),
+            fetch('/api/invoice/getToday')
+          ]);
+
           const { data: startNoData } = await startNoResponse.json();
           
           if (!startNoData) {
@@ -107,11 +111,16 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ invoiceStartNo: startNoData });
 
           // Get today's invoices
-          const todayResponse = await fetch('/api/invoice/getToday');
           const { data: todayInvoices } = await todayResponse.json();
 
-          const finalInvoices: InvoiceData[] = [];
+          //Logi for current no
+          //if we find invoice that is today which is less than current no then that is our start else start no.
           let currentNo = startNoData;
+          if (todayInvoices.length > 0) {
+            currentNo = Math.min(currentNo , ...todayInvoices.map((item: any) => item.invoiceNumber));
+          }
+
+          const finalInvoices: InvoiceData[] = [];
 
           for (let i = 0; i < HANDLE_LIMIT; i++) {
             const existingInvoice = todayInvoices.find(
@@ -119,7 +128,11 @@ export const useInvoiceStore = create<InvoiceState>()(
             );
 
             if (existingInvoice) {
-              finalInvoices.push(existingInvoice);
+              finalInvoices.push({ 
+                ...existingInvoice,
+                medicalName : existingInvoice.party.customerName || '-',
+                city : existingInvoice.party.city || '-',
+              });
             } else {
               finalInvoices.push({
                 invoiceNumber: currentNo,

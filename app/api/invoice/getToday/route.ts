@@ -23,10 +23,15 @@ export async function GET(request: NextRequest) {
       };
 
   const data = await prisma.invoice.findMany({
-    where,
+    where : {
+      ...where,
+    },
+    include : {
+      party : true,
+    },
     orderBy: {
       generatedDate: 'desc'
-    }
+    },
   });
 
   return Response.json({
