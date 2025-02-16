@@ -35,6 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
+import { tweleHrFormatDateString } from '@/lib/helper';
 
 interface PartyCode {
   id: string;
@@ -119,16 +120,9 @@ export default function InvoicePage() {
 
       setUploadingImage(invoiceNumber);
 
-      // Convert File to URL path
-      // const filePath = URL.createObjectURL(file);
-      // console.log({filePath});
-
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', 'my-unsigened-upload-preset');
-      // formData.append('timestamp', Date.now().toString());
-      // formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
-      // formData.append('signature', process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET!);
 
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
@@ -158,11 +152,10 @@ export default function InvoicePage() {
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to upload image. Please try again.',
-        duration: 2000, // 2 seconds
+        duration: 2000,
       });
     } finally {
       setUploadingImage(null);
-      // Clean up the URL to prevent memory leaks
     }
   };
 
@@ -354,16 +347,6 @@ export default function InvoicePage() {
                             </Button>
                           </div>
                           <ShowImage images={row?.image} />
-                          {/* {row?.images && (
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                window.open(row.image!, '_blank');
-                              }}
-                            >
-                              View
-                            </Button>
-                          )} */}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -389,14 +372,7 @@ export default function InvoicePage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {row.invoiceTimestamp !== null
-                          ? new Date(row.invoiceTimestamp).toLocaleString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: true
-                          })
-                          : '-'}
+                        {row.invoiceTimestamp !== null ? tweleHrFormatDateString(row.invoiceTimestamp): '-'}
                       </TableCell>
 
                     </TableRow>

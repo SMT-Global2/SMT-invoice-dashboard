@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { CheckStatus, PackageStatus } from '@prisma/client'
 import moment from 'moment'
-import { CheckStatus, Invoice, PackageStatus } from '@prisma/client'
 
 export interface InvoiceData {
   date: Date
@@ -48,6 +48,8 @@ interface InvoiceState {
   handleInvoices: () => Promise<void>
   saveInvoice: (invoiceNumber: number) => Promise<void>
   resetInvoice: (invoiceNumber: number) => Promise<void>
+  checkInvoice: (invoiceNumber: number) => Promise<void>
+  packInvoice: (invoiceNumber: number) => Promise<void>
 }
 
 export const useInvoiceStore = create<InvoiceState>()(
@@ -283,6 +285,78 @@ export const useInvoiceStore = create<InvoiceState>()(
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : 'Failed to reset invoice', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      checkInvoice: async (invoiceNumber: number) => {
+        try {
+          set({ isLoading: true });
+          
+          const invoice = get().checkInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          
+          if (!invoice) {
+            throw new Error('Invoice not found');
+          }
+
+          const response = await fetch('/api/invoice/check?invoiceNumber=' + invoiceNumber, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to check invoice');
+          }
+
+          //call hanldeInvoice
+          await get().fetchCheckInvoices();
+
+          set({ isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to check invoice', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      packInvoice: async (invoiceNumber: number) => {
+        try {
+          set({ isLoading: true });
+          
+          const invoice = get().packInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          
+          if (!invoice) {
+            throw new Error('Invoice not found');
+          }
+
+          const response = await fetch('/api/invoice/pack?invoiceNumber=' + invoiceNumber, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to pack invoice');
+          }
+
+          //call hanldeInvoice
+          await get().fetchPackInvoices();
+
+          set({ isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to pack invoice', 
             isLoading: false 
           });
           throw error;
