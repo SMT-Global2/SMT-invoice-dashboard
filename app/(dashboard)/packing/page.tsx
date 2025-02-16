@@ -32,7 +32,7 @@ export default function PackingPage() {
   }, [fetchPackInvoices]);
 
   return (
-    <>
+    <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100'>
     <Card>
       <CardHeader>
         <CardTitle>Unpacked Invoices</CardTitle>
@@ -170,6 +170,6 @@ export default function PackingPage() {
         </div>
       </CardContent>
     </Card>
-    </>
+    </div>
   );
 }

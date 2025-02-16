@@ -53,7 +53,7 @@ function DesktopNav() {
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
       <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-        <NavItem href="/" label="SMY">
+        <NavItem href="/" label="SMT">
           <SMTLogo/>
           <span className="sr-only">SMT</span>
         </NavItem>
@@ -94,20 +94,23 @@ function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="sm:max-w-xs">
         <nav className="grid gap-6 text-lg font-medium">
+
           <Link
-            href="#"
+            href="/"
             className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
           >
-            <Package2 className="h-5 w-5 transition-all group-hover:scale-110" />
-            <span className="sr-only">Vercel</span>
+            <SMTLogo/>
+            <span className="sr-only">SMT</span>
           </Link>
+
           <Link
-            href="#"
+            href="/"
             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
           >
             <Home className="h-5 w-5" />
             Dashboard
           </Link>
+
           <Link
             href="/invoice"
             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
@@ -115,13 +118,15 @@ function MobileNav() {
             <FileText className="h-5 w-5" />
             Invoices
           </Link>
+
           <Link
             href="/checking"
-            className="flex items-center gap-4 px-2.5 text-foreground"
+            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
           >
             <CheckCircle className="h-5 w-5" />
             Checking
           </Link>
+
           <Link
             href="/packing"
             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
@@ -129,6 +134,7 @@ function MobileNav() {
             <Package className="h-5 w-5" />
             Packing
           </Link>
+
           <Link
             href="/delivery"
             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
@@ -136,6 +142,7 @@ function MobileNav() {
             <Truck className="h-5 w-5" />
             Delivery
           </Link>
+
         </nav>
       </SheetContent>
     </Sheet>
