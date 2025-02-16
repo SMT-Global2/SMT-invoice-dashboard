@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -68,17 +68,15 @@ export default function InvoicePage() {
   const [searchTerms, setSearchTerms] = useState<{ [key: number]: string }>({});
   const [openComboboxes, setOpenComboboxes] = useState<{ [key: number]: boolean }>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const isFirstMount = useRef(true);
+  const prevDateRef = useRef(selectedDate);
 
   useEffect(() => {
-    let mounted = true;
-    
-    if (mounted) {
+    if (isFirstMount.current || prevDateRef.current !== selectedDate) {
       handleInvoices();
+      isFirstMount.current = false;
+      prevDateRef.current = selectedDate;
     }
-    
-    return () => {
-      mounted = false;
-    };
   }, [handleInvoices, selectedDate]);
 
   const searchPartyCode = async (search: string) => {
