@@ -48,7 +48,7 @@ model Invoice {
   partyCode         String    
   party             PartyCode  @relation(fields: [partyCode], references: [code])
 
-  imageLinks        String[]
+  image             String[]
   isOtc             Boolean   @default(false)
 
   invoiceUsername   String

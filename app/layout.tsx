@@ -4,9 +4,8 @@ import AuthProvider from '@/components/auth-provider';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata = {
-  title: 'Next.js App Router + NextAuth + Tailwind CSS',
-  description:
-    'A user admin dashboard configured with Next.js, Postgres, NextAuth, Tailwind CSS, TypeScript, and Prettier.'
+  title: 'Sanjivan Medico Traders',
+  description: 'Sanjivan Medico Traders Dashboard',
 };
 
 export default function RootLayout({
@@ -16,6 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+      <link rel="smt" href="/static/favicon.png" />
+      </head>
       <body className="flex min-h-screen w-full flex-col">
         <AuthProvider>
           {children}

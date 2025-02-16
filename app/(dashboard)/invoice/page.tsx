@@ -58,7 +58,7 @@ export default function InvoicePage() {
     setSelectedDate,
     setCurrentPage,
     updateInvoiceImage,
-    fetchInvoices,
+    saveInvoice,
     handleInvoices,
   } = useInvoiceStore();
 
@@ -119,15 +119,15 @@ export default function InvoicePage() {
       setUploadingImage(invoiceNumber);
 
       // Convert File to URL path
-      const filePath = URL.createObjectURL(file);
-      console.log({filePath});
+      // const filePath = URL.createObjectURL(file);
+      // console.log({filePath});
 
       const formData = new FormData();
-      formData.append('file', filePath);
-      formData.append('upload_preset', 'ml_default');
-      formData.append('timestamp', Date.now().toString());
-      formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
-      formData.append('signature', process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET!);
+      formData.append('file', file);
+      formData.append('upload_preset', 'my-unsigened-upload-preset');
+      // formData.append('timestamp', Date.now().toString());
+      // formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+      // formData.append('signature', process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET!);
 
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
@@ -162,25 +162,6 @@ export default function InvoicePage() {
     } finally {
       setUploadingImage(null);
       // Clean up the URL to prevent memory leaks
-      if (filePath) {
-        URL.revokeObjectURL(filePath);
-      }
-    }
-  };
-
-  const handleReset = (invoiceNumber: number) => {
-    const newData = [...invoices];
-    const index = newData.findIndex(item => item.invoiceNumber === invoiceNumber);
-    if (index !== -1) {
-      newData[index] = {
-        ...newData[index],
-        partyCode: '',
-        medicalName: '-',
-        city: '-',
-        image: [],
-      };
-      // TODO: Add updateInvoices action to store
-      setInvoices(newData);
     }
   };
 
@@ -194,10 +175,44 @@ export default function InvoicePage() {
         medicalName: partyCode.customerName || '-',
         city: partyCode.city || '-',
       };
-      // TODO: Add updateInvoices action to store
       setInvoices(newData);
     }
   };
+
+  const handleReset = async (invoiceNumber: number) => {
+    const newData = [...invoices];
+    const index = newData.findIndex(item => item.invoiceNumber === invoiceNumber);
+    if (index !== -1) {
+      newData[index] = {
+        ...newData[index],
+        partyCode: '',
+        medicalName: '-',
+        city: '-',
+        image: [],
+      };
+      setInvoices(newData);
+    }
+  };
+
+  const handleSave = async (invoiceNumber: number) => {
+    try {
+      console.log("Saving invoice:", invoiceNumber);
+      await saveInvoice(invoiceNumber);
+      toast({
+        title: 'Success',
+        description: 'Invoice saved successfully',
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Save error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed',
+        description: error instanceof Error ? error.message : 'Invoice not saved',
+        duration: 2000,
+      });
+    }
+  }
 
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -210,6 +225,7 @@ export default function InvoicePage() {
     }
   };
 
+  console.log({invoices})
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
@@ -241,7 +257,7 @@ export default function InvoicePage() {
                   {currentInvoices.map((row) => (
                     <TableRow key={row.invoiceNumber}>
                       <TableCell>{row.invoiceNumber}</TableCell>
-                      <TableCell>{row.generatedDate ? row.generatedDate.toLocaleDateString() : new Date().toLocaleDateString()}</TableCell>
+                      <TableCell>{selectedDate ? selectedDate.toDateString() : new Date().toDateString()}</TableCell>
                       <TableCell>
                         <Popover 
                           open={openComboboxes[row.invoiceNumber]} 
@@ -307,17 +323,19 @@ export default function InvoicePage() {
                               className="gap-2" 
                               disabled={uploadingImage === row.invoiceNumber}
                             >
-                              {uploadingImage === row.invoiceNumber ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  Upload Image
-                                  <Upload className='w-5 h-5'/>
-                                </>
-                              )}
+                              {
+                                uploadingImage === row.invoiceNumber ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    Upload Image
+                                    <Upload className='w-5 h-5'/>
+                                  </>
+                                )
+                              }
                             </Button>
                           </div>
                           <ShowImage images={row?.image}/>
@@ -335,13 +353,18 @@ export default function InvoicePage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button variant="default" size="sm">
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            disabled={isLoading}
+                            onClick={async () => await handleSave(row.invoiceNumber)}
+                          >
                             Save
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleReset(row.invoiceNumber)}
+                            onClick={async () => await handleReset(row.invoiceNumber)}
                           >
                             Reset
                           </Button>
@@ -350,7 +373,7 @@ export default function InvoicePage() {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>{row.generatedDate ? row.generatedDate.toLocaleTimeString() : '-'}</TableCell>
+                      <TableCell>{row.invoiceTimestamp !== null ? new Date(row.invoiceTimestamp).toLocaleString() : '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

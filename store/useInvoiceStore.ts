@@ -12,6 +12,7 @@ export interface InvoiceData {
   image: string[]
   timestamp: string
   generatedDate: Date | null
+  invoiceTimestamp: Date | null
 }
 
 export interface CheckInvoiceData extends InvoiceData {
@@ -45,6 +46,7 @@ interface InvoiceState {
   fetchCheckInvoices: () => Promise<void>
   fetchPackInvoices: () => Promise<void>
   handleInvoices: () => Promise<void>
+  saveInvoice: (invoiceNumber: number) => Promise<void>
 }
 
 export const useInvoiceStore = create<InvoiceState>()(
@@ -56,7 +58,6 @@ export const useInvoiceStore = create<InvoiceState>()(
       currentPage: 1,
       itemsPerPage: 100,
       isLoading: false,
-      error: null,
 
       setInvoices: (invoices) => set({ invoices }),
       setSelectedDate: (date) => {
@@ -128,7 +129,8 @@ export const useInvoiceStore = create<InvoiceState>()(
                 city: '-',
                 image: [],
                 timestamp: moment().toISOString(),
-                generatedDate: null
+                generatedDate: null,
+                invoiceTimestamp : null
               });
             }
             currentNo++;
@@ -166,7 +168,54 @@ export const useInvoiceStore = create<InvoiceState>()(
         }
       },
 
+      saveInvoice: async (invoiceNumber: number) => {
+        try {
+          set({ isLoading: true });
+          
+          const invoice = get().invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          
+          if (!invoice) {
+            throw new Error('Invoice not found');
+          }
 
+          const invoiceToSave = {
+            invoiceNumber : invoice.invoiceNumber,
+            generatedDate: moment().toDate(),
+            partyCode : invoice.partyCode,
+            image: invoice.image,
+            isOtc: false,
+            invoiceTimestamp : moment().toDate(),
+          };
+
+          const response = await fetch('/api/invoice/save', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(invoiceToSave),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to save invoice');
+          }
+
+          const { data } = await response.json();
+
+          const updatedInvoices = get().invoices.map(inv => 
+            inv.invoiceNumber === invoiceNumber ? { ...inv, ...data } : inv
+          );
+
+          set({ invoices: updatedInvoices, isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to save invoice', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
       
     }),
     {
