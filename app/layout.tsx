@@ -2,6 +2,7 @@ import './globals.css';
 import { Analytics } from '@vercel/analytics/react';
 import AuthProvider from '@/components/auth-provider';
 import { Toaster } from '@/components/ui/toaster';
+import moment from 'moment-timezone';
 
 export const metadata = {
   title: 'Sanjivan Medico Traders',
@@ -13,6 +14,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+
+  moment.tz.setDefault('Asia/Kolkata');
+
   return (
     <html lang="en">
       <head>

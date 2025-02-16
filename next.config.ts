@@ -1,3 +1,8 @@
+// next.config.js
+import moment from 'moment-timezone';
+
+moment.tz.setDefault('Asia/Kolkata');
+
 export default {
   images: {
     remotePatterns: [

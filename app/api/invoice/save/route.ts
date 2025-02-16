@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 const invoiceSchema = z.object({
     invoiceNumber: z.number(),
-    partyCode: z.string(),
+    partyCode: z.string().nonempty('Party code is required'),
     image: z.array(z.string()).nonempty('Atleast one image is required'),
     isOtc: z.boolean().default(false),
     generatedDate: z.string().datetime(),
@@ -61,8 +61,8 @@ export async function POST(req: Request) {
         if (error instanceof z.ZodError) {
             return Response.json({
                 success: false,
-                message: 'Validation failed',
-                errors: error.errors
+                message: 'Validation failed : ' + error.errors.map(err => err.message).join(', '),
+                errors: error.errors.map(err => err.message)
             }, { status: 400 });
         }
 

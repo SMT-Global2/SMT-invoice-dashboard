@@ -6,11 +6,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   //find maximum invoice number
+  const searchParams = request.nextUrl.searchParams;
+  const dateFilter = searchParams.get('date') ?? new Date();
+
+
   const data = await prisma.invoice.findFirst({
     where : {
       invoiceTimestamp : {
-        not: null,
-        lte: moment().startOf('day').toDate()
+          not: null,
+          gte: moment(dateFilter).subtract(1 , 'day').startOf('day').toDate(),
+          lte: moment(dateFilter).subtract(1 , 'day').endOf('day').toDate()
       }
     },
     orderBy: {
@@ -19,6 +24,6 @@ export async function GET(request: NextRequest) {
   });
 
   return Response.json({
-    data: data?.invoiceNumber || 1
+    data: (data?.invoiceNumber ?? 0) + 1
   });
 }

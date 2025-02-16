@@ -70,7 +70,15 @@ export default function InvoicePage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    handleInvoices();
+    let mounted = true;
+    
+    if (mounted) {
+      handleInvoices();
+    }
+    
+    return () => {
+      mounted = false;
+    };
   }, [handleInvoices, selectedDate]);
 
   const searchPartyCode = async (search: string) => {
@@ -276,6 +284,7 @@ export default function InvoicePage() {
                               role="combobox"
                               aria-expanded={openComboboxes[row.invoiceNumber]}
                               className="justify-between"
+                              disabled={row.invoiceTimestamp !== null}
                             >
                               {row.partyCode || "Select Party"}
                             </Button>
@@ -319,15 +328,9 @@ export default function InvoicePage() {
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <div className="relative">
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageUpload(row.invoiceNumber)}
-                              className="absolute inset-0 opacity-0 w-full cursor-pointer"
-                            />
                             <Button
                               variant="outline"
-                              className="gap-2"
+                              className="gap-2 z-10"
                               disabled={row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                             >
                               {
@@ -339,12 +342,22 @@ export default function InvoicePage() {
                                 ) : (
 
                                   <>
-                                    Upload Image
-                                    <Upload className='w-5 h-5' />
+                                    <Upload className='w-5 h-5'/> 
+                                    Upload Image 
                                   </>
                                 )
                               }
                             </Button>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload(row.invoiceNumber)}
+                              className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
+                              hidden={row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                              style={{
+                                pointerEvents: row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber ? 'none' : 'auto'
+                              }}
+                            />
                           </div>
                           <ShowImage images={row?.image} />
                         </div>
@@ -354,7 +367,7 @@ export default function InvoicePage() {
                           <Button
                             variant="default"
                             size="sm"
-                            disabled={isLoading}
+                            disabled={isLoading || row.invoiceTimestamp !== null}
                             onClick={async () => await handleSave(row.invoiceNumber)}
                           >
                             Save

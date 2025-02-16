@@ -22,9 +22,9 @@ export interface CheckInvoiceData extends InvoiceData {
 }
 
 export interface PackInvoiceData extends InvoiceData {
-  packUsername : string | null
-  packTimestamp : Date | null
-  packStatus : PackageStatus
+  packageUsername : string | null
+  packageTimestamp : Date | null
+  packageStatus : PackageStatus
 }
 
 interface InvoiceState {
@@ -42,6 +42,7 @@ interface InvoiceState {
   setSelectedDate: (date: Date | undefined) => void
   setCurrentPage: (page: number) => void
   updateInvoiceImage: (sr: number, image: string) => void
+  updatePackInvoiceImage: (sr: number, image: string) => void
   fetchInvoices: (date?: Date | null) => Promise<void>
   fetchCheckInvoices: () => Promise<void>
   fetchPackInvoices: () => Promise<void>
@@ -80,6 +81,15 @@ export const useInvoiceStore = create<InvoiceState>()(
         }
       },
 
+      updatePackInvoiceImage: (sr, image) => {
+        const invoices = [...get().packInvoices]
+        const index = invoices.findIndex(item => item.invoiceNumber === sr)
+        if (index !== -1) {
+          invoices[index].image.push(image)
+          set({ invoices })
+        }
+      },
+
       fetchInvoices: async (date = get().selectedDate) => {
         try {
           set({ isLoading: true, error: null });
@@ -104,7 +114,7 @@ export const useInvoiceStore = create<InvoiceState>()(
 
           // Get invoice start number
           const [startNoResponse , todayResponse] = await Promise.all([
-            fetch('/api/invoice/startNo'),
+            fetch('/api/invoice/startNo?date=' + moment(date).format('YYYY-MM-DD')),
             fetch('/api/invoice?date=' + moment(date).format('YYYY-MM-DD'))
           ]);
 
@@ -123,9 +133,9 @@ export const useInvoiceStore = create<InvoiceState>()(
           //Logi for current no
           //if we find invoice that is today which is less than current no then that is our start else start no.
           let currentNo = startNoData;
-          if (todayInvoices.length > 0) {
-            currentNo = Math.min(currentNo , ...todayInvoices.map((item: any) => item.invoiceNumber));
-          }
+          // if (todayInvoices.length > 0) {
+          //   currentNo = Math.min(currentNo , ...todayInvoices.map((item: any) => item.invoiceNumber));
+          // }
 
           console.log('Current No:', currentNo);  
 
@@ -173,6 +183,7 @@ export const useInvoiceStore = create<InvoiceState>()(
       fetchCheckInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
+          console.log({a : "hRE"})
           const response = await fetch('/api/invoice/check');
           const { data } = await response.json();
           set({ 
@@ -342,6 +353,9 @@ export const useInvoiceStore = create<InvoiceState>()(
             headers: {
               'Content-Type': 'application/json',
             },
+            body: JSON.stringify({
+              image : invoice.image
+            })
           });
 
           if (!response.ok) {
