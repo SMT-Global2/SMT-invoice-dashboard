@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     },
     include: {
       party: true,
-      // invoicedBy: true
+      invoicedBy: true
     },
     orderBy: {
       generatedDate: 'desc'

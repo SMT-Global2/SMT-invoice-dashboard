@@ -15,6 +15,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { DialogTitle } from '@radix-ui/react-dialog';
 
 interface ShowImageProps {
   images: string[];
@@ -38,6 +39,7 @@ export function ShowImage({ images }: ShowImageProps) {
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[60%] p-0 bg-white/90">
+       <DialogTitle className='text-lg font-semibold m-2'>View Images</DialogTitle>
         <Carousel className="w-full relative ">
           <CarouselContent>
             {images.map((image, index) => (
@@ -46,10 +48,10 @@ export function ShowImage({ images }: ShowImageProps) {
                   <CldImage
                     src={image}
                     alt={`Bill Image ${index + 1}`}
-                    width="800"
-                    height="800"
+                    width="1920"
+                    height="1080"
                     crop={{
-                      type: 'auto',
+                      type: 'scale',
                       source: true
                     }}
                     className="rounded-lg object-contain max-h-[80vh]"

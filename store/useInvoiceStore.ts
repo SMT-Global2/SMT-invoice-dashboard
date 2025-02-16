@@ -31,7 +31,7 @@ interface InvoiceState {
   invoices: InvoiceData[]
   checkInvoices: CheckInvoiceData[]
   packInvoices: PackInvoiceData[]
-  selectedDate: Date | null
+  selectedDate: Date | undefined
   currentPage: number
   itemsPerPage: number
   isLoading: boolean
@@ -39,7 +39,7 @@ interface InvoiceState {
   invoiceStartNo: number
   // Actions
   setInvoices: (invoices: InvoiceData[]) => void
-  setSelectedDate: (date: Date | null) => void
+  setSelectedDate: (date: Date | undefined) => void
   setCurrentPage: (page: number) => void
   updateInvoiceImage: (sr: number, image: string) => void
   fetchInvoices: (date?: Date | null) => Promise<void>
@@ -47,6 +47,7 @@ interface InvoiceState {
   fetchPackInvoices: () => Promise<void>
   handleInvoices: () => Promise<void>
   saveInvoice: (invoiceNumber: number) => Promise<void>
+  resetInvoice: (invoiceNumber: number) => Promise<void>
 }
 
 export const useInvoiceStore = create<InvoiceState>()(
@@ -58,9 +59,11 @@ export const useInvoiceStore = create<InvoiceState>()(
       currentPage: 1,
       itemsPerPage: 100,
       isLoading: false,
-
       setInvoices: (invoices) => set({ invoices }),
       setSelectedDate: (date) => {
+        if (moment(date).isAfter(moment(), 'day')) {
+          return;
+        }
         set({ selectedDate: date });
         get().fetchInvoices(date);
       },
@@ -78,7 +81,7 @@ export const useInvoiceStore = create<InvoiceState>()(
       fetchInvoices: async (date = get().selectedDate) => {
         try {
           set({ isLoading: true, error: null });
-          const url = new URL('/api/invoice/getToday', window.location.origin);
+          const url = new URL('/api/invoice', window.location.origin);
           if (date) {
             url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
           }
@@ -93,12 +96,14 @@ export const useInvoiceStore = create<InvoiceState>()(
       handleInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
+
+          const date = get().selectedDate ?? new Date();
           const HANDLE_LIMIT = 300;
 
           // Get invoice start number
           const [startNoResponse , todayResponse] = await Promise.all([
             fetch('/api/invoice/startNo'),
-            fetch('/api/invoice/getToday')
+            fetch('/api/invoice?date=' + moment(date).format('YYYY-MM-DD'))
           ]);
 
           const { data: startNoData } = await startNoResponse.json();
@@ -120,9 +125,11 @@ export const useInvoiceStore = create<InvoiceState>()(
             currentNo = Math.min(currentNo , ...todayInvoices.map((item: any) => item.invoiceNumber));
           }
 
+          console.log('Current No:', currentNo);  
+
           const finalInvoices: InvoiceData[] = [];
 
-          for (let i = 0; i < HANDLE_LIMIT; i++) {
+          for (let i = 0; i < Math.max(HANDLE_LIMIT , todayInvoices.length) ; i++) {
             const existingInvoice = todayInvoices.find(
               (item: any) => item.invoiceNumber === currentNo
             );
@@ -133,7 +140,9 @@ export const useInvoiceStore = create<InvoiceState>()(
                 medicalName : existingInvoice.party.customerName || '-',
                 city : existingInvoice.party.city || '-',
               });
-            } else {
+            } else if(
+              moment(date).isSame(moment(), 'day')
+            ) {
               finalInvoices.push({
                 invoiceNumber: currentNo,
                 date: moment().startOf('day').toDate(),
@@ -164,7 +173,14 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ isLoading: true, error: null });
           const response = await fetch('/api/invoice/check');
           const { data } = await response.json();
-          set({ checkInvoices: data, isLoading: false });
+          set({ 
+            checkInvoices: data.map((item: any) => ({
+              ...item,
+              medicalName : item?.party?.customerName || '-',
+              city : item?.party?.city || '-',
+            })),
+            isLoading: false 
+          });
         } catch (error) {
           set({ error: 'Failed to fetch check invoices', isLoading: false });
         }
@@ -175,7 +191,14 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ isLoading: true, error: null });
           const response = await fetch('/api/invoice/pack');
           const { data } = await response.json();
-          set({ packInvoices: data, isLoading: false });
+          set({ 
+            packInvoices: data.map((item: any) => ({
+              ...item,
+              medicalName : item?.party?.customerName || '-',
+              city : item?.party?.city || '-',
+            })),
+            isLoading: false 
+          });
         } catch (error) {
           set({ error: 'Failed to fetch pack invoices', isLoading: false });
         }
@@ -229,6 +252,42 @@ export const useInvoiceStore = create<InvoiceState>()(
           throw error;
         }
       },
+
+      resetInvoice: async (invoiceNumber: number) => {
+        try {
+          set({ isLoading: true });
+          
+          const invoice = get().invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          
+          if (!invoice) {
+            throw new Error('Invoice not found');
+          }
+
+          const response = await fetch('/api/invoice?invoiceNumber=' + invoiceNumber, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to reset invoice');
+          }
+
+          //call hanldeInvoice
+          await get().handleInvoices();
+
+          set({ isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to reset invoice', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      }
       
     }),
     {

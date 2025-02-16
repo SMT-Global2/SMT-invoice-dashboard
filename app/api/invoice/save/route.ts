@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 const invoiceSchema = z.object({
     invoiceNumber: z.number(),
     partyCode: z.string(),
-    image: z.array(z.string()),
+    image: z.array(z.string()).nonempty('Atleast one image is required'),
     isOtc: z.boolean().default(false),
     generatedDate: z.string().datetime(),
     invoiceTimestamp: z.string().datetime()
@@ -28,6 +28,20 @@ export async function POST(req: Request) {
 
         // Validate request data
         const validatedData = invoiceSchema.parse(body);
+
+        // Invocie number should be greater than the current maximum invoice number
+        const maxInvoiceNumber = await prisma.invoice.findFirst({
+            orderBy: {
+                invoiceNumber: 'desc'
+            }
+        });
+
+        if (validatedData.invoiceNumber <= (maxInvoiceNumber?.invoiceNumber || 0)) {
+            return Response.json({
+                success: false,
+                message: 'Invoice number should be greater than the current maximum invoice number'
+            }, { status: 400 });
+        }
 
         // Create invoice with validated data
         const result = await prisma.invoice.create({

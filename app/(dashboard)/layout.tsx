@@ -151,8 +151,8 @@ function User() {
   if (!session) return null;
 
   return (
-    <div className="text-sm font-medium">
-      Hi, {session.user?.name}!
+    <div className="text-lg font-medium">
+      Hi, {session.user?.username}!
     </div>
   );
 }

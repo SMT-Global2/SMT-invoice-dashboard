@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
-  date?: Date | null
-  setDate: (value: Date | null) => void
+  date?: Date | undefined
+  setDate: (value: Date | undefined) => void
 }
 
 export function DatePicker({ date, setDate }: DatePickerProps) {
@@ -35,8 +35,8 @@ export function DatePicker({ date, setDate }: DatePickerProps) {
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={date as any}
-          onSelect={date as any}
+          selected={date}
+          onSelect={setDate}
           initialFocus
         />
       </PopoverContent>

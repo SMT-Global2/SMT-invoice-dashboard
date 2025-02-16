@@ -1,4 +1,3 @@
-// import { db, products } from 'lib/db';
 import { prisma } from '@/lib/prisma'
 import { partyCodeSeed } from "./data"
 

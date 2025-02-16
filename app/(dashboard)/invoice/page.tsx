@@ -27,7 +27,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { InvoiceData , useInvoiceStore } from '@/store/useInvoiceStore';
+import { InvoiceData, useInvoiceStore } from '@/store/useInvoiceStore';
 import { Check, ChevronsUpDown, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
@@ -59,6 +59,7 @@ export default function InvoicePage() {
     setCurrentPage,
     updateInvoiceImage,
     saveInvoice,
+    resetInvoice,
     handleInvoices,
   } = useInvoiceStore();
 
@@ -69,7 +70,7 @@ export default function InvoicePage() {
 
   useEffect(() => {
     handleInvoices();
-  }, [handleInvoices]);
+  }, [handleInvoices, selectedDate]);
 
   const searchPartyCode = async (search: string) => {
     try {
@@ -144,7 +145,7 @@ export default function InvoicePage() {
       const data = await response.json();
 
       updateInvoiceImage(invoiceNumber, data.secure_url);
-      
+
       toast({
         title: 'Success',
         description: 'Image uploaded successfully',
@@ -180,17 +181,22 @@ export default function InvoicePage() {
   };
 
   const handleReset = async (invoiceNumber: number) => {
-    const newData = [...invoices];
-    const index = newData.findIndex(item => item.invoiceNumber === invoiceNumber);
-    if (index !== -1) {
-      newData[index] = {
-        ...newData[index],
-        partyCode: '',
-        medicalName: '-',
-        city: '-',
-        image: [],
-      };
-      setInvoices(newData);
+    try {
+      console.log("Reseting invoice:", invoiceNumber);
+      await resetInvoice(invoiceNumber);
+      toast({
+        title: 'Success',
+        description: 'Invoice reset successfully',
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Failed to reset invoice:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed',
+        description: error instanceof Error ? error.message : 'Failed to reset invoice',
+        duration: 2000,
+      });
     }
   };
 
@@ -225,7 +231,7 @@ export default function InvoicePage() {
     }
   };
 
-  console.log({invoices})
+  console.log({ invoices })
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
@@ -238,9 +244,14 @@ export default function InvoicePage() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <DatePicker date={selectedDate} setDate={setSelectedDate} />
+              <Button 
+              variant={'outline'}
+              onClick={() => setSelectedDate(undefined)}
+              disabled={!selectedDate}
+              >Clear Date</Button>
             </div>
             <div className="overflow-x-auto w-full max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-              <Table>
+              <Table className=''>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Invoice No.</TableHead>
@@ -255,12 +266,15 @@ export default function InvoicePage() {
                 </TableHeader>
                 <TableBody>
                   {currentInvoices.map((row) => (
-                    <TableRow key={row.invoiceNumber}>
+                    <TableRow key={row.invoiceNumber} 
+                    className={` border-black
+                      ${row.invoiceTimestamp ? 'bg-green-0 hover:bg-green-0' : 'bg-yellow-100 hover:bg-yellow-100'}`}
+                    >
                       <TableCell>{row.invoiceNumber}</TableCell>
                       <TableCell>{selectedDate ? selectedDate.toDateString() : new Date().toDateString()}</TableCell>
                       <TableCell>
-                        <Popover 
-                          open={openComboboxes[row.invoiceNumber]} 
+                        <Popover
+                          open={openComboboxes[row.invoiceNumber]}
                           onOpenChange={(isOpen) => toggleCombobox(row.invoiceNumber, isOpen)}
                         >
                           <PopoverTrigger asChild>
@@ -275,32 +289,32 @@ export default function InvoicePage() {
                           </PopoverTrigger>
                           <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
                             <Command>
-                              <CommandInput 
-                                placeholder="Party Code" 
+                              <CommandInput
+                                placeholder="Party Code"
                                 value={searchTerms[row.invoiceNumber] || ''}
                                 onValueChange={(value) => handleSearchChange(row.invoiceNumber, value)}
                               />
                               <CommandEmpty>No party found.</CommandEmpty>
                               <div className="max-h-[200px] overflow-y-auto">
                                 <CommandGroup>
-                                {partyCodes.map((party) => (
-                                  <CommandItem
-                                    key={party.id}
-                                    value={party.code}
-                                    onSelect={() => {
-                                      handlePartyCodeSelect(row, party);
-                                      toggleCombobox(row.invoiceNumber, false);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        row.partyCode === party.code ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {party.code} - {party?.customerName}
-                                  </CommandItem>
-                                ))}
+                                  {partyCodes.map((party) => (
+                                    <CommandItem
+                                      key={party.id}
+                                      value={party.code}
+                                      onSelect={() => {
+                                        handlePartyCodeSelect(row, party);
+                                        toggleCombobox(row.invoiceNumber, false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          row.partyCode === party.code ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {party.code} - {party?.customerName}
+                                    </CommandItem>
+                                  ))}
                                 </CommandGroup>
                               </div>
                             </Command>
@@ -318,28 +332,28 @@ export default function InvoicePage() {
                               onChange={handleImageUpload(row.invoiceNumber)}
                               className="absolute inset-0 opacity-0 w-full cursor-pointer"
                             />
-                              <Button 
-                                variant="outline" 
-                                className="gap-2" 
-                                disabled={row.invoiceTimestamp !== null ||uploadingImage === row.invoiceNumber}
-                              >
-                                {
-                                  uploadingImage === row.invoiceNumber ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      Uploading...
-                                    </>
-                                  ) : (
-                                    
-                                    <>
-                                      Upload Image
-                                      <Upload className='w-5 h-5'/>
-                                    </>
-                                  )
-                                }
-                              </Button>
+                            <Button
+                              variant="outline"
+                              className="gap-2"
+                              disabled={row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                            >
+                              {
+                                uploadingImage === row.invoiceNumber ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+
+                                  <>
+                                    Upload Image
+                                    <Upload className='w-5 h-5' />
+                                  </>
+                                )
+                              }
+                            </Button>
                           </div>
-                          <ShowImage images={row?.image}/>
+                          <ShowImage images={row?.image} />
                           {/* {row?.images && (
                             <Button
                               variant="outline"
@@ -354,8 +368,8 @@ export default function InvoicePage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button 
-                            variant="default" 
+                          <Button
+                            variant="default"
                             size="sm"
                             disabled={isLoading}
                             onClick={async () => await handleSave(row.invoiceNumber)}
@@ -374,7 +388,17 @@ export default function InvoicePage() {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>{row.invoiceTimestamp !== null ? new Date(row.invoiceTimestamp).toLocaleString() : '-'}</TableCell>
+                      <TableCell>
+                        {row.invoiceTimestamp !== null
+                          ? new Date(row.invoiceTimestamp).toLocaleString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true
+                          })
+                          : '-'}
+                      </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
@@ -383,12 +407,12 @@ export default function InvoicePage() {
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
+                  <PaginationPrevious
                     onClick={() => handlePageChange(currentPage - 1)}
                     className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
                   />
                 </PaginationItem>
-                
+
                 {/* First page */}
                 {totalPages > 0 && (
                   <PaginationItem className={currentPage === 1 ? 'hidden sm:block' : ''}>
@@ -453,7 +477,7 @@ export default function InvoicePage() {
                 )}
 
                 <PaginationItem>
-                  <PaginationNext 
+                  <PaginationNext
                     onClick={() => handlePageChange(currentPage + 1)}
                     className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
                   />

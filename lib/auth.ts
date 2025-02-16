@@ -3,16 +3,20 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { AuthOptions } from 'next-auth';
+import { UserType } from '@prisma/client';
 
 declare module 'next-auth' {
   interface User {
     username: string;
+    type : UserType;
   }
   
   interface Session {
     user: User & {
       id: string;
       username: string;
+      type : UserType;
     }
   }
 }
@@ -21,10 +25,10 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     username: string;
+    type : UserType
   }
 }
 
-import { AuthOptions } from 'next-auth';
 
 export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -49,15 +53,39 @@ export const authOptions: AuthOptions = {
 
         // For testing purposes, using a hardcoded user
         // In production, you should use proper database authentication
-        if (credentials.username === "admin" && credentials.password === "password") {
-          console.log('Login successful');
+        // if (credentials.username === "admin" && credentials.password === "password") {
+        //   console.log('Login successful');
+        //   return {
+        //     id: "123",
+        //     username: "admin",
+        //     name: "Admin User",
+        //   };
+        // }
+
+        //Check using bcrpyt and prisma
+        const user = await prisma.user.findUnique({ where: { username: credentials.username } });
+
+        if(!user) {
+          console.log('User not found');
+          return null;
+        }
+
+        const passwordMatch = await bcrypt.compare(credentials.password, user.password!);
+
+        if (!passwordMatch) {
+          console.log('Password Mismatch');
+          return null;
+        }
+
+        if (user) {
           return {
-            id: "123",
-            username: "admin",
-            name: "Admin User",
+            id: user.id,
+            username: user.username,
+            type : user.type
           };
         }
-        console.log('Invalid credentials');
+
+        console.log('Wtf');
         return null;
       },
     }),
@@ -67,6 +95,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.username = user.username;
+        token.type = user.type;
       }
       return token;
     },
@@ -74,6 +103,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.username = token.username;
+        session.user.type = token.type;
       }
       return session;
     },

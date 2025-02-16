@@ -14,10 +14,7 @@ export async function GET(request: Request) {
         // { city: { contains: search, mode: 'insensitive' } }
       ]
     },
-    take: 100, 
-    orderBy: {
-      code: 'asc'
-    }
+    take: 100
   });
 
   return Response.json({

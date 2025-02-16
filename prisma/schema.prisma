@@ -12,6 +12,7 @@ model User {
   firstName     String?
   lastName      String?
   phoneNumber   String?
+  type          UserType  @default(USER)
 
   username      String    @unique
   password      String?
@@ -82,6 +83,10 @@ model Invoice {
   updatedAt     DateTime  @default(now())
 }
 
+enum UserType {
+  ADMIN
+  USER
+}
 
 enum CheckStatus {
   NOT_CHECKED

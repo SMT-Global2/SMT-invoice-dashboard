@@ -19,11 +19,11 @@ export default function RootLayout({
       <link rel="smt" href="/static/favicon.png" />
       </head>
       <body className="flex min-h-screen w-full flex-col">
-        <AuthProvider>
-          {children}
-          <Toaster />
           <Analytics />
-        </AuthProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
       </body>
     </html>
   );
