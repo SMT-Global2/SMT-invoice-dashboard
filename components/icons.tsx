@@ -108,8 +108,8 @@ export function Logo() {
   );
 }
 
-export function SMTLogo() {
+export function SMTLogo({classname = ""} : {classname: string}) {
   return (
-    <img src={"/static/favicon.png"} alt="SMT Logo"/>
+    <img src={"favicon.png"} alt="SMT Logo" className={classname}/>
   );
 }
