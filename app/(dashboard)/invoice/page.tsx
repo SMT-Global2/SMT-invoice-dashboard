@@ -36,6 +36,17 @@ import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { tweleHrFormatDateString } from '@/lib/helper';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface PartyCode {
   id: string;
@@ -68,15 +79,9 @@ export default function InvoicePage() {
   const [searchTerms, setSearchTerms] = useState<{ [key: number]: string }>({});
   const [openComboboxes, setOpenComboboxes] = useState<{ [key: number]: boolean }>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const isFirstMount = useRef(true);
-  const prevDateRef = useRef(selectedDate);
 
   useEffect(() => {
-    if (isFirstMount.current || prevDateRef.current !== selectedDate) {
-      handleInvoices();
-      isFirstMount.current = false;
-      prevDateRef.current = selectedDate;
-    }
+    handleInvoices();
   }, [handleInvoices, selectedDate]);
 
   const searchPartyCode = async (search: string) => {
@@ -162,6 +167,7 @@ export default function InvoicePage() {
       });
     } finally {
       setUploadingImage(null);
+      event.target.value = '';
     }
   };
 
@@ -219,6 +225,27 @@ export default function InvoicePage() {
     }
   }
 
+  const handleOtc = async (invoiceNumber: number) => {
+    try {
+      console.log("Saving invoice with otc:", invoiceNumber);
+      await saveInvoice(invoiceNumber, true);
+      toast({
+        title: 'Success',
+        description: 'Invoice saved successfully',
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Save error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed',
+        description: error instanceof Error ? error.message : 'Invoice not saved',
+        duration: 2000,
+      });
+    }
+  }
+
+
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -229,8 +256,6 @@ export default function InvoicePage() {
       setCurrentPage(page);
     }
   };
-
-  console.log({ invoices })
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
@@ -243,10 +268,10 @@ export default function InvoicePage() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <DatePicker date={selectedDate} setDate={setSelectedDate} />
-              <Button 
-              variant={'outline'}
-              onClick={() => setSelectedDate(undefined)}
-              disabled={!selectedDate}
+              <Button
+                variant={'outline'}
+                disabled={!selectedDate}
+                onClick={() => setSelectedDate(undefined)}
               >Clear Date</Button>
             </div>
             <div className="overflow-x-auto w-full max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
@@ -265,8 +290,8 @@ export default function InvoicePage() {
                 </TableHeader>
                 <TableBody>
                   {currentInvoices.map((row) => (
-                    <TableRow key={row.invoiceNumber} 
-                    className={` border-black
+                    <TableRow key={row.invoiceNumber}
+                      className={` border-black
                       ${row.invoiceTimestamp ? 'bg-green-0 hover:bg-green-0' : 'bg-yellow-100 hover:bg-yellow-100'}`}
                     >
                       <TableCell>{row.invoiceNumber}</TableCell>
@@ -340,8 +365,8 @@ export default function InvoicePage() {
                                 ) : (
 
                                   <>
-                                    <Upload className='w-5 h-5'/> 
-                                    Upload Image 
+                                    <Upload className='w-5 h-5' />
+                                    Upload Image
                                   </>
                                 )
                               }
@@ -362,28 +387,75 @@ export default function InvoicePage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            disabled={isLoading || row.invoiceTimestamp !== null}
-                            onClick={async () => await handleSave(row.invoiceNumber)}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => await handleReset(row.invoiceNumber)}
-                          >
-                            Reset
-                          </Button>
-                          <Button variant="secondary" size="sm">
-                            OTC
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                disabled={isLoading || row.invoiceTimestamp !== null}
+                              >
+                                Save
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Save Invoice</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to save this invoice? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={async () => await handleSave(row.invoiceNumber)}>Save</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                              >
+                                Reset
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Reset Invoice</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to reset this invoice? This will clear all entered data.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={async () => await handleReset(row.invoiceNumber)}>Reset</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          {
+                            row.invoiceTimestamp !== null && row.isOtc === true ? (
+                              <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
+                                <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                </svg>
+                                OTC
+                              </span>
+                            ) : (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                disabled={isLoading}
+                                onClick={async () => await handleOtc(row.invoiceNumber)}
+                              >
+                                OTC
+                              </Button>
+                            )
+                          }
                         </div>
                       </TableCell>
                       <TableCell>
-                        {row.invoiceTimestamp !== null ? tweleHrFormatDateString(row.invoiceTimestamp): '-'}
+                        {row.invoiceTimestamp !== null ? tweleHrFormatDateString(row.invoiceTimestamp) : '-'}
                       </TableCell>
 
                     </TableRow>

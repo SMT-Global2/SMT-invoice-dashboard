@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         invoicedBy : true
       },
       orderBy: {
-        generatedDate: 'desc'
+        invoiceTimestamp : 'asc'
       }
     });
   

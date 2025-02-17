@@ -15,20 +15,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useInvoiceStore } from '@/store/useInvoiceStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import { tweleHrFormatDateString } from '@/lib/helper';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Loader2, Upload } from 'lucide-react';
 
 export default function DeliveryPage() {
+  const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const { toast } = useToast()
   const { 
     deliveryInvoices, 
     fetchDeliveryInvoices, 
     deliverInvoice,
     pickupInvoice,
+    updateDeliverInvoiceImage,
     isLoading 
   } = useInvoiceStore();
 
@@ -89,6 +93,52 @@ export default function DeliveryPage() {
       });
     }
   }
+
+  const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploadingImage(invoiceNumber);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'my-unsigened-upload-preset');
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+
+      updateDeliverInvoiceImage(invoiceNumber, data.secure_url);
+
+      toast({
+        title: 'Success',
+        description: 'Image uploaded successfully',
+        duration: 2000,
+      });
+
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to upload image. Please try again.',
+        duration: 2000,
+      });
+    } finally {
+      setUploadingImage(null);
+    }
+  };
 
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100'>
@@ -190,7 +240,41 @@ export default function DeliveryPage() {
                       <TableCell>{invoice.medicalName}</TableCell>
                       <TableCell>{invoice.city}</TableCell>
                       <TableCell>
-                        <ShowImage images={invoice.image} />
+                      <div className="flex items-center space-x-2">
+                          <div className="relative">
+                            <Button
+                              variant="outline"
+                              className="gap-2 z-10"
+                              disabled={uploadingImage === invoice.invoiceNumber}
+                            >
+                              {
+                                uploadingImage === invoice.invoiceNumber ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+
+                                  <>
+                                    <Upload className='w-5 h-5'/> 
+                                    Upload Image 
+                                  </>
+                                )
+                              }
+                            </Button>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload(invoice.invoiceNumber)}
+                              className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
+                              hidden={uploadingImage === invoice.invoiceNumber}
+                              style={{
+                                pointerEvents: uploadingImage === invoice.invoiceNumber ? 'none' : 'auto'
+                              }}
+                            />
+                          </div>
+                          <ShowImage images={invoice?.image} />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Button
@@ -254,14 +338,28 @@ export default function DeliveryPage() {
                       </TableCell>
                       <TableCell>{tweleHrFormatDateString(invoice.deliveredTimestamp!)}</TableCell>
                       <TableCell>
-                        <Link 
-                          href={`https://www.google.com/maps?q=${invoice.deliveredLocationLink!.replace(',', '+')}`}
-                          className="text-blue-600 hover:text-blue-800 underline"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Location
-                        </Link>
+                        {
+                          invoice.deliveredLocationLink ? 
+                          (
+                            <Link 
+                              href={`https://www.google.com/maps?q=${invoice.deliveredLocationLink!.replace(',', '+')}`}
+                              className="text-blue-600 hover:text-blue-800 underline"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View Location
+                            </Link>
+                          )
+                          :
+                          (
+                            <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
+                              <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                              </svg>
+                              OTC
+                            </span>
+                          )
+                        }
                       </TableCell>
                     </TableRow>
                   ))

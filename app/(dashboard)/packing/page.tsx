@@ -123,7 +123,7 @@ export default function PackingPage() {
                 <TableHead>Party Code</TableHead>
                 <TableHead>Medical Name</TableHead>
                 <TableHead>City</TableHead>
-                <TableHead>Bill Image</TableHead>
+                <TableHead>Image</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -179,7 +179,7 @@ export default function PackingPage() {
                               }}
                             />
                           </div>
-                          <ShowImage images={invoice?.image} />
+                          <ShowImage images={[...invoice.image , ...invoice.packImage]} />
                         </div>
                       </TableCell>
                     <TableCell>
@@ -214,9 +214,9 @@ export default function PackingPage() {
                 <TableHead>Party Code</TableHead>
                 <TableHead>Medical Name</TableHead>
                 <TableHead>City</TableHead>
-                <TableHead>Bill Image</TableHead>
+                <TableHead>Image</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Timestamp</TableHead>
+                <TableHead>Timestamp</TableHead>  
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -238,11 +238,11 @@ export default function PackingPage() {
                     <TableCell>{invoice.medicalName}</TableCell>
                     <TableCell>{invoice.city}</TableCell>
                     <TableCell>
-                      <ShowImage images={invoice.image} />  
+                      <ShowImage images={[...invoice.image , ...invoice.packImage]} />  
                       {/* {invoice.image ? (
                         <div className="relative h-10 w-10">
                           <Image
-                            src={invoice.image}
+                            src={invoice.image}   
                             alt="Bill Image"
                             fill
                             className="object-cover rounded"

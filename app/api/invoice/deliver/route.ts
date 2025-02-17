@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             pickedUpBy: true
         },
         orderBy: {
-            generatedDate: 'desc'
+            packageTimestamp : 'asc'
         }
     });
 
@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
 
 const packInvoiceSchema = z.object({
     deliveredLocationLink: z.string().nonempty('Delivered location link is required'),
+    image: z.array(z.string())
 });
 
 export async function POST(request: NextRequest) {
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
             },
             data: {
                 deliveredLocationLink: validatedData.deliveredLocationLink,
+                image: validatedData.image,
                 deliveredTimestamp: moment().toDate(),
                 deliveryStatus:  DeliveryStatus.DELIVERED,
                 deliveredBy: {

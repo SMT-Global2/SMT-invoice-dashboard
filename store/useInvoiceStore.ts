@@ -26,6 +26,7 @@ export interface PackInvoiceData extends InvoiceData {
   packageUsername : string | null
   packageTimestamp : Date | null
   packageStatus : PackageStatus
+  packImage : string[]
 }
 
 export interface DeliveryInvoiceData extends InvoiceData {
@@ -59,6 +60,7 @@ interface InvoiceState {
 
   updateInvoiceImage: (sr: number, image: string) => void
   updatePackInvoiceImage: (sr: number, image: string) => void
+  updateDeliverInvoiceImage: (sr: number, image: string) => void
 
   handleInvoices: () => Promise<void>
 
@@ -67,7 +69,7 @@ interface InvoiceState {
   fetchPackInvoices: () => Promise<void>
   fetchDeliveryInvoices: () => Promise<void>
 
-  saveInvoice: (invoiceNumber: number) => Promise<void>
+  saveInvoice: (invoiceNumber: number, isOtc?: boolean) => Promise<void>
   resetInvoice: (invoiceNumber: number) => Promise<void>
   checkInvoice: (invoiceNumber: number) => Promise<void>
   packInvoice: (invoiceNumber: number) => Promise<void>
@@ -106,6 +108,15 @@ export const useInvoiceStore = create<InvoiceState>()(
 
       updatePackInvoiceImage: (sr, image) => {
         const invoices = [...get().packInvoices]
+        const index = invoices.findIndex(item => item.invoiceNumber === sr)
+        if (index !== -1) {
+          invoices[index].packImage.push(image)
+          set({ invoices })
+        }
+      },
+
+      updateDeliverInvoiceImage: (sr, image) => {
+        const invoices = [...get().deliveryInvoices]
         const index = invoices.findIndex(item => item.invoiceNumber === sr)
         if (index !== -1) {
           invoices[index].image.push(image)
@@ -231,6 +242,7 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ 
             packInvoices: data.map((item: any) => ({
               ...item,
+              packImage : [],
               medicalName : item?.party?.customerName || '-',
               city : item?.party?.city || '-',
             })),
@@ -259,7 +271,7 @@ export const useInvoiceStore = create<InvoiceState>()(
         }
       },
 
-      saveInvoice: async (invoiceNumber: number) => {
+      saveInvoice: async (invoiceNumber: number , isOtc?: boolean) => {
         try {
           set({ isLoading: true });
           
@@ -274,11 +286,11 @@ export const useInvoiceStore = create<InvoiceState>()(
             generatedDate: moment().toDate(),
             partyCode : invoice.partyCode,
             image: invoice.image,
-            isOtc: false,
+            isOtc: isOtc || false,
             invoiceTimestamp : moment().toDate(),
           };
 
-          const response = await fetch('/api/invoice/save', {
+          const response = await fetch('/api/invoice' + (isOtc ? '/otc' : '/save'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -318,16 +330,18 @@ export const useInvoiceStore = create<InvoiceState>()(
             throw new Error('Invoice not found');
           }
 
-          const response = await fetch('/api/invoice?invoiceNumber=' + invoiceNumber, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to reset invoice');
+          if(invoice.invoiceTimestamp) {
+            const response = await fetch('/api/invoice?invoiceNumber=' + invoiceNumber, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Failed to reset invoice');
+            }
           }
 
           //call hanldeInvoice
@@ -389,6 +403,10 @@ export const useInvoiceStore = create<InvoiceState>()(
           if (!invoice) {
             throw new Error('Invoice not found');
           }
+
+          if(invoice.packImage.length === 0) {
+            throw new Error('At least one packaging image is required');
+          } 
 
           const response = await fetch('/api/invoice/pack?invoiceNumber=' + invoiceNumber, {
             method: 'POST',
@@ -471,7 +489,8 @@ export const useInvoiceStore = create<InvoiceState>()(
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              deliveredLocationLink : location.latitude + "," + location.longitude
+              deliveredLocationLink : location.latitude + "," + location.longitude,
+              image : invoice.image
             })
           });
 

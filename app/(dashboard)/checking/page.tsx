@@ -74,7 +74,7 @@ export default function CheckingPage() {
                   <TableHead>Party Code</TableHead>
                   <TableHead>Medical Name</TableHead>
                   <TableHead>City</TableHead>
-                  <TableHead>Bill Image</TableHead>
+                  <TableHead>Image</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -131,7 +131,7 @@ export default function CheckingPage() {
                   <TableHead>Party Code</TableHead>
                   <TableHead>Medical Name</TableHead>
                   <TableHead>City</TableHead>
-                  <TableHead>Bill Image</TableHead>
+                  <TableHead>Image</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Check Timestamp</TableHead>
                 </TableRow>

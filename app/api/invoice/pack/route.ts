@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       packedBy: true,
     },
     orderBy: {
-      generatedDate: 'desc'
+      checkTimestamp: 'asc'
     }
   });
 

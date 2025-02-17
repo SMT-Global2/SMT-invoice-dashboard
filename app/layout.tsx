@@ -25,13 +25,15 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen w-full flex-col">
             {/* TODO remove in prod */}
-            {/* <React.StrictMode> */}
-              <Analytics />
+            {/* 
+              <React.StrictMode> 
+               <Analytics /> 
+              */}
               <AuthProvider>
                 {children}
                 <Toaster />
               </AuthProvider>
-            {/* </React.StrictMode> */}
+            {/*</React.StrictMode> */}
       </body>
     </html>
   );
