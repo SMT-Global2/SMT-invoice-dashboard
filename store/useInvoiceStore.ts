@@ -218,7 +218,7 @@ export const useInvoiceStore = create<InvoiceState>()(
                   moment(date).isSame(moment().subtract(3, 'days'), 'day')
                 )
               });
-            } else {
+            } else if(invoiceEndNo) {
               finalInvoices.push({
                 invoiceNumber: currentNo,
                 generatedDate: moment(date).startOf('day').toDate(),
