@@ -51,6 +51,7 @@ import moment from 'moment';
 import { Capsule } from '@/components/capsule';
 import TableSkeleton from '@/components/table-skeleton';
 import { TableEmpty } from '@/components/TableEmpty';
+import { Spinner } from '@/components/icons';
 
 interface PartyCode {
   id: string;
@@ -81,6 +82,7 @@ export default function InvoicePage() {
   } = useInvoiceStore();
 
   const [partyCodes, setPartyCodes] = useState<PartyCode[]>([]);
+  const [partyCodeLoading, setPartyCodeLoading] = useState<boolean>(false)
   const [searchTerms, setSearchTerms] = useState<{ [key: number]: string }>({});
   const [openComboboxes, setOpenComboboxes] = useState<{ [key: number]: boolean }>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,8 +102,10 @@ export default function InvoicePage() {
   };
 
   const handleSearchChange = (invoiceNumber: number, value: string) => {
+    setPartyCodeLoading(true);
     setSearchTerms(prev => ({ ...prev, [invoiceNumber]: value }));
     searchPartyCode(value);
+    setPartyCodeLoading(false);
   };
 
   const toggleCombobox = (invoiceNumber: number, isOpen: boolean) => {
@@ -298,194 +302,207 @@ export default function InvoicePage() {
                 <TableBody>
                   {isLoading ? (
                     <TableSkeleton rows={5} cols={10} />
-                  ) : !moment(selectedDate).isSame(moment(), 'day') && invoices.length === 0 ? 
-                  (
-                    <TableEmpty
-                      text='No invoices created on this date'
-                    />
-                  ) :
-                  (
-                    currentInvoices.map((row, i) => (
-                      <TableRow key={row.invoiceNumber}
-                        className={` border-gray-400`}
-                      >
-                        <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
-                        <TableCell>{
-                          !row.invoiceTimestamp ? 
-                          <Capsule
-                          text='Remaining'
-                          bgColor='bg-red-100'
-                          textColor='text-red-700 font-sm'
-                          showIcon='cross'
-                          />
-                          :
-                          row.invoiceTimestamp && !moment(row.generatedDate).isSame(moment(row.invoiceTimestamp) , 'day') ?
-                          <Capsule
-                            text='Delayed'
-                            bgColor='bg-blue-100'
-                            textColor='text-blue-700'
-                            showIcon='ok'
-                          /> 
-                          : 
-                          <Capsule
-                          text='Generated'
-                          bgColor='bg-green-100'
-                          textColor='text-green-700'
-                          showIcon='ok'
-                          /> 
-                      }</TableCell>
-                        <TableCell>{row.invoiceNumber}</TableCell>
-                        <TableCell>{selectedDate ? selectedDate.toDateString() : new Date().toDateString()}</TableCell>
-                        <TableCell>
-                          <Popover
-                            open={openComboboxes[row.invoiceNumber]}
-                            onOpenChange={(isOpen) => toggleCombobox(row.invoiceNumber, isOpen)}
-                          >
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openComboboxes[row.invoiceNumber]}
-                                className="justify-between"
-                                disabled={row.isDisabled || row.invoiceTimestamp !== null}
-                              >
-                                {row.partyCode || "Select Party"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
-                              <Command>
-                                <CommandInput
-                                  placeholder="Party Code"
-                                  value={searchTerms[row.invoiceNumber] || ''}
-                                  onValueChange={(value) => handleSearchChange(row.invoiceNumber, value)}
-                                />
-                                <CommandEmpty>No party found.</CommandEmpty>
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  <CommandGroup>
-                                    {partyCodes.map((party) => (
-                                      <CommandItem
-                                        key={party.id}
-                                        value={party.code}
-                                        onSelect={() => {
-                                          handlePartyCodeSelect(row, party);
-                                          toggleCombobox(row.invoiceNumber, false);
-                                        }}
-                                      >
-                                        <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4",
-                                            row.partyCode === party.code ? "opacity-100" : "opacity-0"
-                                          )}
-                                        />
-                                        {party.code} - {party?.customerName}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </div>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-                        <TableCell>{row.medicalName}</TableCell>
-                        <TableCell>{row.city}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <div className="relative">
-                              <Button
-                                variant="outline"
-                                className="gap-2 z-10"
-                                disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
-                              >
-                                {
-                                  uploadingImage === row.invoiceNumber ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      Uploading...
-                                    </>
-                                  ) : (
-  
-                                    <>
-                                      <Upload className='w-5 h-5' />
-                                      Upload Image
-                                    </>
-                                  )
-                                }
-                              </Button>
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageUpload(row.invoiceNumber)}
-                                className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                                hidden={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
-                                style={{
-                                  pointerEvents: row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber ? 'none' : 'auto'
-                                }}
+                  ) : !moment(selectedDate).isSame(moment(), 'day') && invoices.length === 0 ?
+                    (
+                      <TableEmpty
+                        text='No invoices created on this date'
+                      />
+                    ) :
+                    (
+                      currentInvoices.map((row, i) => (
+                        <TableRow key={row.invoiceNumber}
+                          className={` border-gray-400`}
+                        >
+                          <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
+                          <TableCell>{
+                            !row.invoiceTimestamp ?
+                              <Capsule
+                                text='Remaining'
+                                bgColor='bg-red-100'
+                                textColor='text-red-700 font-sm'
+                                showIcon='cross'
                               />
-                            </div>
-                            <ShowImage images={row?.image} />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  disabled={row.isDisabled || isLoading || row.invoiceTimestamp !== null}
-                                  onClick={async () => await handleSave(row.invoiceNumber)}
-                                >
-                                  Save
-                                </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={row.isDisabled || isLoading}
-                                >
-                                  Reset
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Reset Invoice</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to reset this invoice? This will clear all entered data.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={async () => await handleReset(row.invoiceNumber)}>Reset</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                            {
-                              row.invoiceTimestamp !== null && row.isOtc === true ? (
+                              :
+                              row.invoiceTimestamp && !moment(row.generatedDate).isSame(moment(row.invoiceTimestamp), 'day') ?
                                 <Capsule
-                                  text='OTC'
+                                  text='Delayed'
+                                  bgColor='bg-blue-100'
+                                  textColor='text-blue-700'
+                                  showIcon='ok'
+                                />
+                                :
+                                <Capsule
+                                  text='Generated'
                                   bgColor='bg-green-100'
                                   textColor='text-green-700'
                                   showIcon='ok'
-                                  />
-                              ) : (
+                                />
+                          }</TableCell>
+                          <TableCell>{row.invoiceNumber}</TableCell>
+                          <TableCell>{selectedDate ? selectedDate.toDateString() : new Date().toDateString()}</TableCell>
+                          <TableCell>
+                            <Popover
+                              open={openComboboxes[row.invoiceNumber]}
+                              onOpenChange={(isOpen) => toggleCombobox(row.invoiceNumber, isOpen)}
+                            >
+                              <PopoverTrigger asChild>
                                 <Button
-                                  variant="default"
-                                  size="sm"
-                                  disabled={row.isDisabled || isLoading}
-                                  onClick={async () => await handleOtc(row.invoiceNumber)}
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={openComboboxes[row.invoiceNumber]}
+                                  className="justify-between"
+                                  disabled={row.isDisabled || row.invoiceTimestamp !== null}
                                 >
-                                  OTC
+                                  {row.partyCode || "Select Party"}
                                 </Button>
-                              )
-                            }
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {row.invoiceTimestamp !== null ? tweleHrFormatDateString(row.invoiceTimestamp) : '-'}
-                        </TableCell>
-  
-                      </TableRow>
-                     ))
-                  )}
+                              </PopoverTrigger>
+                              <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
+                                <Command>
+                                  <CommandInput
+                                    placeholder="Party Code"
+                                    value={searchTerms[row.invoiceNumber] || ''}
+                                    onValueChange={(value) => handleSearchChange(row.invoiceNumber, value)}
+                                  />
+
+                                  {
+                                    partyCodeLoading ?
+                                      <CommandEmpty className="m-auto flex items-center justify-center p-4 relative h-[100px]">
+                                        <div className="flex items-center justify-center w-full">
+                                          <Spinner />
+                                        </div>
+                                      </CommandEmpty>
+                                      :
+                                      <CommandEmpty className="m-auto flex items-center justify-center p-4">
+                                        No party found.
+                                      </CommandEmpty>
+                                  }
+
+                                  <div className="max-h-[200px] overflow-y-auto">
+                                    <CommandGroup>
+                                      {partyCodes.map((party) => (
+                                        <CommandItem
+                                          key={party.id}
+                                          value={party.code}
+                                          onSelect={() => {
+                                            handlePartyCodeSelect(row, party);
+                                            toggleCombobox(row.invoiceNumber, false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              row.partyCode === party.code ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          {party.code} - {party?.customerName}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </div>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </TableCell>
+                          <TableCell>{row.medicalName}</TableCell>
+                          <TableCell>{row.city}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <div className="relative">
+                                <Button
+                                  variant="outline"
+                                  className="gap-2 z-10"
+                                  disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                                >
+                                  {
+                                    uploadingImage === row.invoiceNumber ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Uploading...
+                                      </>
+                                    ) : (
+
+                                      <>
+                                        <Upload className='w-5 h-5' />
+                                        Upload Image
+                                      </>
+                                    )
+                                  }
+                                </Button>
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleImageUpload(row.invoiceNumber)}
+                                  className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
+                                  hidden={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                                  style={{
+                                    pointerEvents: row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber ? 'none' : 'auto'
+                                  }}
+                                />
+                              </div>
+                              <ShowImage images={row?.image} />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                disabled={row.isDisabled || isLoading || row.invoiceTimestamp !== null}
+                                onClick={async () => await handleSave(row.invoiceNumber)}
+                              >
+                                Save
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={row.isDisabled || isLoading}
+                                  >
+                                    Reset
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Reset Invoice</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to reset this invoice? This will clear all entered data.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={async () => await handleReset(row.invoiceNumber)}>Reset</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                              {
+                                row.invoiceTimestamp !== null && row.isOtc === true ? (
+                                  <Capsule
+                                    text='OTC'
+                                    bgColor='bg-green-100'
+                                    textColor='text-green-700'
+                                    showIcon='ok'
+                                  />
+                                ) : (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    disabled={row.isDisabled || isLoading}
+                                    onClick={async () => await handleOtc(row.invoiceNumber)}
+                                  >
+                                    OTC
+                                  </Button>
+                                )
+                              }
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {row.invoiceTimestamp !== null ? tweleHrFormatDateString(row.invoiceTimestamp) : '-'}
+                          </TableCell>
+
+                        </TableRow>
+                      ))
+                    )}
                 </TableBody>
               </Table>
             </div>
