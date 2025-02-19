@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import moment from "moment";
 import { CheckStatus, DeliveryStatus, PackageStatus } from "@prisma/client";
-import { findOrCreateDayStart } from "../startNo/route";
+import { findOrCreateDayStart } from "../startNo/helper";
 
 const invoiceSchema = z.object({
     invoiceNumber: z.number(),

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import moment from "moment";
-import { findOrCreateDayStart } from "../startNo/route";
+import { findOrCreateDayStart } from "../startNo/helper";
 
 const invoiceSchema = z.object({
     invoiceNumber: z.number(),

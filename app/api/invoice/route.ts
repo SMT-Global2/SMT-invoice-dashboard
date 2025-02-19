@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import moment from 'moment';
 import { getServerSession } from 'next-auth';
 import { NextRequest } from 'next/server';
-import { findOrCreateDayStart } from './startNo/route';
+import { findOrCreateDayStart } from './startNo/helper';
 
 export const dynamic = 'force-dynamic';
 
