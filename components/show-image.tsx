@@ -16,6 +16,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { DialogTitle } from '@radix-ui/react-dialog';
+import { useTheme } from 'next-themes';
 
 interface ShowImageProps {
   images: string[];
@@ -29,6 +30,9 @@ export function ShowImage({ images }: ShowImageProps) {
       </span>;
   }
 
+  //Theme
+  const { theme } = useTheme();
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -38,7 +42,7 @@ export function ShowImage({ images }: ShowImageProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[60%] p-0 bg-white/90">
+      <DialogContent className="sm:max-w-[60%] p-0 bg-background/90">
        <DialogTitle className='text-lg font-semibold m-2'>View Images</DialogTitle>
         <Carousel className="w-full relative ">
           <CarouselContent>
