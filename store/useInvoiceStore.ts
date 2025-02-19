@@ -144,7 +144,7 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ isLoading: true, error: null });
 
           const date = get().selectedDate ?? new Date();
-          const HANDLE_LIMIT = 300;
+          const HANDLE_LIMIT = 999;
 
           // Get invoice start number
           const [startNoResponse , todayResponse] = await Promise.all([
@@ -449,7 +449,7 @@ export const useInvoiceStore = create<InvoiceState>()(
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              image : invoice.image
+              image : [...invoice.image , ...invoice.packImage]
             })
           });
 

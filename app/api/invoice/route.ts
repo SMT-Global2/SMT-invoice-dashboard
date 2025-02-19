@@ -106,6 +106,15 @@ export async function DELETE(request: NextRequest) {
       }, { status: 404 });
     }
 
+    console.log(moment(invoice.invoiceTimestamp).diff(moment(), 'hours'))
+
+    if(Math.abs(moment(invoice.invoiceTimestamp).diff(moment(), 'hours')) > 72) {
+      return Response.json({
+        success: false,
+        message: 'Cannot reset invoice that is generated before 72 hours'
+      }, { status: 400 });
+    }
+
     const result = await prisma.$transaction(async (prismaTxn) => {
       //Delete invoice
       const result = await prisma.invoice.delete({
@@ -143,15 +152,7 @@ export async function DELETE(request: NextRequest) {
       }
 
       return result;
-  })
-
-
-    // if(moment(invoice.invoiceTimestamp).diff(moment().startOf('day'), 'hours') < 24) {
-    //   return Response.json({
-    //     success: false,
-    //     message: 'Cannot reset invoice that is invoiceTimestamp is less than 24 hours'
-    //   }, { status: 400 });
-    // }
+    })
 
     return Response.json({
       success: true,

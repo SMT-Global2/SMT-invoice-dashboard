@@ -50,6 +50,7 @@ import {
 import moment from 'moment';
 import { Capsule } from '@/components/capsule';
 import TableSkeleton from '@/components/table-skeleton';
+import { TableEmpty } from '@/components/TableEmpty';
 
 interface PartyCode {
   id: string;
@@ -297,12 +298,18 @@ export default function InvoicePage() {
                 <TableBody>
                   {isLoading ? (
                     <TableSkeleton rows={5} cols={10} />
-                  ) : (
+                  ) : !moment(selectedDate).isSame(moment(), 'day') && invoices.length === 0 ? 
+                  (
+                    <TableEmpty
+                      text='No invoices created on this date'
+                    />
+                  ) :
+                  (
                     currentInvoices.map((row, i) => (
                       <TableRow key={row.invoiceNumber}
                         className={` border-gray-400`}
                       >
-                        <TableCell>{i + 1}</TableCell>
+                        <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
                         <TableCell>{
                           !row.invoiceTimestamp ? 
                           <Capsule

@@ -24,17 +24,22 @@ export async function GET(request: NextRequest) {
         OR: [
           {
             AND : [
-              { checkTimestamp: { not: null } },
-              { checkTimestamp: {
+              { 
+                checkStatus : CheckStatus.CHECKED,
+                checkTimestamp: { 
+                not: null, 
                 gte: moment().startOf('day').toDate(),
                 lte: moment().endOf('day').toDate(),
-              }}
+              }
+             },
             ]
           },
-          { generatedDate: {
-            gte: moment().startOf('day').toDate(),
-            lte: moment().endOf('day').toDate(),
-          }}
+          { 
+            invoiceTimestamp : {
+              not : null
+            },
+            checkStatus : CheckStatus.NOT_CHECKED
+          }
         ]
       },
       include : {

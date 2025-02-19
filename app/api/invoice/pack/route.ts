@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
       OR: [
         {
           AND: [
-            { checkTimestamp: { not: null } },
             { checkStatus: CheckStatus.CHECKED },
             { packageStatus: PackageStatus.NOT_PACKED }
           ]
@@ -31,6 +30,7 @@ export async function GET(request: NextRequest) {
         {
           AND: [
             {
+              packageStatus : PackageStatus.PACKED,
               packageTimestamp: {
                 not: null,
                 gte: moment().startOf('day').toDate(),

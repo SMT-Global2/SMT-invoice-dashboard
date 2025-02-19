@@ -236,18 +236,6 @@ export default function PackingPage() {
                     <TableCell>{invoice.city}</TableCell>
                     <TableCell>
                       <ShowImage images={[...invoice.image , ...invoice.packImage]} />  
-                      {/* {invoice.image ? (
-                        <div className="relative h-10 w-10">
-                          <Image
-                            src={invoice.image}   
-                            alt="Bill Image"
-                            fill
-                            className="object-cover rounded"
-                          />
-                        </div>
-                      ) : (
-                        'No image'
-                      )} */}
                     </TableCell>
                     <TableCell>
                       <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">

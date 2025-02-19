@@ -23,6 +23,7 @@ interface ShowImageProps {
 }
 
 export function ShowImage({ images }: ShowImageProps) {
+  console.log({images})
   if (!images || images.length === 0) {
     return 
       <span className="text-sm text-muted-foreground">
