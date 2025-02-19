@@ -4,16 +4,15 @@ import { CheckStatus, DeliveryStatus, PackageStatus } from '@prisma/client'
 import moment from 'moment'
 
 export interface InvoiceData {
-  date: Date
   invoiceNumber: number
   partyCode: string
   medicalName: string
   isOtc: boolean
   city: string
   image: string[]
-  timestamp: string
   generatedDate: Date | null
   invoiceTimestamp: Date | null
+  isDisabled: boolean
 }
 
 export interface CheckInvoiceData extends InvoiceData {
@@ -52,6 +51,7 @@ interface InvoiceState {
   isLoading: boolean
   error: string | null
   invoiceStartNo: number
+  invoiceEndNo: number | null
 
   // Actions
   setInvoices: (invoices: InvoiceData[]) => void
@@ -83,7 +83,7 @@ export const useInvoiceStore = create<InvoiceState>()(
     (set, get) => ({
       invoices: [],
       invoiceStartNo: -1,
-      selectedDate: null,
+      selectedDate: moment().startOf('day').toDate(),
       currentPage: 1,
       itemsPerPage: 100,
       isLoading: false,
@@ -152,21 +152,24 @@ export const useInvoiceStore = create<InvoiceState>()(
             fetch('/api/invoice?date=' + moment(date).format('YYYY-MM-DD'))
           ]);
 
-          const { data: startNoData } = await startNoResponse.json();
+          const {    
+            invoiceStartNo,
+            invoiceEndNo
+          } = await startNoResponse.json();
           
-          if (!startNoData) {
+          if (!invoiceStartNo) {
             set({ error: 'Failed to get invoice start number', isLoading: false });
             return;
           }
 
-          set({ invoiceStartNo: startNoData });
+          set({ invoiceStartNo: invoiceStartNo , invoiceEndNo: invoiceEndNo });
 
           // Get today's invoices
           const { data: todayInvoices } = await todayResponse.json();
 
           //Logi for current no
           //if we find invoice that is today which is less than current no then that is our start else start no.
-          let currentNo = startNoData;
+          let currentNo = invoiceStartNo;
           // if (todayInvoices.length > 0) {
           //   currentNo = Math.min(currentNo , ...todayInvoices.map((item: any) => item.invoiceNumber));
           // }
@@ -175,7 +178,19 @@ export const useInvoiceStore = create<InvoiceState>()(
 
           const finalInvoices: InvoiceData[] = [];
 
-          for (let i = 0; i < Math.max(HANDLE_LIMIT , todayInvoices.length) ; i++) {
+          let maximumInvoiceNumber = invoiceEndNo ? invoiceEndNo : invoiceStartNo + HANDLE_LIMIT;
+
+          if(moment(date).isSame(moment() , 'day')) {
+            maximumInvoiceNumber = Math.max(maximumInvoiceNumber , invoiceStartNo + HANDLE_LIMIT)
+          }
+
+          console.log({
+            maximumInvoiceNumber,
+            invoiceEndNo,
+            invoiceStartNo
+          })
+
+          for (let i = invoiceStartNo; i <= maximumInvoiceNumber; i++) {
             const existingInvoice = todayInvoices.find(
               (item: any) => item.invoiceNumber === currentNo
             );
@@ -191,21 +206,40 @@ export const useInvoiceStore = create<InvoiceState>()(
             ) {
               finalInvoices.push({
                 invoiceNumber: currentNo,
-                date: moment().startOf('day').toDate(),
+                generatedDate: moment(date).startOf('day').toDate(),
                 partyCode: '',
                 medicalName: '-',
                 isOtc: false,
                 city: '-',
                 image: [],
-                timestamp: moment().toISOString(),
-                generatedDate: null,
-                invoiceTimestamp : null
+                invoiceTimestamp : null,
+                isDisabled : (
+                  //Disabled if date is 3 days ago
+                  moment(date).isSame(moment().subtract(3, 'days'), 'day')
+                )
+              });
+            } else {
+              finalInvoices.push({
+                invoiceNumber: currentNo,
+                generatedDate: moment(date).startOf('day').toDate(),
+                partyCode: '',
+                medicalName: '-',
+                isOtc: false,
+                city: '-',
+                image: [],
+                invoiceTimestamp : null,
+                isDisabled : (
+                  //Disabled if date is 3 days ago
+                  moment(date).isSame(moment().subtract(3, 'days'), 'day')
+                )
               });
             }
+  
             currentNo++;
-          }
+          } 
 
           set({ invoices: finalInvoices, isLoading: false });
+
         } catch (error) {
           console.error('Error handling invoices:', error);
           set({ 
@@ -276,14 +310,15 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ isLoading: true });
           
           const invoice = get().invoices.find(inv => inv.invoiceNumber === invoiceNumber);
-          
+          const date = get().selectedDate;
+
           if (!invoice) {
             throw new Error('Invoice not found');
           }
 
           const invoiceToSave = {
             invoiceNumber : invoice.invoiceNumber,
-            generatedDate: moment().toDate(),
+            generatedDate: date,
             partyCode : invoice.partyCode,
             image: invoice.image,
             isOtc: isOtc || false,

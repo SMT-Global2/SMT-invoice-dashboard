@@ -23,6 +23,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SMTLogo } from '@/components/icons';
 import Providers from './providers';
 import { NavItem } from './nav-item';
+import { ModeToggle, ThemeProvider } from "@/components/theme-provider"
 
 export default function DashboardLayout({
   children
@@ -164,15 +165,20 @@ function User() {
 
 function SignoutButton() {
   return (
-    <Button
-      className="ml-auto flex border border-red-500 items-center gap-1 bg-red-500 text-white hover:bg-white hover:text-red-600 transition-colors duration-200 text-sm px-2 py-1 md:text-base md:px-4 md:py-2 md:gap-2"
-      onClick={async () => {
-        await signOut({ callbackUrl: '/login' });
-      }}
-    >
-      Sign Out
-      <LogOut className="w-3 h-3 md:w-4 md:h-4" />
-      <span className="sr-only">Sign out</span>
-    </Button>
+    <>
+    <div className='ml-auto flex gap-5'>
+      <ModeToggle />
+      <Button
+        className="border border-red-500 items-center gap-1 bg-red-500 text-white hover:bg-white hover:text-red-600 transition-colors duration-200 text-sm px-2 py-1 md:text-base md:px-4 md:py-2 md:gap-2"
+        onClick={async () => {
+          await signOut({ callbackUrl: '/login' });
+        }}
+      >
+        Sign Out
+        <LogOut className="w-3 h-3 md:w-4 md:h-4" />
+        <span className="sr-only">Sign out</span>
+      </Button>
+    </div>
+    </>
   );
 } 

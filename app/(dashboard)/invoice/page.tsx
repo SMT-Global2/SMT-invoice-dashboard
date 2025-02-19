@@ -47,6 +47,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import moment from 'moment';
+import { Capsule } from '@/components/capsule';
 
 interface PartyCode {
   id: string;
@@ -66,6 +68,7 @@ export default function InvoicePage() {
     itemsPerPage,
     isLoading,
     error,
+    invoiceStartNo,
     setInvoices,
     setSelectedDate,
     setCurrentPage,
@@ -270,14 +273,16 @@ export default function InvoicePage() {
               <DatePicker date={selectedDate} setDate={setSelectedDate} />
               <Button
                 variant={'outline'}
-                disabled={!selectedDate}
-                onClick={() => setSelectedDate(undefined)}
+                disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
+                onClick={() => setSelectedDate(moment().startOf('day').toDate())}
               >Clear Date</Button>
             </div>
-            <div className="overflow-x-auto w-full max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <Table className=''>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Sr No.</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Invoice No.</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Party Code</TableHead>
@@ -289,11 +294,36 @@ export default function InvoicePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentInvoices.map((row) => (
+                  {currentInvoices.map((row , i) => (
                     <TableRow key={row.invoiceNumber}
-                      className={` border-black
-                      ${row.invoiceTimestamp ? 'bg-green-0 hover:bg-green-0' : 'bg-yellow-100 hover:bg-yellow-100'}`}
+                    className={` border-gray-400`
+                    }
                     >
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{
+                        !row.invoiceTimestamp ? 
+                        <Capsule
+                        text='Remaining'
+                        bgColor='bg-red-100'
+                        textColor='text-red-700 font-sm'
+                        showIcon='cross'
+                        />
+                        :
+                        row.invoiceTimestamp && !moment(row.generatedDate).isSame(moment(row.invoiceTimestamp) , 'day') ?
+                        <Capsule
+                          text='Delayed'
+                          bgColor='bg-blue-100'
+                          textColor='text-blue-700'
+                          showIcon='ok'
+                        /> 
+                        : 
+                        <Capsule
+                        text='Generated'
+                        bgColor='bg-green-100'
+                        textColor='text-green-700'
+                        showIcon='ok'
+                        /> 
+                    }</TableCell>
                       <TableCell>{row.invoiceNumber}</TableCell>
                       <TableCell>{selectedDate ? selectedDate.toDateString() : new Date().toDateString()}</TableCell>
                       <TableCell>
@@ -307,7 +337,7 @@ export default function InvoicePage() {
                               role="combobox"
                               aria-expanded={openComboboxes[row.invoiceNumber]}
                               className="justify-between"
-                              disabled={row.invoiceTimestamp !== null}
+                              disabled={row.isDisabled || row.invoiceTimestamp !== null}
                             >
                               {row.partyCode || "Select Party"}
                             </Button>
@@ -354,7 +384,7 @@ export default function InvoicePage() {
                             <Button
                               variant="outline"
                               className="gap-2 z-10"
-                              disabled={row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                              disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                             >
                               {
                                 uploadingImage === row.invoiceNumber ? (
@@ -376,9 +406,9 @@ export default function InvoicePage() {
                               accept="image/*"
                               onChange={handleImageUpload(row.invoiceNumber)}
                               className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                              hidden={row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                              hidden={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                               style={{
-                                pointerEvents: row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber ? 'none' : 'auto'
+                                pointerEvents: row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber ? 'none' : 'auto'
                               }}
                             />
                           </div>
@@ -387,35 +417,20 @@ export default function InvoicePage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
                               <Button
                                 variant="default"
                                 size="sm"
-                                disabled={isLoading || row.invoiceTimestamp !== null}
+                                disabled={row.isDisabled || isLoading || row.invoiceTimestamp !== null}
+                                onClick={async () => await handleSave(row.invoiceNumber)}
                               >
                                 Save
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Save Invoice</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to save this invoice? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={async () => await handleSave(row.invoiceNumber)}>Save</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="sm"
+                                disabled={row.isDisabled || isLoading}
                               >
                                 Reset
                               </Button>
@@ -435,17 +450,17 @@ export default function InvoicePage() {
                           </AlertDialog>
                           {
                             row.invoiceTimestamp !== null && row.isOtc === true ? (
-                              <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
-                                <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                                </svg>
-                                OTC
-                              </span>
+                              <Capsule
+                                text='OTC'
+                                bgColor='bg-green-100'
+                                textColor='text-green-700'
+                                showIcon='ok'
+                                />
                             ) : (
                               <Button
                                 variant="default"
                                 size="sm"
-                                disabled={isLoading}
+                                disabled={row.isDisabled || isLoading}
                                 onClick={async () => await handleOtc(row.invoiceNumber)}
                               >
                                 OTC

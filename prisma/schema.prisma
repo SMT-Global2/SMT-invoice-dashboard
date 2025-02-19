@@ -83,6 +83,13 @@ model Invoice {
   updatedAt     DateTime  @default(now())
 }
 
+model DayStart {
+  id             String    @id @map("_id") @default(auto()) @db.ObjectId
+  date           String  @unique
+  invoiceStartNo Int
+  invoiceEndNo   Int?
+}
+
 enum UserType {
   ADMIN
   USER

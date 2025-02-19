@@ -4,6 +4,7 @@ import AuthProvider from '@/components/auth-provider';
 import { Toaster } from '@/components/ui/toaster';
 import moment from 'moment-timezone';
 import React from 'react';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata = {
   title: 'Sanjivan Medico Traders',
@@ -21,19 +22,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-      <link rel="smt" href="favicon.png" />
+        <link rel="smt" href="favicon.png" />
       </head>
       <body className="flex min-h-screen w-full flex-col">
-            {/* TODO remove in prod */}
-            {/* 
-              <React.StrictMode> 
-               <Analytics /> 
-              */}
-              <AuthProvider>
-                {children}
-                <Toaster />
-              </AuthProvider>
-            {/*</React.StrictMode> */}
+        <React.StrictMode>
+          {/* <Analytics /> */}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </ThemeProvider>
+        </React.StrictMode>
       </body>
     </html>
   );
