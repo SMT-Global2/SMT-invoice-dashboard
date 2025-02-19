@@ -23,6 +23,7 @@ import { tweleHrFormatDateString } from '@/lib/helper';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Loader2, Upload } from 'lucide-react';
+import TableSkeleton from '@/components/table-skeleton';
 
 export default function DeliveryPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -164,9 +165,7 @@ export default function DeliveryPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center">Loading...</TableCell>
-                  </TableRow>
+                  <TableSkeleton rows={5} cols={8} />
                 ) : deliveryInvoices?.filter(invoice => !invoice.pickupTimestamp)?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center">No packages to be delivered</TableCell>
@@ -223,9 +222,7 @@ export default function DeliveryPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center">Loading...</TableCell>
-                  </TableRow>
+                  <TableSkeleton rows={5} cols={8} />
                 ) : deliveryInvoices?.filter(invoice => invoice.pickupTimestamp && !invoice.deliveredTimestamp)?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center">No packages in transit</TableCell>
@@ -317,9 +314,7 @@ export default function DeliveryPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center">Loading...</TableCell>
-                  </TableRow>
+                  <TableSkeleton rows={5} cols={8} />
                 ) : deliveryInvoices?.filter(invoice => invoice.deliveredTimestamp)?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center">No delivered packages</TableCell>

@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { Loader2, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import TableSkeleton from '@/components/table-skeleton';
 
 export default function PackingPage() {
   const { toast } = useToast();
@@ -129,9 +130,7 @@ export default function PackingPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center">Loading...</TableCell>
-                </TableRow>
+                <TableSkeleton rows={5} cols={8} />
               ) : packInvoices?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center">No invoices found</TableCell>
@@ -221,9 +220,7 @@ export default function PackingPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center">Loading...</TableCell>
-                </TableRow>
+                <TableSkeleton rows={5} cols={9} />
               ) : packInvoices?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center">No invoices found</TableCell>

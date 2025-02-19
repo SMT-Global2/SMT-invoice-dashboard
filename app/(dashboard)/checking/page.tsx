@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import { tweleHrFormatDateString } from '@/lib/helper';
+import TableSkeleton from '@/components/table-skeleton';
 
 export default function CheckingPage() {
   const { toast } = useToast()
@@ -80,9 +81,7 @@ export default function CheckingPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center">Loading...</TableCell>
-                  </TableRow>
+                  <TableSkeleton rows={5} cols={8} />
                 ) : checkInvoices?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center">No invoices found</TableCell>
