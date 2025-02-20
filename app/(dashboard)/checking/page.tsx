@@ -57,7 +57,6 @@ export default function CheckingPage() {
     }
   }
 
-
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100'>
       <Card>
@@ -65,7 +64,7 @@ export default function CheckingPage() {
           <CardTitle>Unchecked Invoices</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative overflow-x-auto">
+        <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -120,7 +119,7 @@ export default function CheckingPage() {
           <CardTitle>Checked Invoices</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative overflow-x-auto">
+        <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <Table>
               <TableHeader>
                 <TableRow>

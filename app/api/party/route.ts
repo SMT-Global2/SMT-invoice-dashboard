@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { UserSchema } from '@/store/useUsersStore'
+import { PartyCodeSchema } from '@/store/usePartyStore'
 
 // Helper function to check admin access
 async function checkAdminAccess() {
@@ -18,13 +18,14 @@ async function checkAdminAccess() {
   return null
 }
 
+
 export async function GET() {
   const authError = await checkAdminAccess()
   if (authError) return authError
 
   try {
-    const users = await prisma.user.findMany()
-    return NextResponse.json(users)
+    const partyCodes = await prisma.partyCode.findMany()
+    return NextResponse.json(partyCodes)
   } catch (error) {
     return new NextResponse('Internal Error', { status: 500 })
   }
@@ -36,13 +37,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const validatedData = UserSchema.parse(body)
+    const validatedData = PartyCodeSchema.parse(body)
     
-    const user = await prisma.user.create({
+    const partyCode = await prisma.partyCode.create({
       data: validatedData
     })
     
-    return NextResponse.json(user)
+    return NextResponse.json(partyCode)
   } catch (error) {
     return new NextResponse('Invalid Request', { status: 400 })
   }
@@ -57,17 +58,17 @@ export async function PUT(request: Request) {
     const { id, ...updateData } = body
     
     if (!id) {
-      return new NextResponse('User ID is required', { status: 400 })
+      return new NextResponse('Party Code ID is required', { status: 400 })
     }
     
-    const validatedData = UserSchema.partial().parse(updateData)
+    const validatedData = PartyCodeSchema.partial().parse(updateData)
     
-    const user = await prisma.user.update({
+    const partyCode = await prisma.partyCode.update({
       where: { id },
       data: validatedData
     })
     
-    return NextResponse.json(user)
+    return NextResponse.json(partyCode)
   } catch (error) {
     return new NextResponse('Invalid Request', { status: 400 })
   }
@@ -82,14 +83,14 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id')
     
     if (!id) {
-      return new NextResponse('User ID is required', { status: 400 })
+      return new NextResponse('Party Code ID is required', { status: 400 })
     }
     
-    await prisma.user.delete({
+    await prisma.partyCode.delete({
       where: { id }
     })
     
-    return new NextResponse('User deleted', { status: 200 })
+    return new NextResponse('Party Code deleted', { status: 200 })
   } catch (error) {
     return new NextResponse('Invalid Request', { status: 400 })
   }

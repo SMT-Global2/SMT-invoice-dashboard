@@ -93,19 +93,20 @@ export default function InvoicePage() {
 
   const searchPartyCode = async (search: string) => {
     try {
+      setPartyCodeLoading(true);
       const response = await fetch(`/api/partycode?search=${search}`);
       const { data } = await response.json();
       setPartyCodes(data);
     } catch (error) {
       console.error('Failed to fetch party codes:', error);
+    } finally {
+      setPartyCodeLoading(false);
     }
   };
 
   const handleSearchChange = (invoiceNumber: number, value: string) => {
-    setPartyCodeLoading(true);
     setSearchTerms(prev => ({ ...prev, [invoiceNumber]: value }));
     searchPartyCode(value);
-    setPartyCodeLoading(false);
   };
 
   const toggleCombobox = (invoiceNumber: number, isOpen: boolean) => {
@@ -420,7 +421,6 @@ export default function InvoicePage() {
                                         Uploading...
                                       </>
                                     ) : (
-
                                       <>
                                         <Upload className='w-5 h-5' />
                                         Upload Image
@@ -431,6 +431,7 @@ export default function InvoicePage() {
                                 <Input
                                   type="file"
                                   accept="image/*"
+                                  capture="environment"
                                   onChange={handleImageUpload(row.invoiceNumber)}
                                   className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
                                   hidden={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
