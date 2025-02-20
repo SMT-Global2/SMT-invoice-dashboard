@@ -53,6 +53,7 @@ import TableSkeleton from '@/components/table-skeleton';
 import { TableEmpty } from '@/components/TableEmpty';
 import { Spinner } from '@/components/icons';
 import imageCompression from 'browser-image-compression';
+import { TakeImage } from '@/components/take-image';
 
 interface PartyCode {
   id: string;
@@ -421,12 +422,20 @@ export default function InvoicePage() {
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
+                          <TakeImage
+                              invoice={row}
+                              uploadingImage={uploadingImage}
+                              handleImageUpload={handleImageUpload}
+                              isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                              showImages={[...row.image]}
+                            />
+                            {/* <div className="flex items-center space-x-2">
                               <div className="relative flex gap-1">
                                 <Button
+                                  type="button"
                                   variant="outline"
                                   className="gap-2 z-10"
-                                  disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                                  // disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                                 >
                                   {
                                     uploadingImage === row.invoiceNumber ? (
@@ -436,8 +445,8 @@ export default function InvoicePage() {
                                       </>
                                     ) : (
                                       <>
-                                        <Upload className='w-5 h-5' />
-                                        Upload Image
+                                        <Upload className='w-5 h-5'/> 
+                                        Browse Files
                                       </>
                                     )
                                   }
@@ -447,13 +456,12 @@ export default function InvoicePage() {
                                     type="button"
                                     variant="outline"
                                     className="gap-2 z-10"
-                                    disabled={uploadingImage === row.invoiceNumber}
+                                    disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                                   >
                                     {
                                       uploadingImage === row.invoiceNumber ? (
                                         <>
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          Uploading...
+                                          <Camera className='w-5 h-5 text-gray-400'/> 
                                         </>
                                       ) : (
                                         <>
@@ -475,7 +483,7 @@ export default function InvoicePage() {
                                 />
                               </div>
                               <ShowImage images={row?.image} />
-                            </div>
+                            </div> */}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

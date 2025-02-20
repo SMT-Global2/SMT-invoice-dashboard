@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Loader2, Upload } from 'lucide-react';
 import TableSkeleton from '@/components/table-skeleton';
+import { TakeImage } from '@/components/take-image';
 
 export default function DeliveryPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -237,7 +238,14 @@ export default function DeliveryPage() {
                       <TableCell>{invoice.medicalName}</TableCell>
                       <TableCell>{invoice.city}</TableCell>
                       <TableCell>
-                      <div className="flex items-center space-x-2">
+                      <TakeImage
+                          invoice={invoice}
+                          uploadingImage={uploadingImage}
+                          handleImageUpload={handleImageUpload}
+                          isDisabled={uploadingImage === invoice.invoiceNumber}
+                          showImages={[...invoice.image]}
+                        />
+                        {/* <div className="flex items-center space-x-2">
                           <div className="relative">
                             <Button
                               variant="outline"
@@ -271,7 +279,7 @@ export default function DeliveryPage() {
                             />
                           </div>
                           <ShowImage images={invoice?.image} />
-                        </div>
+                        </div> */}
                       </TableCell>
                       <TableCell>
                         <Button
