@@ -28,7 +28,7 @@ interface PartyStore {
   setSelectedParty: (party: PartyCode | null) => void
 }
 
-const useParty = create<PartyStore>((set, get) => ({
+export const usePartyStore = create<PartyStore>((set, get) => ({
   parties: [],
   isLoading: false,
   error: null,

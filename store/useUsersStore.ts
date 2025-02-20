@@ -31,7 +31,7 @@ interface UserStore {
   setSelectedUser: (user: User | null) => void
 }
 
-const useUsers = create<UserStore>((set, get) => ({
+export const useUsersStore = create<UserStore>((set, get) => ({
   users: [],
   isLoading: false,
   error: null,
@@ -40,7 +40,7 @@ const useUsers = create<UserStore>((set, get) => ({
   fetchUsers: async () => {
     try {
       set({ isLoading: true, error: null })
-      const response = await fetch('/api/seed/user')
+      const response = await fetch('/api/user')
       if (!response.ok) throw new Error('Failed to fetch users')
       const data = await response.json()
       set({ users: data, isLoading: false })
@@ -58,7 +58,7 @@ const useUsers = create<UserStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       const validatedUser = UserSchema.parse(user)
-      const response = await fetch('/api/seed/user', {
+      const response = await fetch('/api/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validatedUser)
@@ -87,7 +87,7 @@ const useUsers = create<UserStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       const validatedUser = UserSchema.partial().parse(user)
-      const response = await fetch(`/api/seed/user/${id}`, {
+      const response = await fetch(`/api/user/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...validatedUser })
@@ -115,7 +115,7 @@ const useUsers = create<UserStore>((set, get) => ({
   deleteUser: async (id) => {
     try {
       set({ isLoading: true, error: null })
-      const response = await fetch(`/api/seed/user/${id}`, {
+      const response = await fetch(`/api/user/${id}`, {
         method: 'DELETE'
       })
       if (!response.ok) throw new Error('Failed to delete user')

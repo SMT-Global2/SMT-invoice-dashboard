@@ -28,7 +28,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { InvoiceData, useInvoiceStore } from '@/store/useInvoiceStore';
-import { Check, ChevronsUpDown, Upload } from "lucide-react"
+import { Camera, Check, ChevronsUpDown, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -422,7 +422,7 @@ export default function InvoicePage() {
                           <TableCell>{row.city}</TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
-                              <div className="relative">
+                              <div className="relative flex gap-1">
                                 <Button
                                   variant="outline"
                                   className="gap-2 z-10"
@@ -442,10 +442,30 @@ export default function InvoicePage() {
                                     )
                                   }
                                 </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="gap-2 z-10"
+                                    disabled={uploadingImage === row.invoiceNumber}
+                                  >
+                                    {
+                                      uploadingImage === row.invoiceNumber ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                          Uploading...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Camera className='w-5 h-5'/> 
+                                        </>
+                                      )
+                                    }
+                                  </Button>
+
                                 <Input
                                   type="file"
                                   accept="image/*"
-                                  capture="user"
                                   onChange={handleImageUpload(row.invoiceNumber)}
                                   className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
                                   hidden={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
