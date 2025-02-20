@@ -16,7 +16,6 @@ export function RoleGuard({
   fallback = null,
 }: RoleGuardProps) {
   const { data: session } = useSession()
-  console.log({ session })
   // If there's no session or user's role is not allowed, show fallback
   if (!session?.user || !allowedRoles.includes(session.user.type)) {
     return <>{fallback}</>

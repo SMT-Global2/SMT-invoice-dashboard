@@ -59,7 +59,6 @@ export function TakeImage({
                 <Input
                     type="file"
                     accept="image/*"
-                    capture="user"
                     onChange={handleImageUpload(invoice.invoiceNumber)}
                     className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
                     hidden={isDisabled}
