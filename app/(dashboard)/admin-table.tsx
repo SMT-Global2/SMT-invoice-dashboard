@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import useAnalyticsStore, { IInvoice } from '@/store/useAnalyticsStore';
 import { useEffect } from 'react';
+import { Capsule } from '@/components/capsule';
 
 export default function AdminInvoiceTable() {
   const {
@@ -86,6 +87,7 @@ export default function AdminInvoiceTable() {
                   <TableHead>Packed</TableHead>
                   <TableHead>Delivered</TableHead>
                   <TableHead>Last Updated</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -103,6 +105,14 @@ export default function AdminInvoiceTable() {
                     <TableCell><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
                     <TableCell><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
                     <TableCell>{new Date(invoice.updatedAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Capsule 
+                        text={invoice.isOtc ? 'OTC' : 'Normal'}
+                        bgColor={invoice.isOtc ? 'bg-yellow-100' : 'bg-green-100'}
+                        textColor={invoice.isOtc ? 'text-yellow-800' : 'text-green-800'}
+                        showIcon='none'
+                      />
+                    </TableCell>
                     <TableCell>
                       <MoreInfoDialog invoice={invoice} />
                     </TableCell>
