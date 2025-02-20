@@ -25,6 +25,8 @@ import { Camera, Loader2, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
+import { convertHeicImage } from '@/lib/helper';
+import imageCompression from 'browser-image-compression';
 
 export default function PackingPage() {
   const { toast } = useToast();
@@ -71,9 +73,28 @@ export default function PackingPage() {
 
       setUploadingImage(invoiceNumber);
 
+      let processedFile = file;
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      
+      if (fileExtension === 'heic' || fileExtension === 'heif') {
+        processedFile = await convertHeicImage(file)
+      }
+
+      const options = {
+        maxSizeMB: 0.8,
+        useWebWorker: true,
+        fileType: 'image/jpeg',
+      };
+
+      // Compress the image
+      const compressedFile = await imageCompression(processedFile, options);
+
+      console.log('Original file size:', file.size / 1024 / 1024, 'MB');
+      console.log('Compressed file size:', compressedFile.size / 1024 / 1024, 'MB');
+
       const formData = new FormData();
 
-      formData.append('file', file);
+      formData.append('file', compressedFile);
       formData.append('upload_preset', 'my-unsigened-upload-preset');
 
       const response = await fetch(

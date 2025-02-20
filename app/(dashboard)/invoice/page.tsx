@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from '@/components/ui/use-toast';
-import { tweleHrFormatDateString } from '@/lib/helper';
+import { convertHeicImage , tweleHrFormatDateString } from '@/lib/helper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -153,32 +153,42 @@ export default function InvoicePage() {
       const fileExtension = file.name.split('.').pop()?.toLowerCase();
       
       if (fileExtension === 'heic' || fileExtension === 'heif') {
-        try {
-          console.log('Converting HEIC/HEIF to JPEG...');
-          const blob : any = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 1
-          });
-          
-          if (!blob) {
-            throw new Error('HEIC conversion failed - no blob returned');
-          }
-          
-          console.log('HEIC conversion successful, creating new File object');
-          processedFile = new File([blob], file.name.replace(/\.(heic|HEIC|heif|HEIF)$/, '.jpg'), {
-            type: 'image/jpeg'
-          });
-          console.log('Processed file:', {
-            name: processedFile.name,
-            type: processedFile.type,
-            size: processedFile.size
-          });
-        } catch (heicError) {
-          console.error('HEIC conversion error:', heicError);
-          throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
-        }
+        processedFile = await convertHeicImage(file)
       }
+
+      // if (fileExtension === 'heic' || fileExtension === 'heif') {
+      //   try {
+      //     processedFile = await convertHeicImages([file])
+      //   } catch (heicError) {
+      //     console.error('HEIC conversion error:', heicError);
+      //     throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
+      //   }
+      //   try {
+      //     console.log('Converting HEIC/HEIF to JPEG...');
+      //     const blob : any = await heic2any({
+      //       blob: file,
+      //       toType: 'image/jpeg',
+      //       quality: 1
+      //     });
+          
+      //     if (!blob) {
+      //       throw new Error('HEIC conversion failed - no blob returned');
+      //     }
+          
+      //     console.log('HEIC conversion successful, creating new File object');
+      //     processedFile = new File([blob], file.name.replace(/\.(heic|HEIC|heif|HEIF)$/, '.jpg'), {
+      //       type: 'image/jpeg'
+      //     });
+      //     console.log('Processed file:', {
+      //       name: processedFile.name,
+      //       type: processedFile.type,
+      //       size: processedFile.size
+      //     });
+      //   } catch (heicError) {
+      //     console.error('HEIC conversion error:', heicError);
+      //     throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
+      //   }
+      // }
 
       // Compression options
       const options = {
