@@ -54,6 +54,7 @@ import { TableEmpty } from '@/components/TableEmpty';
 import { Spinner } from '@/components/icons';
 import imageCompression from 'browser-image-compression';
 import { TakeImage } from '@/components/take-image';
+import heic2any from 'heic2any';
 
 interface PartyCode {
   id: string;
@@ -140,19 +141,57 @@ export default function InvoicePage() {
     try {
       const file = event.target.files?.[0];
       if (!file) return;
+      
+      console.log('File details:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        extension: file.name.split('.').pop()?.toLowerCase()
+      });
 
       setUploadingImage(invoiceNumber);
 
+      // Handle HEIC format
+      let processedFile = file;
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      
+      if (fileExtension === 'heic' || fileExtension === 'heif') {
+        try {
+          console.log('Converting HEIC/HEIF to JPEG...');
+          const blob : any = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 1
+          });
+          
+          if (!blob) {
+            throw new Error('HEIC conversion failed - no blob returned');
+          }
+          
+          console.log('HEIC conversion successful, creating new File object');
+          processedFile = new File([blob], file.name.replace(/\.(heic|HEIC|heif|HEIF)$/, '.jpg'), {
+            type: 'image/jpeg'
+          });
+          console.log('Processed file:', {
+            name: processedFile.name,
+            type: processedFile.type,
+            size: processedFile.size
+          });
+        } catch (heicError) {
+          console.error('HEIC conversion error:', heicError);
+          throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
+        }
+      }
+
       // Compression options
       const options = {
-        maxSizeMB: 0.5, // Max file size in MB
-        maxWidthOrHeight: 1024, // Max width/height
+        maxSizeMB: 0.8,
         useWebWorker: true,
-        fileType: 'image/jpeg', // Convert all images to JPEG for better compression
+        fileType: 'image/jpeg',
       };
 
       // Compress the image
-      const compressedFile = await imageCompression(file, options);
+      const compressedFile = await imageCompression(processedFile, options);
       console.log('Original file size:', file.size / 1024 / 1024, 'MB');
       console.log('Compressed file size:', compressedFile.size / 1024 / 1024, 'MB');
 

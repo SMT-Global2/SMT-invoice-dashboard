@@ -67,9 +67,12 @@ export default function PackingPage() {
       const file = event.target.files?.[0];
       if (!file) return;
 
+      console.log({file})
+
       setUploadingImage(invoiceNumber);
 
       const formData = new FormData();
+
       formData.append('file', file);
       formData.append('upload_preset', 'my-unsigened-upload-preset');
 

@@ -38,6 +38,7 @@
     "drizzle-orm": "^0.31.4",
     "drizzle-zod": "^0.5.1",
     "embla-carousel-react": "^8.5.2",
+    "heic2any": "^0.0.4",
     "lucide-react": "^0.400.0",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.47",

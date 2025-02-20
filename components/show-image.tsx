@@ -17,18 +17,86 @@ import {
 } from '@/components/ui/carousel';
 import { DialogTitle } from '@radix-ui/react-dialog';
 import { useTheme } from 'next-themes';
+import { useState, useEffect } from 'react';
+import heic2any from 'heic2any';
 
 interface ShowImageProps {
   images: string[];
 }
 
 export function ShowImage({ images }: ShowImageProps) {
-  console.log({images})
+  const [processedImages, setProcessedImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const processImages = async () => {
+      if (!images || images.length === 0) {
+        setProcessedImages([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const processed = await Promise.all(
+          images.map(async (imageUrl) => {
+            if (imageUrl.toLowerCase().endsWith('.heic')) {
+              try {
+                // Fetch the HEIC image
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                
+                // Convert HEIC to JPEG
+                const jpegBlob = await heic2any({
+                  blob,
+                  toType: 'image/jpeg',
+                  quality: 0.8
+                });
+                
+                // Create object URL from the converted image
+                return URL.createObjectURL(jpegBlob as Blob);
+              } catch (error) {
+                console.error('Error converting HEIC image:', error);
+                return imageUrl; // Fallback to original URL if conversion fails
+              }
+            }
+            return imageUrl;
+          })
+        );
+        setProcessedImages(processed);
+      } catch (error) {
+        console.error('Error processing images:', error);
+        setProcessedImages(images);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    processImages();
+
+    // Cleanup function to revoke object URLs
+    return () => {
+      processedImages.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [images]);
+
   if (!images || images.length === 0) {
-    return 
+    return (
       <span className="text-sm text-muted-foreground">
         No Image
-      </span>;
+      </span>
+    );
+  }
+
+  if (loading) {
+    return (
+      <span className="text-sm text-muted-foreground">
+        Loading images...
+      </span>
+    );
   }
 
   //Theme
@@ -44,10 +112,10 @@ export function ShowImage({ images }: ShowImageProps) {
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[60%] p-0 bg-background/90">
-       <DialogTitle className='text-lg font-semibold m-2'>View Images</DialogTitle>
-        <Carousel className="w-full relative ">
+        <DialogTitle className='text-lg font-semibold m-2'>View Images</DialogTitle>
+        <Carousel className="w-full relative">
           <CarouselContent>
-            {images.map((image, index) => (
+            {processedImages.map((image, index) => (
               <CarouselItem key={index}>
                 <div className="flex items-center justify-center p-4">
                   <CldImage
@@ -65,7 +133,7 @@ export function ShowImage({ images }: ShowImageProps) {
               </CarouselItem>
             ))}
           </CarouselContent>
-          {images.length > 1 && (
+          {processedImages.length > 1 && (
             <>
               <CarouselPrevious 
                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 border-0 h-8 w-8"
@@ -76,11 +144,10 @@ export function ShowImage({ images }: ShowImageProps) {
             </>
           )}
           <div className="absolute bottom-4 right-4 bg-white/20 px-2 py-1 rounded text-black text-sm">
-            {images.length} {images.length === 1 ? 'Image' : 'Images'}
+            {processedImages.length} {processedImages.length === 1 ? 'Image' : 'Images'}
           </div>
         </Carousel>
       </DialogContent>
-
     </Dialog>
   );
 }
