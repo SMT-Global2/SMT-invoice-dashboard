@@ -52,6 +52,7 @@ import { Capsule } from '@/components/capsule';
 import TableSkeleton from '@/components/table-skeleton';
 import { TableEmpty } from '@/components/TableEmpty';
 import { Spinner } from '@/components/icons';
+import imageCompression from 'browser-image-compression';
 
 interface PartyCode {
   id: string;
@@ -141,8 +142,21 @@ export default function InvoicePage() {
 
       setUploadingImage(invoiceNumber);
 
+      // Compression options
+      const options = {
+        maxSizeMB: 0.5, // Max file size in MB
+        maxWidthOrHeight: 1024, // Max width/height
+        useWebWorker: true,
+        fileType: 'image/jpeg', // Convert all images to JPEG for better compression
+      };
+
+      // Compress the image
+      const compressedFile = await imageCompression(file, options);
+      console.log('Original file size:', file.size / 1024 / 1024, 'MB');
+      console.log('Compressed file size:', compressedFile.size / 1024 / 1024, 'MB');
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressedFile);
       formData.append('upload_preset', 'my-unsigened-upload-preset');
 
       const response = await fetch(

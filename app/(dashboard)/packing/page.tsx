@@ -21,7 +21,7 @@ import { useInvoiceStore } from '@/store/useInvoiceStore';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, Camera } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
 
@@ -146,8 +146,9 @@ export default function PackingPage() {
                     <TableCell>{invoice.city}</TableCell>
                     <TableCell>
                         <div className="flex items-center space-x-2">
-                          <div className="relative">
+                          <div className="relative flex gap-2">
                             <Button
+                              type="button"
                               variant="outline"
                               className="gap-2 z-10"
                               disabled={uploadingImage === invoice.invoiceNumber}
@@ -159,19 +160,50 @@ export default function PackingPage() {
                                     Uploading...
                                   </>
                                 ) : (
-
                                   <>
                                     <Upload className='w-5 h-5'/> 
-                                    Upload Image 
+                                    Browse Files
                                   </>
                                 )
                               }
                             </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="gap-2 z-10"
+                              disabled={uploadingImage === invoice.invoiceNumber}
+                            >
+                              {
+                                uploadingImage === invoice.invoiceNumber ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Camera className='w-5 h-5'/> 
+                                  </>
+                                )
+                              }
+                            </Button>
+
                             <Input
                               type="file"
                               accept="image/*"
                               onChange={handleImageUpload(invoice.invoiceNumber)}
                               className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
+                              hidden={uploadingImage === invoice.invoiceNumber}
+                              style={{
+                                pointerEvents: uploadingImage === invoice.invoiceNumber ? 'none' : 'auto'
+                              }}
+                            />
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              onChange={handleImageUpload(invoice.invoiceNumber)}
+                              className="absolute right-0 w-1/2 opacity-0 cursor-pointer z-0"
                               hidden={uploadingImage === invoice.invoiceNumber}
                               style={{
                                 pointerEvents: uploadingImage === invoice.invoiceNumber ? 'none' : 'auto'
