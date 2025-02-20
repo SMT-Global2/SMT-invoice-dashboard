@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -9,7 +9,6 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -28,13 +27,11 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { InvoiceData, useInvoiceStore } from '@/store/useInvoiceStore';
-import { Camera, Check, ChevronsUpDown, Upload } from "lucide-react"
+import {Check} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
 import { tweleHrFormatDateString } from '@/lib/helper';
 import {
   AlertDialog,

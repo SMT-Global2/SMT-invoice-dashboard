@@ -21,8 +21,6 @@ import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import { tweleHrFormatDateString } from '@/lib/helper';
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { Loader2, Upload } from 'lucide-react';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
 

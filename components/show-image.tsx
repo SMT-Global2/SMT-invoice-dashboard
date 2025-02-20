@@ -16,9 +16,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { DialogTitle } from '@radix-ui/react-dialog';
-import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
-import heic2any from 'heic2any';
 
 interface ShowImageProps {
   images: string[];
@@ -37,31 +35,31 @@ export function ShowImage({ images }: ShowImageProps) {
       }
 
       try {
+        const { default: heic2any } = await import('heic2any'); // Import dynamically on the client
+
         const processed = await Promise.all(
           images.map(async (imageUrl) => {
             if (imageUrl.toLowerCase().endsWith('.heic')) {
               try {
-                // Fetch the HEIC image
                 const response = await fetch(imageUrl);
                 const blob = await response.blob();
-                
-                // Convert HEIC to JPEG
+
                 const jpegBlob = await heic2any({
                   blob,
                   toType: 'image/jpeg',
-                  quality: 0.8
+                  quality: 1,
                 });
-                
-                // Create object URL from the converted image
+
                 return URL.createObjectURL(jpegBlob as Blob);
               } catch (error) {
                 console.error('Error converting HEIC image:', error);
-                return imageUrl; // Fallback to original URL if conversion fails
+                return imageUrl;
               }
             }
             return imageUrl;
           })
         );
+
         setProcessedImages(processed);
       } catch (error) {
         console.error('Error processing images:', error);
@@ -73,9 +71,8 @@ export function ShowImage({ images }: ShowImageProps) {
 
     processImages();
 
-    // Cleanup function to revoke object URLs
     return () => {
-      processedImages.forEach(url => {
+      processedImages.forEach((url) => {
         if (url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
@@ -84,23 +81,12 @@ export function ShowImage({ images }: ShowImageProps) {
   }, [images]);
 
   if (!images || images.length === 0) {
-    return (
-      <span className="text-sm text-muted-foreground">
-        No Image
-      </span>
-    );
+    return <span className="text-sm text-muted-foreground">No Image</span>;
   }
 
   if (loading) {
-    return (
-      <span className="text-sm text-muted-foreground">
-        Loading images...
-      </span>
-    );
+    return <span className="text-sm text-muted-foreground">Loading images...</span>;
   }
-
-  //Theme
-  const { theme } = useTheme();
 
   return (
     <Dialog>
@@ -112,7 +98,7 @@ export function ShowImage({ images }: ShowImageProps) {
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[60%] p-0 bg-background/90">
-        <DialogTitle className='text-lg font-semibold m-2'>View Images</DialogTitle>
+        <DialogTitle className="text-lg font-semibold m-2">View Images</DialogTitle>
         <Carousel className="w-full relative">
           <CarouselContent>
             {processedImages.map((image, index) => (
@@ -125,7 +111,7 @@ export function ShowImage({ images }: ShowImageProps) {
                     height="1080"
                     crop={{
                       type: 'scale',
-                      source: true
+                      source: true,
                     }}
                     className="rounded-lg object-contain max-h-[80vh]"
                   />
@@ -135,10 +121,10 @@ export function ShowImage({ images }: ShowImageProps) {
           </CarouselContent>
           {processedImages.length > 1 && (
             <>
-              <CarouselPrevious 
+              <CarouselPrevious
                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 border-0 h-8 w-8"
               />
-              <CarouselNext 
+              <CarouselNext
                 className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 border-0 h-8 w-8"
               />
             </>

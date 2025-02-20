@@ -252,7 +252,7 @@ export const useInvoiceStore = create<InvoiceState>()(
       fetchCheckInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
-          console.log({a : "hRE"})
+
           const response = await fetch('/api/invoice/check');
           const { data } = await response.json();
           set({ 

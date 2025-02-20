@@ -3,7 +3,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
@@ -17,12 +16,12 @@ import {
 } from '@/components/ui/table';
 import { useInvoiceStore } from '@/store/useInvoiceStore';
 import { useEffect } from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import { tweleHrFormatDateString } from '@/lib/helper';
 import TableSkeleton from '@/components/table-skeleton';
+import { Capsule } from '@/components/capsule';
 
 export default function CheckingPage() {
   const { toast } = useToast()
@@ -30,7 +29,7 @@ export default function CheckingPage() {
     checkInvoices, 
     fetchCheckInvoices, 
     checkInvoice,
-    isLoading 
+    isLoading
   } = useInvoiceStore();
 
   useEffect(() => {
@@ -156,12 +155,10 @@ export default function CheckingPage() {
                       <ShowImage images={invoice.image} />  
                       </TableCell>
                       <TableCell>
-                        <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
-                          <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                          </svg>
-                          Checked
-                        </span>
+                        <Capsule
+                          text = "Checked" 
+                          showIcon = 'ok' 
+                        />
                       </TableCell>
                       <TableCell>{tweleHrFormatDateString(invoice.checkTimestamp!)}</TableCell>
                     </TableRow>
