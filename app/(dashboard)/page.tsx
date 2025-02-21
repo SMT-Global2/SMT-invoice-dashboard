@@ -6,13 +6,13 @@ import AdminInvoiceTable from "./admin-table"
 
 export default async function DashboardPage() {
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6 text-lg max-w-[100vw]">
+    <div className="flex-1 space-y-4 p-8 pt-6 text-lg max-w-[100vw] overflow-y-hidden">
       
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 w-full max-w-[100vw]">
 
         <Link href="/invoice">
           <Card className="h-[10rem] transition-all hover:scale-105 hover:shadow-lg cursor-pointer">
@@ -22,7 +22,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground">
-                Pending Invoices
+                Create and Generate Invoices
               </p>
             </CardContent>
           </Card>
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground">
-                Items to Check
+              Review and Verify Generated Invoices
               </p>
             </CardContent>
           </Card>
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground">
-                Orders to Pack
+              Prepare and Pack Verified Invoices
               </p>
             </CardContent>
           </Card>
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground">
-                Orders to Ship
+              Pick Up, Ship, and Deliver Orders
               </p>
             </CardContent>
           </Card>
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Manage Employees
+                Manage Employee Profiles
                 </p>
               </CardContent>
             </Card>
@@ -87,15 +87,15 @@ export default async function DashboardPage() {
         </RoleGuard>
 
         <RoleGuard allowedRoles={['ADMIN']}>
-          <Link href="/parties">
+          <Link href="/party">
             <Card className="h-[10rem] transition-all hover:scale-105 hover:shadow-lg cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-2xl font-medium">Parties</CardTitle>
+                <CardTitle className="text-2xl font-medium">Parties / Clients</CardTitle>
                 <Building className="h-6 w-6 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Manage Parties
+                Maintain and organize client data
                 </p>
               </CardContent>
             </Card>

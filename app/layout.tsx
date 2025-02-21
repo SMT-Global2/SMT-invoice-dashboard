@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import moment from 'moment-timezone';
 import React from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
+import SessionCheck from '../components/auth/session';
 
 export const metadata = {
   title: 'Sanjivan Medico Traders',
@@ -26,7 +27,9 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen w-full flex-col max-w-[100vw]">
         <React.StrictMode>
-          {/* <Analytics /> */}
+          {/* 
+            <Analytics /> 
+          */}
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -34,7 +37,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <AuthProvider>
-              {children}
+              <SessionCheck>
+                {children}
+              </SessionCheck>
               <Toaster />
             </AuthProvider>
           </ThemeProvider>

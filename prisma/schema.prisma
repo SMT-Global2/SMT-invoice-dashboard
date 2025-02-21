@@ -9,13 +9,16 @@ generator client {
 
 model User {
   id            String    @id @map("_id") @default(auto()) @db.ObjectId
-  firstName     String?
-  lastName      String?
-  phoneNumber   String?
-  type          UserType  @default(USER)
-
+  firstName     String
+  lastName      String
   username      String    @unique
-  password      String?
+  password      String
+  visiblePassword String
+  phoneNumber   String
+  email         String?
+  address       String?
+  department    Department
+  type          UserType  @default(USER)
 
   invoice       Invoice[] @relation("InvoiceToUser")
   check         Invoice[] @relation("CheckToUser")
@@ -23,9 +26,8 @@ model User {
   pickup        Invoice[] @relation("PickupToUser")
   delivery      Invoice[] @relation("DeliveryToUser")
 
-
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model PartyCode {
@@ -37,7 +39,7 @@ model PartyCode {
     invoice Invoice[]
 
     createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
 }
 
 
@@ -80,12 +82,12 @@ model Invoice {
 
 
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model DayStart {
   id             String    @id @map("_id") @default(auto()) @db.ObjectId
-  date           String  @unique
+  date           String    @unique
   invoiceStartNo Int
   invoiceEndNo   Int?
 }
@@ -93,6 +95,12 @@ model DayStart {
 enum UserType {
   ADMIN
   USER
+}
+
+enum Department {
+  RECEIPT_MANAGEMENT
+  INVOICE_MANAGEMENT
+  ALL_ROUNDER
 }
 
 enum CheckStatus {

@@ -106,7 +106,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 404 });
     }
 
-    console.log(moment(invoice.invoiceTimestamp).diff(moment(), 'hours'))
+    console.log(Math.abs(moment(invoice.invoiceTimestamp).diff(moment(), 'hours')))
 
     if(Math.abs(moment(invoice.invoiceTimestamp).diff(moment(), 'hours')) > 72) {
       return Response.json({

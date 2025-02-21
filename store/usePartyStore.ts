@@ -5,7 +5,7 @@ import { toast } from '@/components/ui/use-toast'
 // Zod schema for PartyCode validation
 export const PartyCodeSchema = z.object({
   id: z.string().optional(),
-  code: z.string().min(1),
+  code: z.string().min(1, "Party code is required"),
   customerName: z.string().optional(),
   city: z.string().optional(),
   createdAt: z.date().optional(),
@@ -14,18 +14,26 @@ export const PartyCodeSchema = z.object({
 
 export type PartyCode = z.infer<typeof PartyCodeSchema>
 
+interface Pagination {
+  page: number
+  limit: number
+}
+
 interface PartyStore {
   parties: PartyCode[]
   isLoading: boolean
   error: string | null
   selectedParty: PartyCode | null
+  pagination: Pagination
+  totalPages: number
   
   // Actions
-  fetchParties: () => Promise<void>
+  fetchParties: (search?: string) => Promise<void>
   createParty: (party: Omit<PartyCode, 'id'>) => Promise<void>
   updateParty: (id: string, party: Partial<PartyCode>) => Promise<void>
   deleteParty: (id: string) => Promise<void>
   setSelectedParty: (party: PartyCode | null) => void
+  setPagination: (pagination: Pagination) => void
 }
 
 export const usePartyStore = create<PartyStore>((set, get) => ({
@@ -33,20 +41,32 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
   isLoading: false,
   error: null,
   selectedParty: null,
+  pagination: {
+    page: 0,
+    limit: 10,
+  },
+  totalPages: 0,
 
-  fetchParties: async () => {
+  fetchParties: async (search = "") => {
     try {
+      const { pagination } = get()
       set({ isLoading: true, error: null })
-      const response = await fetch('/api/partycode')
-      if (!response.ok) throw new Error('Failed to fetch party codes')
-      const { data } = await response.json()
-      set({ parties: data, isLoading: false })
+      const response = await fetch(
+        `/api/party?page=${pagination.page}&limit=${pagination.limit}&search=${search}`
+      )
+      if (!response.ok) throw new Error('Failed to fetch parties')
+      const { data, total } = await response.json()
+      set({ 
+        parties: data, 
+        totalPages: Math.ceil(total / pagination.limit),
+        isLoading: false 
+      })
     } catch (error) {
-      set({ error: 'Failed to fetch party codes', isLoading: false })
+      set({ error: 'Failed to fetch parties', isLoading: false })
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to fetch party codes"
+        description: "Failed to fetch parties"
       })
     }
   },
@@ -55,27 +75,23 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       const validatedParty = PartyCodeSchema.parse(party)
-      const response = await fetch('/api/partycode', {
+      const response = await fetch('/api/party', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validatedParty)
       })
-      if (!response.ok) throw new Error('Failed to create party code')
-      const data = await response.json()
-      set(state => ({
-        parties: [...state.parties, data],
-        isLoading: false
-      }))
+      if (!response.ok) throw new Error('Failed to create party')
+      await get().fetchParties()
       toast({
         title: "Success",
-        description: "Party code created successfully"
+        description: "Party created successfully"
       })
     } catch (error) {
-      set({ error: 'Failed to create party code', isLoading: false })
+      set({ error: 'Failed to create party', isLoading: false })
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create party code"
+        description: "Failed to create party"
       })
     }
   },
@@ -84,27 +100,23 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       const validatedParty = PartyCodeSchema.partial().parse(party)
-      const response = await fetch(`/api/partycode/${id}`, {
+      const response = await fetch(`/api/party/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...validatedParty })
       })
-      if (!response.ok) throw new Error('Failed to update party code')
-      const data = await response.json()
-      set(state => ({
-        parties: state.parties.map(p => p.id === id ? data : p),
-        isLoading: false
-      }))
+      if (!response.ok) throw new Error('Failed to update party')
+      await get().fetchParties()
       toast({
         title: "Success",
-        description: "Party code updated successfully"
+        description: "Party updated successfully"
       })
     } catch (error) {
-      set({ error: 'Failed to update party code', isLoading: false })
+      set({ error: 'Failed to update party', isLoading: false })
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update party code"
+        description: "Failed to update party"
       })
     }
   },
@@ -112,29 +124,30 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
   deleteParty: async (id) => {
     try {
       set({ isLoading: true, error: null })
-      const response = await fetch(`/api/partycode/${id}`, {
+      const response = await fetch(`/api/party/${id}`, {
         method: 'DELETE'
       })
-      if (!response.ok) throw new Error('Failed to delete party code')
-      set(state => ({
-        parties: state.parties.filter(p => p.id !== id),
-        isLoading: false
-      }))
+      if (!response.ok) throw new Error('Failed to delete party')
+      await get().fetchParties()
       toast({
         title: "Success",
-        description: "Party code deleted successfully"
+        description: "Party deleted successfully"
       })
     } catch (error) {
-      set({ error: 'Failed to delete party code', isLoading: false })
+      set({ error: 'Failed to delete party', isLoading: false })
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete party code"
+        description: "Failed to delete party"
       })
     }
   },
 
   setSelectedParty: (party) => {
     set({ selectedParty: party })
+  },
+
+  setPagination: (pagination) => {
+    set({ pagination })
   }
 }))

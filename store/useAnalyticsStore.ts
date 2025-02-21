@@ -34,6 +34,21 @@ interface DeliveryAnalytics extends AnalyticsBase {
   pendingInvoices: Invoice[];
 }
 
+interface PaginationState {
+  page: number;
+  limit: number;
+}
+
+type SortOrder = 'asc' | 'desc';
+type SortField = 'invoiceNumber' | 'invoiceTimestamp';
+
+interface FilterState {
+  searchQuery: string;
+  date: string | null;
+  sortField: SortField;
+  sortOrder: SortOrder;
+}
+
 interface AnalyticsState {
   isLoading: boolean;
   error: string | null;
@@ -43,8 +58,16 @@ interface AnalyticsState {
   packAnalytics: PackAnalytics;
   deliveryAnalytics: DeliveryAnalytics;
 
+  pagination: PaginationState;
+  filters: FilterState;
+  totalPages: number;
+
   // Actions
   fetchAnalytics: () => Promise<void>;
+
+  // Additional actions
+  setPagination: (pagination: PaginationState) => void;
+  setFilters: (filters: FilterState) => void;
 }
 
 const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
@@ -72,11 +95,36 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     total: null
   },
 
+  pagination: {
+    page: 0,
+    limit: 10
+  },
+  filters: {
+    searchQuery: '',
+    date: null,
+    sortField: 'invoiceTimestamp',
+    sortOrder: 'desc'
+  },
+  totalPages: 0,
+
+  setPagination: (pagination) => set({ pagination }),
+  setFilters: (filters) => set({ filters }),
+
   fetchAnalytics: async () => {
     try {
       set({ isLoading: true, error: null });
+      const { pagination, filters } = get();
       
-      const response = await fetch('/api/invoice/all');
+      const queryParams = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        search: filters.searchQuery,
+        sortField: filters.sortField,
+        sortOrder: filters.sortOrder,
+        ...(filters.date && { date: filters.date }),
+      });
+      
+      const response = await fetch(`/api/invoice/all?${queryParams}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
@@ -87,24 +135,9 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       set({
         invoiceAnalytics: {
           allInvoices: data.invoices || [],
-          total: data.invoiceTotal || null
+          total: data.total || null
         },
-        // checkAnalytics: {
-        //   checkedInvoices: data.checkedInvoices || [],
-        //   pendingInvoices: data.pendingCheckInvoices || [],
-        //   total: data.checkTotal || null
-        // },
-        // packAnalytics: {
-        //   packedInvoices: data.packedInvoices || [],
-        //   pendingInvoices: data.pendingPackInvoices || [],
-        //   total: data.packTotal || null
-        // },
-        // deliveryAnalytics: {
-        //   deliveredInvoices: data.deliveredInvoices || [],
-        //   pickedUpInvoices: data.pickedUpInvoices || [],
-        //   pendingInvoices: data.pendingDeliveryInvoices || [],
-        //   total: data.deliveryTotal || null
-        // },
+        totalPages: Math.ceil((data.total || 0) / pagination.limit),
         isLoading: false
       });
     } catch (error) {

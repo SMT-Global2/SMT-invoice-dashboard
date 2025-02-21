@@ -4,13 +4,10 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import {
   Home,
-  LineChart,
   Package,
-  Package2,
   PanelLeft,
-  Settings,
-  ShoppingCart,
-  Users2,
+  User as UserIcon,
+  Building,
   LogOut,
   FileText, 
   CheckCircle, 
@@ -24,6 +21,10 @@ import { SMTLogo } from '@/components/icons';
 import Providers from './providers';
 import { NavItem } from './nav-item';
 import { ModeToggle, ThemeProvider } from "@/components/theme-provider"
+import { useState } from 'react';
+import { DropdownMenu , DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { RoleGuard } from '@/components/auth/role-guard';
 
 export default function DashboardLayout({
   children
@@ -79,6 +80,18 @@ function DesktopNav() {
         <NavItem href="/delivery" label="Delivery">
           <Truck className="h-5 w-5" />
         </NavItem>
+
+        <RoleGuard allowedRoles={['ADMIN']}>
+          <NavItem href="/employee" label="Delivery">
+            <UserIcon className="h-5 w-5" />
+          </NavItem>
+        </RoleGuard>
+
+        <RoleGuard allowedRoles={['ADMIN']}>
+          <NavItem href="/delivery" label="party">
+          <Building className="h-5 w-5" />
+          </NavItem>
+        </RoleGuard>
 
       </nav>
     </aside>
@@ -145,6 +158,26 @@ function MobileNav() {
             Delivery
           </Link>
 
+          <RoleGuard allowedRoles={['ADMIN']}>
+            <Link
+              href="/employee"
+              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+            >
+              <UserIcon className="h-5 w-5" />
+              Employee
+            </Link>
+          </RoleGuard>
+
+          <RoleGuard allowedRoles={['ADMIN']}>
+            <Link
+              href="/party"
+              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+            >
+              <Building className="h-5 w-5" />
+              Party
+            </Link>
+          </RoleGuard>
+
         </nav>
       </SheetContent>
     </Sheet>
@@ -164,21 +197,41 @@ function User() {
 }
 
 function SignoutButton() {
+  const { data: session } = useSession();
+  const username = session?.user?.username || '';
+  const firstLetter = username.charAt(0).toUpperCase();
+
   return (
-    <>
-    <div className='ml-auto flex gap-5'>
+    <div className='ml-auto flex gap-5 items-center'>
       <ModeToggle />
-      <Button
-        className="border border-red-500 items-center gap-1 bg-red-500 text-white hover:bg-white hover:text-red-600 transition-colors duration-200 text-sm px-2 py-1 md:text-base md:px-4 md:py-2 md:gap-2"
-        onClick={async () => {
-          await signOut({ callbackUrl: '/login' });
-        }}
-      >
-        Sign Out
-        <LogOut className="w-3 h-3 md:w-4 md:h-4" />
-        <span className="sr-only">Sign out</span>
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-muted">{firstLetter}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <div className="flex items-center justify-start gap-2 p-2">
+            <div className="flex flex-col space-y-1 leading-none">
+              {username && (
+                <p className="font-medium">{username}</p>
+              )}
+            </div>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-red-600 cursor-pointer"
+            onClick={async () => {
+              await signOut({ callbackUrl: '/login' });
+            }}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign Out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
-    </>
   );
-} 
+}

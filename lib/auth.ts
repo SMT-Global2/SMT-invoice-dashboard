@@ -100,7 +100,23 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      if(!token.username) {
+        return {
+          ...session,
+        }
+      }
       if (session.user) {
+        const userExists = await prisma.user.findUnique({
+          where: {
+            username : token.username
+          }
+        });
+
+        if(!userExists) {
+          return {
+            ...session,
+          }
+        }
         session.user.id = token.id;
         session.user.username = token.username;
         session.user.type = token.type;

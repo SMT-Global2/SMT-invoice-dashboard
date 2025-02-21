@@ -1,8 +1,150 @@
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma'
-import moment from 'moment';
+import { Department } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const users = await prisma.user.findMany();
+
+    return NextResponse.json(users);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+  }
+}
+
+const UserSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  username: z.string().min(1),
+  phoneNumber: z.string().min(1),
+  type: z.enum(['ADMIN', 'USER']),
+  password: z.string().min(1),
+  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]),
+  email: z.string().email("Invalid email format").optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")),
+});
+
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const validatedData = UserSchema.parse(body);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { username: validatedData.username },
+    });
+
+    if (existingUser) {
+      return NextResponse.json({ error: 'Username already exists' }, { status: 400 });
+    }
+
+    const visiblePassword = validatedData.password;
+    console.log(visiblePassword)
+    if(validatedData.password){
+      validatedData.password = bcrypt.hashSync(validatedData.password, 10);
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        ...validatedData,
+        password: validatedData.password,
+        visiblePassword: visiblePassword,
+       },
+    });
+
+    return NextResponse.json(user);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+  }
+}
+
+const UserUpdateSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  username: z.string().min(1),
+  phoneNumber: z.string().min(1),
+  type: z.enum(['ADMIN', 'USER']),
+  password: z.string().optional().or(z.literal("")),
+  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]),
+  email: z.string().email("Invalid email format").optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")),
+});
+
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, ...data } = body;
+    const validatedData = UserUpdateSchema.partial().parse(data);
+
+    const visiblePassword = validatedData.password;
+    console.log(visiblePassword)
+    if(validatedData.password){
+      validatedData.password = bcrypt.hashSync(validatedData.password, 10);
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        ...validatedData,
+        visiblePassword: visiblePassword,
+      },
+    });
+
+    return NextResponse.json(user);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+  }
+}
 

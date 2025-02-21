@@ -5,14 +5,16 @@ import { toast } from '@/components/ui/use-toast'
 // Zod schema for User validation
 export const UserSchema = z.object({
   id: z.string().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  type: z.enum(['ADMIN', 'USER']).default('USER'),
-  username: z.string().min(3),
-  password: z.string().optional(),
-  createdAt: z.date().optional(),
-  updatedAt: z.date().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required").optional(),
+  visiblePassword: z.string().optional(),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  email: z.string().email("Invalid email format").optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")),
+  department: z.enum(["RECEIPT_MANAGEMENT", "INVOICE_MANAGEMENT", "ALL_ROUNDER"]),
+  type: z.enum(["USER", "ADMIN"]),
 })
 
 export type User = z.infer<typeof UserSchema>
@@ -25,8 +27,8 @@ interface UserStore {
   
   // Actions
   fetchUsers: () => Promise<void>
-  createUser: (user: Omit<User, 'id'>) => Promise<void>
-  updateUser: (id: string, user: Partial<User>) => Promise<void>
+  createUser: (user: User) => Promise<void>
+  updateUser: (id: string, user: User) => Promise<void>
   deleteUser: (id: string) => Promise<void>
   setSelectedUser: (user: User | null) => void
 }
@@ -57,13 +59,15 @@ export const useUsersStore = create<UserStore>((set, get) => ({
   createUser: async (user) => {
     try {
       set({ isLoading: true, error: null })
-      const validatedUser = UserSchema.parse(user)
       const response = await fetch('/api/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(validatedUser)
+        body: JSON.stringify(user)
       })
-      if (!response.ok) throw new Error('Failed to create user')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error)
+      }
       const data = await response.json()
       set(state => ({
         users: [...state.users, data],
@@ -86,13 +90,15 @@ export const useUsersStore = create<UserStore>((set, get) => ({
   updateUser: async (id, user) => {
     try {
       set({ isLoading: true, error: null })
-      const validatedUser = UserSchema.partial().parse(user)
-      const response = await fetch(`/api/user/${id}`, {
+      const response = await fetch('/api/user', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, ...validatedUser })
+        body: JSON.stringify({ id, ...user })
       })
-      if (!response.ok) throw new Error('Failed to update user')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error)
+      }
       const data = await response.json()
       set(state => ({
         users: state.users.map(u => u.id === id ? data : u),
@@ -115,10 +121,13 @@ export const useUsersStore = create<UserStore>((set, get) => ({
   deleteUser: async (id) => {
     try {
       set({ isLoading: true, error: null })
-      const response = await fetch(`/api/user/${id}`, {
+      const response = await fetch(`/api/user?id=${id}`, {
         method: 'DELETE'
       })
-      if (!response.ok) throw new Error('Failed to delete user')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error)
+      }
       set(state => ({
         users: state.users.filter(u => u.id !== id),
         isLoading: false
