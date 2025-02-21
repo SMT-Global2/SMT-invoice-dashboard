@@ -1,11 +1,25 @@
-import { User , Department } from '@prisma/client';
+import { Department, UserType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-export const userSeed : Partial<User>[] = [
+type UserSeed = {
+    username: string;
+    password: string;
+    visiblePassword: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    department: Department;
+    type: UserType;
+    email?: string;
+    address?: string;
+}
+
+export const userSeed: UserSeed[] = [
     {
         username: 'admin',
         password: bcrypt.hashSync('admin', 10),
-        type: 'ADMIN',
+        visiblePassword: 'admin',
+        type: UserType.ADMIN,
         firstName: 'Admin',
         lastName: 'Admin',
         phoneNumber: '1234567890',
@@ -14,9 +28,11 @@ export const userSeed : Partial<User>[] = [
     {
         username: 'user',
         password: bcrypt.hashSync('user', 10),
-        type: 'USER',
+        visiblePassword: 'user',
+        type: UserType.USER,
         firstName: 'User',
         lastName: 'User',
+        phoneNumber: '1234567890',
         department: Department.ALL_ROUNDER,
     }
 ]

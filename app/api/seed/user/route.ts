@@ -1,96 +1,18 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { UserSchema } from '@/store/useUsersStore'
+import { userSeed } from "./data"
 
-// Helper function to check admin access
-async function checkAdminAccess() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return new NextResponse('Unauthorized', { status: 401 })
-  }
-
-  if(session.user.type !== 'ADMIN') {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-  
-  return null
-}
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
-
   try {
-    const users = await prisma.user.findMany()
-    return NextResponse.json(users)
-  } catch (error) {
-    return new NextResponse('Internal Error', { status: 500 })
-  }
-}
-
-export async function POST(request: Request) {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
-
-  try {
-    const body = await request.json()
-    const validatedData = UserSchema.parse(body)
-    
-    const user = await prisma.user.create({
-      data: validatedData
+    const data = await prisma.user.createMany({
+      data: userSeed.map((item) => ({
+        ...item
+      }))
     })
-    
-    return NextResponse.json(user)
+    return Response.json({data})
   } catch (error) {
-    return new NextResponse('Invalid Request', { status: 400 })
-  }
-}
-
-export async function PUT(request: Request) {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
-
-  try {
-    const body = await request.json()
-    const { id, ...updateData } = body
-    
-    if (!id) {
-      return new NextResponse('User ID is required', { status: 400 })
-    }
-    
-    const validatedData = UserSchema.partial().parse(updateData)
-    
-    const user = await prisma.user.update({
-      where: { id },
-      data: validatedData
-    })
-    
-    return NextResponse.json(user)
-  } catch (error) {
-    return new NextResponse('Invalid Request', { status: 400 })
-  }
-}
-
-export async function DELETE(request: Request) {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
-
-  try {
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-    
-    if (!id) {
-      return new NextResponse('User ID is required', { status: 400 })
-    }
-    
-    await prisma.user.delete({
-      where: { id }
-    })
-    
-    return new NextResponse('User deleted', { status: 200 })
-  } catch (error) {
-    return new NextResponse('Invalid Request', { status: 400 })
+    console.log(error) 
+    return Response.json({error}, {status: 500})  
   }
 }
