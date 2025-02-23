@@ -43,7 +43,7 @@ export function EmployeeDialog() {
       phoneNumber: "",
       email: "",
       address: "",
-      department: "RECEIPT_MANAGEMENT",
+      department: "INVOICE_MANAGEMENT",
       type: "USER",
     },
   })
@@ -59,7 +59,7 @@ export function EmployeeDialog() {
         phoneNumber: selectedUser.phoneNumber || "",
         email: selectedUser.email || "",
         address: selectedUser.address || "",
-        department: selectedUser.department || "RECEIPT_MANAGEMENT",
+        department: selectedUser.department || "INVOICE_MANAGEMENT",
         type: selectedUser.type || "USER",
       })
     } else {
@@ -72,7 +72,7 @@ export function EmployeeDialog() {
         phoneNumber: "",
         email: "",
         address: "",
-        department: "RECEIPT_MANAGEMENT",
+        department: "INVOICE_MANAGEMENT",
         type: "USER",
       })
     }
