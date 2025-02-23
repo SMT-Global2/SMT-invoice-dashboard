@@ -136,7 +136,7 @@ export default function AdminInvoiceTable() {
     setFilters({
       ...filters,
       searchQuery: '',
-      date: null,
+      date: new Date().toISOString(),
       sortField: 'invoiceTimestamp',
       sortOrder: 'desc'
     });

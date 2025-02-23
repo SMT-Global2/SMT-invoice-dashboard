@@ -54,7 +54,7 @@ export function EmployeeDialog() {
         firstName: selectedUser.firstName || "",
         lastName: selectedUser.lastName || "",
         username: selectedUser.username || "",
-        password: selectedUser.password || "",
+        password: selectedUser.visiblePassword || "",
         visiblePassword: selectedUser.visiblePassword || "",
         phoneNumber: selectedUser.phoneNumber || "",
         email: selectedUser.email || "",

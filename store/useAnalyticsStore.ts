@@ -101,7 +101,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   },
   filters: {
     searchQuery: '',
-    date: null,
+    date: new Date().toISOString(),
     sortField: 'invoiceTimestamp',
     sortOrder: 'desc'
   },

@@ -8,6 +8,15 @@ import { findOrCreateDayStart } from './startNo/helper';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.username) {
+    return Response.json({
+      success: false,
+      message: 'Unauthorized'
+    }, { status: 401 });
+  }
+
+  
   const searchParams = request.nextUrl.searchParams;
   const dateFilter = searchParams.get('date');
 
