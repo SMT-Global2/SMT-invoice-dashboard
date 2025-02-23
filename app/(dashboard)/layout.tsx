@@ -158,7 +158,7 @@ function MobileNav() {
             Delivery
           </Link>
 
-          {/* <RoleGuard allowedRoles={['ADMIN']}> */}
+          <RoleGuard allowedRoles={['ADMIN']}>
             <Link
               href="/employee"
               className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
@@ -166,9 +166,9 @@ function MobileNav() {
               <UserIcon className="h-5 w-5" />
               Employee
             </Link>
-          {/* </RoleGuard> */}
+          </RoleGuard>
 
-          {/* <RoleGuard allowedRoles={['ADMIN']}> */}
+          <RoleGuard allowedRoles={['ADMIN']}>
             <Link
               href="/party"
               className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
@@ -176,7 +176,7 @@ function MobileNav() {
               <Building className="h-5 w-5" />
               Party
             </Link>
-          {/* </RoleGuard> */}
+          </RoleGuard>
 
         </nav>
       </SheetContent>

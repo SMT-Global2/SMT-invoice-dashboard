@@ -5,6 +5,7 @@ import { CheckCircle, FileText, Maximize2, Package, Truck } from "lucide-react";
 import { IInvoice } from '@/store/useAnalyticsStore';
 import { tweleHrFormatDateString } from "@/lib/helper";
 import moment from "moment-timezone";
+import { ShowImage } from "@/components/show-image";
 
 export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
     <Dialog>
@@ -36,6 +37,11 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                 <p><span className="text-muted-foreground">Generated Date:</span> {new Date(invoice.generatedDate).toLocaleDateString()}</p>
                 <p><span className="text-muted-foreground">OTC:</span> {invoice.isOtc ? "Yes" : "No"}</p>
                 <p><span className="text-muted-foreground">Delayed:</span> {moment(invoice.generatedDate).isSame(moment(invoice.invoiceTimestamp), 'day') ? "No" : "Yes"}</p>
+                {invoice.image && invoice.image.length > 0 && (
+                  <div className="pt-2">
+                    <ShowImage images={invoice.image} text="View Invoice Images"/>
+                  </div>
+                )}
               </div>
             </Card>
           </div>
@@ -44,9 +50,12 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
             <h3 className="font-semibold mb-6 text-lg">Order Status Timeline</h3>
             <div className="relative w-[90%] mx-auto">
               
-              <div className="absolute left-3 md:left-1/2 top-5 bottom-5 md:top-[15px] md:bottom-auto w-2 md:w-[88%] h-[calc(100%-2.5rem)] md:h-1 bg-gray-200 dark:bg-gray-600 md:-translate-x-1/2 transition-colors duration-500">
+              <div className="absolute left-3 md:left-1/2 top-5 bottom-5 
+              md:top-[15px] md:bottom-auto w-2 md:w-[80%] h-[calc(100%-2.5rem)] 
+              md:h-1 bg-gray-200 dark:bg-gray-600 md:-translate-x-1/2 
+              transition-colors duration-500">
                 <div 
-                  className="h-full w-full md:w-full bg-green-500 rounded-full" 
+                  className="h-full w-full md:w-[80%] bg-green-500 rounded-full" 
                   style={{
                     height: `${window.innerWidth < 768 ? 
                       (invoice.deliveredTimestamp ? '100%' : 
@@ -55,16 +64,16 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                        invoice.checkTimestamp ? '25%' : '0%') : '100%'}`,
                     width: `${window.innerWidth >= 768 ?
                       (invoice.deliveredTimestamp ? '100%' : 
-                       invoice.pickupTimestamp ? '80%' :
-                       invoice.packageTimestamp ? '55%' :
-                       invoice.checkTimestamp ? '30%' : '0%') : '100%'}`
+                       invoice.pickupTimestamp ? '75%' :
+                       invoice.packageTimestamp ? '50%' :
+                       invoice.checkTimestamp ? '25%' : '0%') : '100%'}`
                   }}
                 />
               </div>
 
-              <div className="flex flex-col md:flex-row justify-between space-y-8 md:space-y-0">
+              <div className="flex flex-col md:flex-row w-full justify-between space-y-8 md:space-y-0">
                 
-                <div className="relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.invoiceTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <FileText className="h-4 w-4" />
                   </div>
@@ -79,7 +88,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                   </div>
                 </div>
 
-                <div className="relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.checkTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <CheckCircle className="h-4 w-4" />
                   </div>
@@ -94,7 +103,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                   </div>
                 </div>
 
-                <div className="relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.packageTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <Package className="h-4 w-4" />
                   </div>
@@ -109,7 +118,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                   </div>
                 </div>
 
-                <div className="relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.pickupTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <Truck className="h-4 w-4" />
                   </div>
@@ -124,7 +133,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                   </div>
                 </div>
 
-                <div className="relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.deliveredTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <CheckCircle className="h-4 w-4" />
                   </div>
@@ -140,14 +149,14 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                 </div>
 
               </div>
-              
+                    
             </div>
           </Card>
 
           {invoice.deliveredLocationLink && (
             <Card className="p-4 dark:bg-gray-800">
               <h3 className="font-semibold mb-2">Delivery Location</h3>
-              <a href={invoice.deliveredLocationLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-2">
+              <a href={`https://www.google.com/maps?q=${invoice.deliveredLocationLink!.replace(',', '+')}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-2">
                 <span>View Delivery Location</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

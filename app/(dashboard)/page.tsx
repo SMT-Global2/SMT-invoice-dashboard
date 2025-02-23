@@ -104,9 +104,9 @@ export default async function DashboardPage() {
 
       </div>
  
-      <RoleGuard allowedRoles={['ADMIN']}>
+      {/* <RoleGuard allowedRoles={['ADMIN']}> */}
         <AdminInvoiceTable/>
-      </RoleGuard>
+      {/* </RoleGuard> */}
 
     </div>
   )

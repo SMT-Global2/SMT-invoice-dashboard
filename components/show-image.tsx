@@ -20,9 +20,10 @@ import { useState, useEffect } from 'react';
 
 interface ShowImageProps {
   images: string[];
+  text?: string;
 }
 
-export function ShowImage({ images }: ShowImageProps) {
+export function ShowImage({ images, text }: ShowImageProps) {
   const [processedImages, setProcessedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -94,7 +95,7 @@ export function ShowImage({ images }: ShowImageProps) {
         <Button size="sm" className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
           {/* <span>View {images.length} {images.length === 1 ? 'Image' : 'Images'}</span> */}
-          <span>View {images.length} {images.length === 1 ? '' : ''}</span>
+          <span>{text ? text : 'View'} {images.length} {images.length === 1 ? '' : ''}</span>
         </Button>
       </DialogTrigger>
 
