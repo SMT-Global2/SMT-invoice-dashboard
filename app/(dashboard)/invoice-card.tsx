@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, FileText, Package, Truck } from "lucide-react";
+import { CheckCircle, FileText, Maximize2, Package, Truck } from "lucide-react";
 import { IInvoice } from '@/store/useAnalyticsStore';
 import { tweleHrFormatDateString } from "@/lib/helper";
 import moment from "moment-timezone";
@@ -9,7 +9,10 @@ import moment from "moment-timezone";
 export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">Show More</Button>
+        <Button variant="outline" size="sm">
+          <Maximize2 className="h-4 w-4 mr-2" />
+          Expand
+        </Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-w-[95vw] md:max-w-[60vw] rounded-md max-h-[80vh] overflow-x-scroll mb-5 p-5">
         <DialogHeader>
