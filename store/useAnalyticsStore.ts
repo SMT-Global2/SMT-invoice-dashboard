@@ -1,9 +1,6 @@
 import { create } from 'zustand'
 import { Invoice, CheckStatus, PackageStatus, DeliveryStatus, PartyCode, User } from '@prisma/client'
 
-interface AnalyticsBase {
-  total: number | null;
-}
 
 export interface IInvoice extends Invoice {
   party : PartyCode;
@@ -14,30 +11,20 @@ export interface IInvoice extends Invoice {
   deliveredBy ?: User;
 }
 
-interface InvoiceAnalytics extends AnalyticsBase {
-  allInvoices: IInvoice[];
-}
-
-interface CheckAnalytics extends AnalyticsBase {
-  checkedInvoices: Invoice[];
-  pendingInvoices: Invoice[];
-}
-
-interface PackAnalytics extends AnalyticsBase {
-  packedInvoices: Invoice[];
-  pendingInvoices: Invoice[];
-}
-
-interface DeliveryAnalytics extends AnalyticsBase {
-  deliveredInvoices: Invoice[];
-  pickedUpInvoices: Invoice[];
-  pendingInvoices: Invoice[];
-}
-
 interface PaginationState {
   page: number;
   limit: number;
 }
+
+interface Analytics {
+  totalGenerated: number;
+  totalChecked: number;
+  totalPacked: number;
+  totalPickedUp: number;
+  totalDelivered: number;
+  totalOTC: number;
+}
+
 
 type SortOrder = 'asc' | 'desc';
 type SortField = 'invoiceNumber' | 'invoiceTimestamp';
@@ -53,15 +40,16 @@ interface AnalyticsState {
   isLoading: boolean;
   error: string | null;
   
-  invoiceAnalytics: InvoiceAnalytics;
-  checkAnalytics: CheckAnalytics;
-  packAnalytics: PackAnalytics;
-  deliveryAnalytics: DeliveryAnalytics;
-
+  allInvoices: {
+    invoices: IInvoice[];
+    total: number;
+  }
+  analytics: Analytics;
+  
   pagination: PaginationState;
   filters: FilterState;
   totalPages: number;
-
+  
   // Actions
   fetchAnalytics: () => Promise<void>;
 
@@ -74,25 +62,19 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  invoiceAnalytics: {
-    allInvoices: [],
-    total: null
+  allInvoices: {
+    invoices: [],
+    total: 0
   },
-  checkAnalytics: {
-    checkedInvoices: [],
-    pendingInvoices: [],
-    total: null
-  },
-  packAnalytics: {
-    packedInvoices: [],
-    pendingInvoices: [],
-    total: null
-  },
-  deliveryAnalytics: {
-    deliveredInvoices: [],
-    pickedUpInvoices: [],
-    pendingInvoices: [],
-    total: null
+
+
+  analytics: {
+    totalGenerated: 0,
+    totalChecked: 0,
+    totalPacked: 0,
+    totalPickedUp: 0,
+    totalDelivered: 0,
+    totalOTC: 0
   },
 
   pagination: {
@@ -124,20 +106,40 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         ...(filters.date && { date: filters.date }),
       });
       
-      const response = await fetch(`/api/invoice/all?${queryParams}`);
-      
-      if (!response.ok) {
+      const [response , analyticsResponse] = await Promise.all(
+        [fetch(`/api/invoice/all?${queryParams}`),
+        fetch(`/api/analytics?${queryParams}`)
+      ])
+
+      if(!response.ok || !analyticsResponse.ok) {
         throw new Error('Failed to fetch analytics data');
       }
 
-      const data = await response.json();
+      const [invoiceData, analyticsData] = await Promise.all([
+        response.json(),
+        analyticsResponse.json()
+      ])
+
+      // if (!response.ok) {
+      //   throw new Error('Failed to fetch analytics data');
+      // }
+
+      // const data = await response.json();
       
       set({
-        invoiceAnalytics: {
-          allInvoices: data.invoices || [],
-          total: data.total || null
+        allInvoices: {
+          invoices: invoiceData.invoices || [],
+          total: invoiceData.total || 0
         },
-        totalPages: Math.ceil((data.total || 0) / pagination.limit),
+        analytics: analyticsData.analytics || {
+          totalGenerated: 0,
+          totalChecked: 0,
+          totalPacked: 0,
+          totalPickedUp: 0,
+          totalDelivered: 0,
+          totalOTC: 0
+        },
+        totalPages: Math.ceil((invoiceData.total || 0) / pagination.limit),
         isLoading: false
       });
     } catch (error) {
@@ -146,7 +148,8 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         isLoading: false 
       });
     }
-  }
+  },
+
 }));
 
 export default useAnalyticsStore;
