@@ -249,8 +249,8 @@ export function EmployeeDialog() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="RECEIPT_MANAGEMENT">Receipt Management</SelectItem>
                         <SelectItem value="INVOICE_MANAGEMENT">Invoice Management</SelectItem>
+                        <SelectItem value="RECEIPT_MANAGEMENT">Receipt Management</SelectItem>
                         <SelectItem value="ALL_ROUNDER">All-Rounder</SelectItem>
                       </SelectContent>
                     </Select>
