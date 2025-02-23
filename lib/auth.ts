@@ -51,17 +51,6 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        // For testing purposes, using a hardcoded user
-        // In production, you should use proper database authentication
-        // if (credentials.username === "admin" && credentials.password === "password") {
-        //   console.log('Login successful');
-        //   return {
-        //     id: "123",
-        //     username: "admin",
-        //     name: "Admin User",
-        //   };
-        // }
-
         //Check using bcrpyt and prisma
         const user = await prisma.user.findUnique({ where: { username: credentials.username } });
 
@@ -106,17 +95,17 @@ export const authOptions: AuthOptions = {
         }
       }
       if (session.user) {
-        const userExists = await prisma.user.findUnique({
-          where: {
-            username : token.username
-          }
-        });
+        // const userExists = await prisma.user.findUnique({
+        //   where: {
+        //     username : token.username
+        //   }
+        // });
 
-        if(!userExists) {
-          return {
-            ...session,
-          }
-        }
+        // if(!userExists) {
+        //   return {
+        //     ...session,
+        //   }
+        // }
         session.user.id = token.id;
         session.user.username = token.username;
         session.user.type = token.type;

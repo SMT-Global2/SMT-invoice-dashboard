@@ -9,8 +9,17 @@ import { z } from 'zod';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+    if (session.user.type !== 'ADMIN') {
+      return Response.json({
+        success: false,
+        message: 'Forbidden'
+      }, { status: 403 });
     }
 
     const users = await prisma.user.findMany();
@@ -37,9 +46,19 @@ const UserSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
     }
+    if (session.user.type !== 'ADMIN') {
+      return Response.json({
+        success: false,
+        message: 'Forbidden'
+      }, { status: 403 });
+    }
+
 
     const body = await request.json();
     const validatedData = UserSchema.parse(body);
@@ -91,8 +110,17 @@ const UserUpdateSchema = z.object({
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+    if (session.user.type !== 'ADMIN') {
+      return Response.json({
+        success: false,
+        message: 'Forbidden'
+      }, { status: 403 });
     }
 
     const body = await request.json();
@@ -125,8 +153,17 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+    if (session.user.type !== 'ADMIN') {
+      return Response.json({
+        success: false,
+        message: 'Forbidden'
+      }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

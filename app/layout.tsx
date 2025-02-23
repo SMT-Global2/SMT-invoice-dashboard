@@ -22,9 +22,6 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-        <link rel="smt" href="favicon.png" />
-      </head>
       <body className="flex min-h-screen w-full flex-col max-w-[100vw]">
         <React.StrictMode>
           <Analytics /> 

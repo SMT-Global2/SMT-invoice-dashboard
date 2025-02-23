@@ -15,7 +15,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
           Expand
         </Button>
       </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-w-[95vw] md:max-w-[60vw] rounded-md max-h-[80vh] overflow-x-scroll mb-5 p-5">
+      <DialogContent className="overflow-y-auto max-w-[95vw] md:max-w-[60vw] rounded-md max-h-[80vh] overflow-x-hidden mb-5 p-5">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Invoice #{invoice.invoiceNumber}</DialogTitle>
         </DialogHeader>

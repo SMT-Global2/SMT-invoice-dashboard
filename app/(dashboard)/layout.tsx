@@ -112,10 +112,12 @@ function MobileNav() {
 
           <Link
             href="/"
-            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-          >
-            <SMTLogo />
-            <span className="sr-only">SMT</span>
+            className="group flex h-10 shrink-0 items-center gap-2 text-lg font-semibold md:text-base"
+          > 
+            <div className='flex flex-row items-center gap-2 bg-primary rounded-full'>
+              <SMTLogo className="h-10 w-10" />
+            </div>
+            <div className="text-foreground">Sanjivan Medico Traders</div>
           </Link>
 
           <Link
@@ -191,7 +193,7 @@ function User() {
 
   return (
     <div className="text-lg font-medium">
-      Hi, {session.user?.username}!
+      Hi {session.user?.username}! , Welcome to SMT Dashboard
     </div>
   );
 }
