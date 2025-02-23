@@ -166,6 +166,10 @@ export async function DELETE(request: NextRequest) {
       }, { status: 403 });
     }
 
+    if(session.user.username === 'admin'){
+      return NextResponse.json({ error: 'Cannot delete admin user' }, { status: 400 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

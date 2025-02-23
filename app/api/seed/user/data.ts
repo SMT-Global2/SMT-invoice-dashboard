@@ -15,16 +15,16 @@ type UserSeed = {
 }
 
 export const userSeed: UserSeed[] = [
-    // {
-    //     username: 'SMTadmin',
-    //     password: bcrypt.hashSync('Yash@123', 10),
-    //     visiblePassword: 'Yash@123',
-    //     type: UserType.ADMIN,
-    //     firstName: 'Smt',
-    //     lastName: 'Admin',
-    //     phoneNumber: '1234567890',
-    //     department: Department.ALL_ROUNDER,
-    // },
+    {
+        username: 'SMTadmin',
+        password: bcrypt.hashSync('Yash@123', 10),
+        visiblePassword: 'Yash@123',
+        type: UserType.ADMIN,
+        firstName: 'Smt',
+        lastName: 'Admin',
+        phoneNumber: '1234567890',
+        department: Department.ALL_ROUNDER,
+    },
     {
         username: 'admin',
         password: bcrypt.hashSync('admin', 10),
@@ -35,15 +35,5 @@ export const userSeed: UserSeed[] = [
         phoneNumber: '1234567890',
         department: Department.ALL_ROUNDER,
     },
-    {
-        username: 'user',
-        password: bcrypt.hashSync('user', 10),
-        visiblePassword: 'user',
-        type: UserType.USER,
-        firstName: 'User',
-        lastName: 'User',
-        phoneNumber: '1234567890',
-        department: Department.ALL_ROUNDER,
-    }
 ]
 

@@ -5,6 +5,9 @@ import { NextRequest } from 'next/server';
 export async function findOrCreateDayStart(dateFilter : Date) {
     const result = await prisma.$transaction(async (prismaTxn) => {
   
+
+      const defaultInvoiceStartNo = 1
+
       const alreadtExist = await prisma.dayStart.findUnique({
         where: {
           date: moment(dateFilter).format('YYYY-MM-DD')
@@ -35,7 +38,7 @@ export async function findOrCreateDayStart(dateFilter : Date) {
         if(maxInvoiceNumber){
           invoiceStartNo = maxInvoiceNumber.invoiceNumber + 1;
         } else {
-          invoiceStartNo = 1;
+          invoiceStartNo = defaultInvoiceStartNo;
         }
         await prisma.dayStart.create({
           data: {
@@ -68,7 +71,7 @@ export async function findOrCreateDayStart(dateFilter : Date) {
           }
         });
   
-        invoiceStartNo = lowestInvoiceNumber?.invoiceNumber ? lowestInvoiceNumber.invoiceNumber + 1 : 1;
+        invoiceStartNo = lowestInvoiceNumber?.invoiceNumber ? lowestInvoiceNumber.invoiceNumber + 1 : defaultInvoiceStartNo;
         invoiceEndNo = maxInvoiceNumber?.invoiceNumber ? maxInvoiceNumber.invoiceNumber : null;
   
         await prisma.dayStart.create({
