@@ -392,7 +392,7 @@ export default function AdminInvoiceTable() {
 
           <div className="mt-4 flex justify-center">
             <Pagination>
-              <PaginationContent className="flex flex-wrap justify-center gap-1">
+              <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={() => pagination.page > 0 && setPagination({
@@ -427,6 +427,30 @@ export default function AdminInvoiceTable() {
                     className={pagination.page >= totalPages - 1 ? 'pointer-events-none opacity-50' : ''}
                   />
                 </PaginationItem>
+
+                <div className="ml-4 border-l pl-4">
+                  <Select
+                    value={pagination.limit.toString()}
+                    onValueChange={(value) => {
+                      setPagination({
+                        ...pagination,
+                        limit: parseInt(value),
+                        page: 0
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[100px] h-8">
+                      <SelectValue placeholder="Per page" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
+                      <SelectItem value="10">10 / page</SelectItem>
+                      <SelectItem value="20">20 / page</SelectItem>
+                      <SelectItem value="50">50 / page</SelectItem>
+                      <SelectItem value="100">100 / page</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </PaginationContent>
             </Pagination>
           </div>
