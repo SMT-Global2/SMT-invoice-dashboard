@@ -82,11 +82,17 @@ export const useInvoiceStore = create<InvoiceState>()(
   devtools(
     (set, get) => ({
       invoices: [],
+      checkInvoices: [],
+      packInvoices: [],
+      deliveryInvoices: [],
+
       invoiceStartNo: -1,
       selectedDate: moment().startOf('day').toDate(),
       currentPage: 1,
       itemsPerPage: 100,
       isLoading: false,
+
+
       setInvoices: (invoices) => set({ invoices }),
       setSelectedDate: (date) => {
         if (moment(date).isAfter(moment(), 'day')) {
