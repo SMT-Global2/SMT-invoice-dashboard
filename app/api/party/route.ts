@@ -4,23 +4,20 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PartyCodeSchema } from '@/store/usePartyStore'
 
-// Helper function to check admin access
-async function checkAdminAccess() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return new NextResponse('Unauthorized', { status: 401 })
-  }
-
-  if(session.user.type !== 'ADMIN') {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-  
-  return null
-}
-
 export async function GET(request: Request) {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.username) {
+    return Response.json({
+      success: false,
+      message: 'Unauthorized'
+    }, { status: 401 });
+  }
+  if(session.user.type !== 'ADMIN') {
+    return Response.json({
+      success: false,
+      message: 'Forbidden'
+    }, { status: 403 });
+  }
 
   try {
     const { searchParams } = new URL(request.url)
@@ -30,10 +27,44 @@ export async function GET(request: Request) {
     const skip = page * limit
 
     const where : any = search ? {
-      code: {
-        contains: search,
-        mode: 'insensitive'
-      }
+      OR: [
+        {
+          code: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          AND : [
+            {
+              city: {
+                not : null,
+              },
+            },
+            {
+              city: {
+                contains: search,
+                mode: 'insensitive'
+              }
+            }
+          ]
+        },
+        {
+          AND : [
+            {
+              customerName: {
+                not : null,
+              },
+            },
+            {
+              customerName : {
+                contains: search,
+                mode: 'insensitive'
+              }
+            }
+          ]
+        },
+      ]
     } : {}
 
     const [total, parties] = await Promise.all([
@@ -42,7 +73,9 @@ export async function GET(request: Request) {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { 
+          createdAt: 'desc' 
+        }
       })
     ])
 
@@ -59,8 +92,19 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.username) {
+    return Response.json({
+      success: false,
+      message: 'Unauthorized'
+    }, { status: 401 });
+  }
+  if(session.user.type !== 'ADMIN') {
+    return Response.json({
+      success: false,
+      message: 'Forbidden'
+    }, { status: 403 });
+  }
 
   try {
     const body = await request.json()
@@ -78,8 +122,19 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.username) {
+    return Response.json({
+      success: false,
+      message: 'Unauthorized'
+    }, { status: 401 });
+  }
+  if(session.user.type !== 'ADMIN') {
+    return Response.json({
+      success: false,
+      message: 'Forbidden'
+    }, { status: 403 });
+  }
 
   try {
     const body = await request.json()
@@ -104,8 +159,19 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const authError = await checkAdminAccess()
-  if (authError) return authError
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.username) {
+    return Response.json({
+      success: false,
+      message: 'Unauthorized'
+    }, { status: 401 });
+  }
+  if(session.user.type !== 'ADMIN') {
+    return Response.json({
+      success: false,
+      message: 'Forbidden'
+    }, { status: 403 });
+  }
 
   try {
     const { searchParams } = new URL(request.url)

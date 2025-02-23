@@ -128,7 +128,7 @@ export default function PartyPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Sr. No.</TableHead>
-                  <TableHead>Code</TableHead>
+                  <TableHead>Party Code</TableHead>
                   <TableHead>Customer Name</TableHead>
                   <TableHead>City</TableHead>
                   <TableHead>Created At</TableHead>
