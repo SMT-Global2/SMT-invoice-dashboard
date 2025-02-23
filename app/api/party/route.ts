@@ -105,6 +105,7 @@ export async function POST(request: Request) {
         message: 'Forbidden'
       }, { status: 403 });
     }
+
     const body = await request.json()
     const validatedData = PartyCodeSchema.parse(body)
     
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user?.username) {
     return Response.json({
@@ -134,7 +136,6 @@ export async function PUT(request: Request) {
     }, { status: 403 });
   }
 
-  try {
     const body = await request.json()
     const { id, ...updateData } = body
     
@@ -171,11 +172,24 @@ export async function DELETE(request: Request) {
         message: 'Forbidden'
       }, { status: 403 });
     }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
     if (!id) {
       return new NextResponse('Party ID is required', { status: 400 })
+    }
+
+    // Check if party code is in use
+    const partyCode = await prisma.partyCode.count({
+      where: { id }
+    })
+
+    if(partyCode > 0) {
+      return Response.json({
+        success: false,
+        message: 'Party code is in use by some invoices'
+      }, { status: 409 })
     }
     
     await prisma.partyCode.delete({

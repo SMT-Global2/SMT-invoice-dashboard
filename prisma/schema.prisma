@@ -49,7 +49,7 @@ model Invoice {
   generatedDate     DateTime
 
   partyCode         String    
-  party             PartyCode  @relation(fields: [partyCode], references: [code])
+  party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
 
   image             String[]
   isOtc             Boolean   @default(false)
