@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/carousel';
 import { DialogTitle } from '@radix-ui/react-dialog';
 import { useState, useEffect } from 'react';
+import { getS3BucketUrl } from '@/lib/helper';
 
 interface ShowImageProps {
   images: string[];
@@ -103,23 +104,29 @@ export function ShowImage({ images, text }: ShowImageProps) {
         <DialogTitle className="text-lg font-semibold m-2">View Images</DialogTitle>
         <Carousel className="w-full relative">
           <CarouselContent>
-            {processedImages.map((image, index) => (
+            {images.map((image, index) => (
               <CarouselItem key={index}>
                 <div className="flex items-center justify-center p-4">
-                  <CldImage
-                    src={image}
-                    alt={`Bill Image ${index + 1}`}
-                    width="1920"
-                    height="1080"
-                    crop={{
-                      type: 'scale',
-                      source: true,
-                    }}
-                    className="rounded-lg object-contain max-h-[80vh]"
-                  />
+                  {
+                    image.includes('cloudinary') ? 
+                      <CldImage
+                      src={image}
+                      alt={`Bill Image ${index + 1}`}
+                      width="1920"
+                      height="1080"
+                      crop={{
+                        type: 'scale',
+                        source: true,
+                      }}
+                      className="rounded-lg object-contain max-h-[80vh]"
+                    />
+                     :
+                    <img src={getS3BucketUrl(image)} alt={`Bill Image ${index + 1}`} className="rounded-lg object-contain max-h-[80vh]" />
+                  }
                 </div>
               </CarouselItem>
             ))}
+
           </CarouselContent>
           {processedImages.length > 1 && (
             <>

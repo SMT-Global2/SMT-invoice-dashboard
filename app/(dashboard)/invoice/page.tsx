@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from '@/components/ui/use-toast';
-import { convertHeicImage , tweleHrFormatDateString } from '@/lib/helper';
+import { compressImage, convertImage, tweleHrFormatDateString, uploadFileToS3 } from '@/lib/helper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +49,6 @@ import { Capsule } from '@/components/capsule';
 import TableSkeleton from '@/components/table-skeleton';
 import { TableEmpty } from '@/components/TableEmpty';
 import { Spinner } from '@/components/icons';
-import imageCompression from 'browser-image-compression';
 import { TakeImage } from '@/components/take-image';
 
 interface PartyCode {
@@ -135,89 +134,14 @@ export default function InvoicePage() {
     try {
       const file = event.target.files?.[0];
       if (!file) return;
-      
-      console.log('File details:', {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        extension: file.name.split('.').pop()?.toLowerCase()
-      });
 
       setUploadingImage(invoiceNumber);
 
-      // Handle HEIC format
-      let processedFile = file;
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      
-      if (fileExtension === 'heic' || fileExtension === 'heif') {
-        processedFile = await convertHeicImage(file)
-      }
+      const changedFile = await convertImage(file);
+      const compressedFile = await compressImage(changedFile);
+      const uploadedImage = await uploadFileToS3(compressedFile);
 
-      // if (fileExtension === 'heic' || fileExtension === 'heif') {
-      //   try {
-      //     processedFile = await convertHeicImages([file])
-      //   } catch (heicError) {
-      //     console.error('HEIC conversion error:', heicError);
-      //     throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
-      //   }
-      //   try {
-      //     console.log('Converting HEIC/HEIF to JPEG...');
-      //     const blob : any = await heic2any({
-      //       blob: file,
-      //       toType: 'image/jpeg',
-      //       quality: 1
-      //     });
-          
-      //     if (!blob) {
-      //       throw new Error('HEIC conversion failed - no blob returned');
-      //     }
-          
-      //     console.log('HEIC conversion successful, creating new File object');
-      //     processedFile = new File([blob], file.name.replace(/\.(heic|HEIC|heif|HEIF)$/, '.jpg'), {
-      //       type: 'image/jpeg'
-      //     });
-      //     console.log('Processed file:', {
-      //       name: processedFile.name,
-      //       type: processedFile.type,
-      //       size: processedFile.size
-      //     });
-      //   } catch (heicError) {
-      //     console.error('HEIC conversion error:', heicError);
-      //     throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
-      //   }
-      // }
-
-      // Compression options
-      const options = {
-        maxSizeMB: 0.8,
-        useWebWorker: true,
-        fileType: 'image/jpeg',
-      };
-
-      // Compress the image
-      const compressedFile = await imageCompression(processedFile, options);
-      console.log('Original file size:', file.size / 1024 / 1024, 'MB');
-      console.log('Compressed file size:', compressedFile.size / 1024 / 1024, 'MB');
-
-      const formData = new FormData();
-      formData.append('file', compressedFile);
-      formData.append('upload_preset', 'my-unsigened-upload-preset');
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-
-      const data = await response.json();
-
-      updateInvoiceImage(invoiceNumber, data.secure_url);
+      updateInvoiceImage(invoiceNumber , uploadedImage.key);
 
       toast({
         title: 'Success',
@@ -255,7 +179,6 @@ export default function InvoicePage() {
 
   const handleReset = async (invoiceNumber: number) => {
     try {
-      console.log("Reseting invoice:", invoiceNumber);
       await resetInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -275,7 +198,6 @@ export default function InvoicePage() {
 
   const handleSave = async (invoiceNumber: number) => {
     try {
-      console.log("Saving invoice:", invoiceNumber);
       await saveInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -295,7 +217,6 @@ export default function InvoicePage() {
 
   const handleOtc = async (invoiceNumber: number) => {
     try {
-      console.log("Saving invoice with otc:", invoiceNumber);
       await saveInvoice(invoiceNumber, true);
       toast({
         title: 'Success',

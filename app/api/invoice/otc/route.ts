@@ -29,7 +29,6 @@ export async function POST(req: Request) {
         const body = await req.json();
 
         // Validate request data
-        console.log({body})
         const validatedData = invoiceSchema.parse(body);
 
         //Check if invoice exist 

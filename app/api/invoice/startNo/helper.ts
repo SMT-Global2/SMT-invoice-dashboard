@@ -10,20 +10,15 @@ export async function findOrCreateDayStart(dateFilter : Date) {
           date: moment(dateFilter).format('YYYY-MM-DD')
         }
       }) 
-  
-      console.log({alreadtExist})
-  
+
       if(alreadtExist) return {
         invoiceStartNo: alreadtExist.invoiceStartNo,
         invoiceEndNo: alreadtExist.invoiceEndNo
       };
   
-  
       //Create
       let invoiceStartNo = null;
       let invoiceEndNo = null;
-  
-      console.log(moment(dateFilter).isSame(moment() , 'day'))
   
       if(moment(dateFilter).isSame(moment() , 'day')) {
         //Create Start Date
@@ -92,7 +87,6 @@ export async function findOrCreateDayStart(dateFilter : Date) {
       }
     })
   
-    console.log(result);
     return result;
   }
   

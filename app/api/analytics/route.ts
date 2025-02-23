@@ -25,13 +25,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const date = searchParams.get('date')
-
-
-    console.log({
-      search,
-      date
-    })
-
   
     // Build where clause
     const where: any = {

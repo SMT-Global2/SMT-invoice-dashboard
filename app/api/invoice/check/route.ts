@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.log(error)
     return Response.json({
       error: 'Error fetching data'
     }, { status: 500 })
@@ -106,7 +105,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.log(error)
     return Response.json({
       error: 'Error fetching data'
     }, { status: 500 })

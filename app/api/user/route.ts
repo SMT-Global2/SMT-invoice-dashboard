@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const visiblePassword = validatedData.password;
-    console.log(visiblePassword)
+
     if(validatedData.password){
       validatedData.password = bcrypt.hashSync(validatedData.password, 10);
     }
@@ -100,7 +100,7 @@ export async function PUT(request: NextRequest) {
     const validatedData = UserUpdateSchema.partial().parse(data);
 
     const visiblePassword = validatedData.password;
-    console.log(visiblePassword)
+
     if(validatedData.password){
       validatedData.password = bcrypt.hashSync(validatedData.password, 10);
     }

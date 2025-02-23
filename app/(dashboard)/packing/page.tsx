@@ -25,8 +25,8 @@ import { Camera, Loader2, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
-import { convertHeicImage } from '@/lib/helper';
 import imageCompression from 'browser-image-compression';
+import { compressImage, convertImage, uploadFileToS3 } from '@/lib/helper';
 
 export default function PackingPage() {
   const { toast } = useToast();
@@ -46,7 +46,6 @@ export default function PackingPage() {
 
   const handlePackInvoice = async (invoiceNumber: number) => {
     try {
-      console.log("Packing invoice:", invoiceNumber);
       await packInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -69,49 +68,13 @@ export default function PackingPage() {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      console.log({file})
-
       setUploadingImage(invoiceNumber);
 
-      let processedFile = file;
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      
-      if (fileExtension === 'heic' || fileExtension === 'heif') {
-        processedFile = await convertHeicImage(file)
-      }
+      const changedFile = await convertImage(file);
+      const compressedFile = await compressImage(changedFile);
+      const uploadedImage = await uploadFileToS3(compressedFile);
 
-      const options = {
-        maxSizeMB: 0.8,
-        useWebWorker: true,
-        fileType: 'image/jpeg',
-      };
-
-      // Compress the image
-      const compressedFile = await imageCompression(processedFile, options);
-
-      console.log('Original file size:', file.size / 1024 / 1024, 'MB');
-      console.log('Compressed file size:', compressedFile.size / 1024 / 1024, 'MB');
-
-      const formData = new FormData();
-
-      formData.append('file', compressedFile);
-      formData.append('upload_preset', 'my-unsigened-upload-preset');
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-
-      const data = await response.json();
-
-      updatePackInvoiceImage(invoiceNumber, data.secure_url);
+      updatePackInvoiceImage(invoiceNumber, uploadedImage.key);
 
       toast({
         title: 'Success',

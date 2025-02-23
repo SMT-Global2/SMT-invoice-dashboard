@@ -38,7 +38,6 @@ export default function CheckingPage() {
 
   const handleCheckInvoice = async (invoiceNumber: number) => {
     try {
-      console.log("Checking invoice:", invoiceNumber);
       await checkInvoice(invoiceNumber);
       toast({
         title: 'Success',

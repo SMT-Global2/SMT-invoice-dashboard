@@ -63,7 +63,7 @@ export function TakeImage({
                     className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
                     hidden={isDisabled}
                     style={{
-                        pointerEvents: uploadingImage === invoice.invoiceNumber ? 'none' : 'auto'
+                        pointerEvents: isDisabled ? 'none' : 'auto'
                     }}
                 />
             </div>
@@ -85,7 +85,7 @@ export function TakeImage({
                         className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
                         hidden={isDisabled}
                         style={{
-                            pointerEvents: uploadingImage === invoice.invoiceNumber ? 'none' : 'auto'
+                            pointerEvents: isDisabled ? 'none' : 'auto'
                         }}
                     />
                 </div>
