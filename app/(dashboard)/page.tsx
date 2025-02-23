@@ -6,7 +6,7 @@ import AdminInvoiceTable from "./admin-table"
 
 export default async function DashboardPage() {
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6 text-lg max-w-[100vw] overflow-y-hidden">
+    <div className="flex-1 space-y-4 py-5 text-lg max-w-[100vw] w-[90vw] overflow-y-hidden">
       
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
  
       <RoleGuard allowedRoles={['ADMIN']}>
         <AdminInvoiceTable/>
-      </RoleGuard>
+      </RoleGuard> 
 
     </div>
   )
