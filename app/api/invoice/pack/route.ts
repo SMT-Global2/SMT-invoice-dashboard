@@ -43,9 +43,9 @@ export async function GET(request: NextRequest) {
     },
     include: {
       party: true,
-      invoicedBy: true,
-      checkedBy: true,
-      packedBy: true,
+      // invoicedBy: true,
+      // checkedBy: true,
+      // packedBy: true,
     },
     orderBy: {
       checkTimestamp: 'asc'

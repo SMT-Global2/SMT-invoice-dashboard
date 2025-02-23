@@ -50,11 +50,11 @@ export async function GET(request: NextRequest) {
         },
         include: {
             party: true,
-            invoicedBy: true,
-            checkedBy: true,
-            packedBy: true,
-            deliveredBy: true,
-            pickedUpBy: true
+            // invoicedBy: true,
+            // checkedBy: true,
+            // packedBy: true,
+            // deliveredBy: true,
+            // pickedUpBy: true
         },
         orderBy: {
             packageTimestamp : 'asc'

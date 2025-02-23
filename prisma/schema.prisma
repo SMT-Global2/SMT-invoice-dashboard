@@ -20,11 +20,11 @@ model User {
   department    Department
   type          UserType  @default(USER)
 
-  invoice       Invoice[] @relation("InvoiceToUser")
-  check         Invoice[] @relation("CheckToUser")
-  package       Invoice[] @relation("PackageToUser")
-  pickup        Invoice[] @relation("PickupToUser")
-  delivery      Invoice[] @relation("DeliveryToUser")
+  // invoice       Invoice[] @relation("InvoiceToUser")
+  // check         Invoice[] @relation("CheckToUser")
+  // package       Invoice[] @relation("PackageToUser")
+  // pickup        Invoice[] @relation("PickupToUser")
+  // delivery      Invoice[] @relation("DeliveryToUser")
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -56,27 +56,27 @@ model Invoice {
 
   invoiceUsername   String?
   invoiceTimestamp  DateTime?
-  invoicedBy        User? @relation("InvoiceToUser", fields: [invoiceUsername], references: [username] , onDelete: SetNull)
+  // invoicedBy        User? @relation("InvoiceToUser", fields: [invoiceUsername], references: [username] , onDelete: NoAction)
 
 
   checkUsername     String?
   checkTimestamp    DateTime?
-  checkedBy         User? @relation("CheckToUser",fields: [checkUsername], references: [username] , onDelete: SetNull)
+  // checkedBy         User? @relation("CheckToUser",fields: [checkUsername], references: [username] , onDelete: NoAction)
   checkStatus       CheckStatus @default(NOT_CHECKED)
 
 
   packageTimestamp  DateTime?
   packageUsername   String?
-  packedBy          User? @relation("PackageToUser",fields: [packageUsername], references: [username] , onDelete: SetNull)
+  // packedBy          User? @relation("PackageToUser",fields: [packageUsername], references: [username] , onDelete: NoAction)
   packageStatus     PackageStatus @default(NOT_PACKED)
 
   pickupUsername    String?
   pickupTimestamp   DateTime?
-  pickedUpBy        User? @relation("PickupToUser",fields: [pickupUsername], references: [username] , onDelete: SetNull)
+  // pickedUpBy        User? @relation("PickupToUser",fields: [pickupUsername], references: [username] , onDelete: NoAction)
 
   deliveredUsername         String?
   deliveredTimestamp        DateTime?
-  deliveredBy               User? @relation("DeliveryToUser",fields: [deliveredUsername], references: [username] , onDelete: SetNull)
+  // deliveredBy               User? @relation("DeliveryToUser",fields: [deliveredUsername], references: [username] , onDelete: NoAction)
   deliveredLocationLink     String?
   deliveryStatus            DeliveryStatus @default(NOT_DELIVERED)
 

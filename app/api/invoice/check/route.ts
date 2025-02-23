@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
       },
       include : {
         party : true,
-        checkedBy : true,
-        invoicedBy : true
+        // checkedBy : true,
+        // invoicedBy : true
       },
       orderBy: {
         invoiceTimestamp : 'asc'
@@ -91,11 +91,12 @@ export async function POST(request: NextRequest) {
       data : {
         checkTimestamp : moment().toDate(),
         checkStatus : CheckStatus.CHECKED,
-        checkedBy : {
-          connect : {
-            username : session.user.username
-          }
-        }
+        checkUsername: session.user.username
+        // checkedBy : {
+        //   connect : {
+        //     username : session.user.username
+        //   }
+        // }
       },
     });
   
