@@ -7,7 +7,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, Download, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react';
 import {
   Carousel,
   CarouselContent,
@@ -16,7 +16,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { DialogTitle } from '@radix-ui/react-dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getS3BucketUrl } from '@/lib/helper';
 
 interface ShowImageProps {
@@ -27,6 +27,12 @@ interface ShowImageProps {
 export function ShowImage({ images, text }: ShowImageProps) {
   const [processedImages, setProcessedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [zoom, setZoom] = useState(1);
+  const [isFullSize, setIsFullSize] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const processImages = async () => {
@@ -82,6 +88,73 @@ export function ShowImage({ images, text }: ShowImageProps) {
     };
   }, [images]);
 
+  const handleDownload = async (imageUrl: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `image-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
+  };
+
+  const handleZoom = (type: 'in' | 'out') => {
+    setZoom(prev => {
+      if (type === 'in' && prev < 3) return prev + 0.5;
+      if (type === 'out' && prev > 1) return prev - 0.5;
+      return prev;
+    });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom <= 1) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || zoom <= 1) return;
+    
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+    
+    // Calculate boundaries
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    const maxX = (rect.width * (zoom - 1)) / 2;
+    const maxY = (rect.height * (zoom - 1)) / 2;
+
+    // Limit the dragging area
+    const boundedX = Math.min(Math.max(newX, -maxX), maxX);
+    const boundedY = Math.min(Math.max(newY, -maxY), maxY);
+
+    setPosition({
+      x: boundedX,
+      y: boundedY
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Reset position when zoom changes
+  useEffect(() => {
+    setPosition({ x: 0, y: 0 });
+  }, [zoom]);
+
   if (!images || images.length === 0) {
     return <span className="text-sm text-muted-foreground">No Image</span>;
   }
@@ -100,45 +173,110 @@ export function ShowImage({ images, text }: ShowImageProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[60%] p-0 bg-background/90">
+      <DialogContent 
+        className={`${isFullSize ? 'w-screen h-screen max-w-none sm:max-w-none' : 'sm:max-w-[60%]'} p-0`}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
         <DialogTitle className="text-lg font-semibold m-2">View Images</DialogTitle>
         <Carousel className="w-full relative">
           <CarouselContent>
             {images.map((image, index) => (
               <CarouselItem key={index}>
-                <div className="flex items-center justify-center p-4">
-                  {
-                    image.includes('cloudinary') ? 
+                <div 
+                  ref={containerRef}
+                  className="flex items-center justify-center p-4 cursor-move"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  style={{ 
+                    overflow: 'hidden',
+                    touchAction: 'none',
+                    cursor: isDragging ? 'grabbing' : (zoom > 1 ? 'grab' : 'default')
+                  }}
+                >
+                  <div 
+                    style={{ 
+                      transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+                      transition: isDragging ? 'none' : 'transform 0.2s',
+                    }}
+                  >
+                    {image.includes('cloudinary') ? (
                       <CldImage
-                      src={image}
-                      alt={`Bill Image ${index + 1}`}
-                      width="1920"
-                      height="1080"
-                      crop={{
-                        type: 'scale',
-                        source: true,
-                      }}
-                      className="rounded-lg object-contain max-h-[80vh]"
-                    />
-                     :
-                    <img src={getS3BucketUrl(image)} alt={`Bill Image ${index + 1}`} className="rounded-lg object-contain max-h-[80vh]" />
-                  }
+                        src={image}
+                        alt={`Bill Image ${index + 1}`}
+                        width="1920"
+                        height="1080"
+                        crop={{
+                          type: 'scale',
+                          source: true,
+                        }}
+                        className="rounded-lg object-contain max-h-[80vh]"
+                        draggable={false}
+                      />
+                    ) : (
+                      <img 
+                        src={getS3BucketUrl(image)} 
+                        alt={`Bill Image ${index + 1}`} 
+                        className="rounded-lg object-contain max-h-[80vh]"
+                        draggable={false}
+                      />
+                    )}
+                  </div>
                 </div>
               </CarouselItem>
             ))}
-
           </CarouselContent>
+
+          {/* Controls */}
+          <div className="absolute bottom-4 left-4 flex gap-2">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="hover:bg-accent"
+              onClick={() => handleZoom('out')}
+              disabled={zoom <= 1}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="hover:bg-accent"
+              onClick={() => handleZoom('in')}
+              disabled={zoom >= 3}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="hover:bg-accent"
+              onClick={() => setIsFullSize(!isFullSize)}
+            >
+              {isFullSize ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="hover:bg-accent"
+              onClick={() => handleDownload(images[0])}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Existing carousel controls */}
           {processedImages.length > 1 && (
             <>
               <CarouselPrevious
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 border-0 h-8 w-8"
+                className="absolute left-4 top-1/2 -translate-y-1/2 hover:bg-accent border-0 h-8 w-8"
               />
               <CarouselNext
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 border-0 h-8 w-8"
+                className="absolute right-4 top-1/2 -translate-y-1/2 hover:bg-accent border-0 h-8 w-8"
               />
             </>
           )}
-          <div className="absolute bottom-4 right-4 bg-white/20 px-2 py-1 rounded text-black text-sm">
+          <div className="absolute bottom-4 right-4 bg-accent/50 px-2 py-1 rounded text-foreground text-sm">
             {processedImages.length} {processedImages.length === 1 ? 'Image' : 'Images'}
           </div>
         </Carousel>
