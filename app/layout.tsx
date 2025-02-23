@@ -27,9 +27,7 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen w-full flex-col max-w-[100vw]">
         <React.StrictMode>
-          {/* 
-            <Analytics /> 
-          */}
+          <Analytics /> 
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

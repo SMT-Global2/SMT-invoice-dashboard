@@ -44,6 +44,7 @@ import { CalendarIcon, X } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { InvoiceCard } from "./invoice-card"
+import { tweleHrFormatDateString } from '@/lib/helper';
 
 export default function AdminInvoiceTable() {
   const {
@@ -430,7 +431,7 @@ export default function AdminInvoiceTable() {
                       <TableCell><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
                       <TableCell><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
                       <TableCell><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
-                      <TableCell>{new Date(invoice.updatedAt).toLocaleString()}</TableCell>
+                      <TableCell>{tweleHrFormatDateString(new Date(invoice.updatedAt))}</TableCell>
                       <TableCell>
                         <Capsule 
                           text={invoice.isOtc ? 'OTC' : 'Normal'}

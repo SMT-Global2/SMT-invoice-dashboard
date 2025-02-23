@@ -24,6 +24,7 @@ import Link from 'next/link';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
 import imageCompression from 'browser-image-compression';
+import { Map } from 'lucide-react';
 
 export default function DeliveryPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -363,14 +364,20 @@ export default function DeliveryPage() {
                         {
                           invoice.deliveredLocationLink ? 
                           (
-                            <Link 
-                              href={`https://www.google.com/maps?q=${invoice.deliveredLocationLink!.replace(',', '+')}`}
-                              className="text-blue-600 hover:text-blue-800 underline"
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <Button
+                              variant="default"
+                              asChild
                             >
-                              View Location
-                            </Link>
+                              <Link 
+                                href={`https://www.google.com/maps?q=${invoice.deliveredLocationLink!.replace(',', '+')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2"
+                              >
+                                <Map className="h-4 w-4" />
+                                Open in Map
+                              </Link>
+                            </Button>
                           )
                           :
                           (

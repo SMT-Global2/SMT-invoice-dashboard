@@ -51,7 +51,6 @@ import { TableEmpty } from '@/components/TableEmpty';
 import { Spinner } from '@/components/icons';
 import imageCompression from 'browser-image-compression';
 import { TakeImage } from '@/components/take-image';
-import heic2any from 'heic2any';
 
 interface PartyCode {
   id: string;
@@ -379,7 +378,7 @@ export default function InvoicePage() {
                           <TableCell>{
                             !row.invoiceTimestamp ?
                               <Capsule
-                                text='Remaining'
+                                text='Pending'
                                 bgColor='bg-red-100'
                                 textColor='text-red-700 font-sm'
                                 showIcon='cross'
@@ -401,7 +400,7 @@ export default function InvoicePage() {
                                 />
                           }</TableCell>
                           <TableCell>{row.invoiceNumber}</TableCell>
-                          <TableCell>{selectedDate ? selectedDate.toDateString() : new Date().toDateString()}</TableCell>
+                          <TableCell>{selectedDate ? selectedDate.toLocaleDateString() : new Date().toLocaleDateString()}</TableCell>
                           <TableCell>
                             <Popover
                               open={openComboboxes[row.invoiceNumber]}

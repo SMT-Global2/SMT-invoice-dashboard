@@ -30,7 +30,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
             <Card className="p-4">
               <h3 className="font-semibold mb-2">Invoice Details</h3>
               <div className="space-y-2 text-sm">
-                <p><span className="text-muted-foreground">Generated Date:</span> {new Date(invoice.generatedDate).toDateString()}</p>
+                <p><span className="text-muted-foreground">Generated Date:</span> {new Date(invoice.generatedDate).toLocaleDateString()}</p>
                 <p><span className="text-muted-foreground">OTC:</span> {invoice.isOtc ? "Yes" : "No"}</p>
                 <p><span className="text-muted-foreground">Delayed:</span> {moment(invoice.generatedDate).isSame(moment(invoice.invoiceTimestamp), 'day') ? "No" : "Yes"}</p>
               </div>

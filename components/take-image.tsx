@@ -47,12 +47,12 @@ export function TakeImage({
                     {uploadingImage === invoice.invoiceNumber ? (
                         <>
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Uploading...
+                            {/* Uploading... */}
                         </>
                     ) : (
                         <>
                             <Upload className='w-5 h-5'/> 
-                            Upload Image 
+                            {/* Upload Image  */}
                         </>
                     )}
                 </Button>

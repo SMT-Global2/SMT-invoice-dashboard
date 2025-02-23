@@ -93,7 +93,8 @@ export function ShowImage({ images }: ShowImageProps) {
       <DialogTrigger asChild>
         <Button size="sm" className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
-          <span>View {images.length} {images.length === 1 ? 'Image' : 'Images'}</span>
+          {/* <span>View {images.length} {images.length === 1 ? 'Image' : 'Images'}</span> */}
+          <span>View {images.length} {images.length === 1 ? '' : ''}</span>
         </Button>
       </DialogTrigger>
 
