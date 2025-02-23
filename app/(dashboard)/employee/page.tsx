@@ -116,9 +116,9 @@ export default function EmployeePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && users?.length === 0 ? (
                   <TableSkeleton rows={5} cols={9} />
-                ) : users.length === 0 ? (
+                ) : users?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center">No employees found</TableCell>
                   </TableRow>

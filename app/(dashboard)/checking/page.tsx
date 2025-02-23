@@ -78,7 +78,7 @@ export default function CheckingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && checkInvoices?.length === 0 ? (
                   <TableSkeleton rows={5} cols={8} />
                 ) : checkInvoices?.length === 0 ? (
                   <TableRow>
@@ -134,7 +134,7 @@ export default function CheckingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && checkInvoices?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center">Loading...</TableCell>
                   </TableRow>

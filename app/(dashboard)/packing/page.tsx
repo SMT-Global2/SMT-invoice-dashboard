@@ -154,7 +154,7 @@ export default function PackingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoading && packInvoices?.length === 0 ? (
                 <TableSkeleton rows={5} cols={8} />
               ) : packInvoices?.length === 0 ? (
                 <TableRow>
@@ -216,7 +216,7 @@ export default function PackingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoading && packInvoices?.length === 0 ? (
                 <TableSkeleton rows={5} cols={9} />
               ) : packInvoices?.length === 0 ? (
                 <TableRow>

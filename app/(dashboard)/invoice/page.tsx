@@ -69,8 +69,6 @@ export default function InvoicePage() {
     currentPage,
     itemsPerPage,
     isLoading,
-    error,
-    invoiceStartNo,
     setInvoices,
     setSelectedDate,
     setCurrentPage,
@@ -361,7 +359,7 @@ export default function InvoicePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
+                  {isLoading && invoices?.length === 0 ? (
                     <TableSkeleton rows={5} cols={10} />
                   ) : !moment(selectedDate).isSame(moment(), 'day') && invoices.length === 0 ?
                     (

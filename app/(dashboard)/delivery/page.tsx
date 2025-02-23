@@ -185,7 +185,7 @@ export default function DeliveryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && deliveryInvoices?.length === 0 ? (
                   <TableSkeleton rows={5} cols={8} />
                 ) : deliveryInvoices?.filter(invoice => !invoice.pickupTimestamp)?.length === 0 ? (
                   <TableRow>
@@ -242,7 +242,7 @@ export default function DeliveryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && deliveryInvoices?.length === 0 ? (
                   <TableSkeleton rows={5} cols={8} />
                 ) : deliveryInvoices?.filter(invoice => invoice.pickupTimestamp && !invoice.deliveredTimestamp)?.length === 0 ? (
                   <TableRow>
@@ -341,7 +341,7 @@ export default function DeliveryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && deliveryInvoices?.length === 0 ? (
                   <TableSkeleton rows={5} cols={8} />
                 ) : deliveryInvoices?.filter(invoice => invoice.deliveredTimestamp)?.length === 0 ? (
                   <TableRow>

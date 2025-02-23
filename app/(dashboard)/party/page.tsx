@@ -136,9 +136,9 @@ export default function PartyPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && parties?.length === 0 ? (
                   <TableSkeleton rows={5} cols={6} />
-                ) : parties.length === 0 ? (
+                ) : parties?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center">
                       No parties found
