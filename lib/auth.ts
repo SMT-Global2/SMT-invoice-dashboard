@@ -95,17 +95,17 @@ export const authOptions: AuthOptions = {
         }
       }
       if (session.user) {
-        // const userExists = await prisma.user.findUnique({
-        //   where: {
-        //     username : token.username
-        //   }
-        // });
+        const userExists = await prisma.user.findUnique({
+          where: {
+            username : token.username
+          }
+        });
 
-        // if(!userExists) {
-        //   return {
-        //     ...session,
-        //   }
-        // }
+        if(!userExists) {
+          return {
+            ...session,
+          }
+        }
         session.user.id = token.id;
         session.user.username = token.username;
         session.user.type = token.type;
