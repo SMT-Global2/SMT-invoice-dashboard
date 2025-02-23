@@ -193,7 +193,7 @@ function User() {
 
   return (
     <div className="text-lg font-medium">
-      Hi {session.user?.username}! , Welcome to SMT Dashboard
+      Hi {session.user?.username}!
     </div>
   );
 }
