@@ -54,32 +54,31 @@ model Invoice {
   image             String[]
   isOtc             Boolean   @default(false)
 
-  invoiceUsername   String
+  invoiceUsername   String?
   invoiceTimestamp  DateTime?
-  invoicedBy        User @relation("InvoiceToUser", fields: [invoiceUsername], references: [username])
+  invoicedBy        User? @relation("InvoiceToUser", fields: [invoiceUsername], references: [username] , onDelete: SetNull)
 
 
   checkUsername     String?
   checkTimestamp    DateTime?
-  checkedBy         User? @relation("CheckToUser",fields: [checkUsername], references: [username])
+  checkedBy         User? @relation("CheckToUser",fields: [checkUsername], references: [username] , onDelete: SetNull)
   checkStatus       CheckStatus @default(NOT_CHECKED)
 
 
   packageTimestamp  DateTime?
   packageUsername   String?
-  packedBy          User? @relation("PackageToUser",fields: [packageUsername], references: [username])
+  packedBy          User? @relation("PackageToUser",fields: [packageUsername], references: [username] , onDelete: SetNull)
   packageStatus     PackageStatus @default(NOT_PACKED)
 
   pickupUsername    String?
   pickupTimestamp   DateTime?
-  pickedUpBy        User? @relation("PickupToUser",fields: [pickupUsername], references: [username])
+  pickedUpBy        User? @relation("PickupToUser",fields: [pickupUsername], references: [username] , onDelete: SetNull)
 
   deliveredUsername         String?
   deliveredTimestamp        DateTime?
-  deliveredBy               User? @relation("DeliveryToUser",fields: [deliveredUsername], references: [username])
+  deliveredBy               User? @relation("DeliveryToUser",fields: [deliveredUsername], references: [username] , onDelete: SetNull)
   deliveredLocationLink     String?
   deliveryStatus            DeliveryStatus @default(NOT_DELIVERED)
-
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

@@ -93,11 +93,7 @@ export async function POST(request: NextRequest) {
         image: validatedData.image,
         packageTimestamp: moment().toDate(),
         packageStatus: PackageStatus.PACKED,
-        packedBy: {
-          connect: {
-            username: session.user.username
-          }
-        }
+        packageUsername: session.user.username,
       },
     });
 

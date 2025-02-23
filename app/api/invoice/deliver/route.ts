@@ -104,11 +104,7 @@ export async function POST(request: NextRequest) {
                 image: validatedData.image,
                 deliveredTimestamp: moment().toDate(),
                 deliveryStatus:  DeliveryStatus.DELIVERED,
-                deliveredBy: {
-                    connect: {
-                        username: session.user.username
-                    }
-                }
+                deliveredUsername: session.user.username,
             },
         });
 

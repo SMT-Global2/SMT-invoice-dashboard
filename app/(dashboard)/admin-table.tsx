@@ -20,7 +20,7 @@ import useAnalyticsStore, { IInvoice } from '@/store/useAnalyticsStore';
 import { useEffect } from 'react';
 import { Capsule } from '@/components/capsule';
 import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+import { CheckCircle, FileText, Package, Search, Truck } from "lucide-react"
 import TableSkeleton from "@/components/table-skeleton"
 import { 
   Pagination, 
@@ -43,6 +43,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, X } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { InvoiceCard } from "./invoice-card"
 
 export default function AdminInvoiceTable() {
   const {
@@ -106,25 +107,150 @@ export default function AdminInvoiceTable() {
     </span>
   );
 
-  const MoreInfoDialog = ({ invoice }: { invoice: IInvoice }) => (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">Show More</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Invoice Details</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-4">
-          <p><strong>Invoice Number:</strong> {invoice.invoiceNumber}</p>
-          <p><strong>Party Code:</strong> {invoice.partyCode}</p>
-          <p><strong>Medical Name:</strong> {invoice.party?.customerName}</p>
-          <p><strong>City:</strong> {invoice.party?.city}</p>
-          {/* Add more details as needed */}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  // const MoreInfoDialog = ({ invoice }: { invoice: IInvoice }) => (
+  //   <Dialog>
+  //     <DialogTrigger asChild>
+  //       <Button variant="outline" size="sm">Show More</Button>
+  //     </DialogTrigger>
+  //     <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
+  //       <DialogHeader>
+  //         <DialogTitle className="text-2xl font-bold">Invoice #{invoice.invoiceNumber}</DialogTitle>
+  //       </DialogHeader>
+        
+  //       <div className="space-y-6 pt-4">
+  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //           <Card className="p-4">
+  //             <h3 className="font-semibold mb-2">Party Details</h3>
+  //             <div className="space-y-2 text-sm">
+  //               <p><span className="text-muted-foreground">Party Code:</span> {invoice.partyCode}</p>
+  //               <p><span className="text-muted-foreground">Medical Name:</span> {invoice.party?.customerName}</p>
+  //               <p><span className="text-muted-foreground">City:</span> {invoice.party?.city}</p>
+  //             </div>
+  //           </Card>
+
+  //           <Card className="p-4">
+  //             <h3 className="font-semibold mb-2">Invoice Details</h3>
+  //             <div className="space-y-2 text-sm">
+  //               <p><span className="text-muted-foreground">Generated Date:</span> {new Date(invoice.generatedDate).toLocaleString()}</p>
+  //               <p><span className="text-muted-foreground">OTC:</span> {invoice.isOtc ? "Yes" : "No"}</p>
+  //               <p><span className="text-muted-foreground">Created:</span> {new Date(invoice.createdAt).toLocaleString()}</p>
+  //             </div>
+  //           </Card>
+  //         </div>
+
+  //         <Card className="p-6 dark:bg-gray-800">
+  //           <h3 className="font-semibold mb-6 text-lg">Order Status Timeline</h3>
+  //           <div className="relative">
+  //             <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 space-y-8 md:space-y-0">
+  //               <div className="absolute h-full md:h-1 w-1 md:w-[calc(100%-2rem)] bg-gray-200 dark:bg-gray-600 left-4 md:left-4 top-0 md:top-[17px] transition-colors duration-500">
+  //                 <div 
+  //                   className="h-[calc(100%*0.25)] md:h-full w-full md:w-[calc(100%*0.25)] bg-green-500" 
+  //                   style={{
+  //                     height: `${invoice.deliveredTimestamp ? '100%' : 
+  //                             invoice.pickupTimestamp ? '75%' :
+  //                             invoice.packageTimestamp ? '50%' :
+  //                             invoice.checkTimestamp ? '25%' : '0%'}`,
+  //                     width: `${invoice.deliveredTimestamp ? '100%' : 
+  //                            invoice.pickupTimestamp ? '75%' :
+  //                            invoice.packageTimestamp ? '50%' :
+  //                            invoice.checkTimestamp ? '25%' : '0%'}`
+  //                   }}
+  //                 />
+  //               </div>
+                
+  //               <div className="relative z-10 flex items-start space-x-4 pl-8 md:pl-0 md:flex-col md:items-center">
+  //                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${invoice.invoiceTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
+  //                   <FileText className="h-6 w-6" />
+  //                 </div>
+  //                 <div className="flex flex-col">
+  //                   <p className="font-medium">Invoiced</p>
+  //                   {invoice.invoiceTimestamp && (
+  //                     <div className="text-sm text-muted-foreground">
+  //                       <p>{new Date(invoice.invoiceTimestamp).toLocaleString()}</p>
+  //                       <p className="font-medium text-primary">{invoice.invoiceUsername}</p>
+  //                     </div>
+  //                   )}
+  //                 </div>
+  //               </div>
+
+  //               <div className="relative z-10 flex items-start space-x-4 pl-8 md:pl-0 md:flex-col md:items-center">
+  //                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${invoice.checkTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
+  //                   <CheckCircle className="h-6 w-6" />
+  //                 </div>
+  //                 <div className="flex flex-col">
+  //                   <p className="font-medium">Checked</p>
+  //                   {invoice.checkTimestamp && (
+  //                     <div className="text-sm text-muted-foreground">
+  //                       <p>{new Date(invoice.checkTimestamp).toLocaleString()}</p>
+  //                       <p className="font-medium text-primary">{invoice.checkUsername}</p>
+  //                     </div>
+  //                   )}
+  //                 </div>
+  //               </div>
+
+  //               <div className="relative z-10 flex items-start space-x-4 pl-8 md:pl-0 md:flex-col md:items-center">
+  //                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${invoice.packageTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
+  //                   <Package className="h-6 w-6" />
+  //                 </div>
+  //                 <div className="flex flex-col">
+  //                   <p className="font-medium">Packed</p>
+  //                   {invoice.packageTimestamp && (
+  //                     <div className="text-sm text-muted-foreground">
+  //                       <p>{new Date(invoice.packageTimestamp).toLocaleString()}</p>
+  //                       <p className="font-medium text-primary">{invoice.packageUsername}</p>
+  //                     </div>
+  //                   )}
+  //                 </div>
+  //               </div>
+
+  //               <div className="relative z-10 flex items-start space-x-4 pl-8 md:pl-0 md:flex-col md:items-center">
+  //                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${invoice.pickupTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
+  //                   <Truck className="h-6 w-6" />
+  //                 </div>
+  //                 <div className="flex flex-col">
+  //                   <p className="font-medium">Picked Up</p>
+  //                   {invoice.pickupTimestamp && (
+  //                     <div className="text-sm text-muted-foreground">
+  //                       <p>{new Date(invoice.pickupTimestamp).toLocaleString()}</p>
+  //                       <p className="font-medium text-primary">{invoice.pickupUsername}</p>
+  //                     </div>
+  //                   )}
+  //                 </div>
+  //               </div>
+
+  //               <div className="relative z-10 flex items-start space-x-4 pl-8 md:pl-0 md:flex-col md:items-center">
+  //                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${invoice.deliveredTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
+  //                   <CheckCircle className="h-6 w-6" />
+  //                 </div>
+  //                 <div className="flex flex-col">
+  //                   <p className="font-medium">Delivered</p>
+  //                   {invoice.deliveredTimestamp && (
+  //                     <div className="text-sm text-muted-foreground">
+  //                       <p>{new Date(invoice.deliveredTimestamp).toLocaleString()}</p>
+  //                       <p className="font-medium text-primary">{invoice.deliveredUsername}</p>
+  //                     </div>
+  //                   )}
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </Card>
+
+  //         {invoice.deliveredLocationLink && (
+  //           <Card className="p-4 dark:bg-gray-800">
+  //             <h3 className="font-semibold mb-2">Delivery Location</h3>
+  //             <a href={invoice.deliveredLocationLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-2">
+  //               <span>View Delivery Location</span>
+  //               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+  //               </svg>
+  //             </a>
+  //           </Card>
+  //         )}
+  //       </div>
+  //     </DialogContent>
+  //   </Dialog>
+  // );
 
   const SortIcon = ({ field }: { field: string }) => {
     if (filters.sortField !== field) return <ChevronsUpDown className="h-4 w-4" />;
@@ -139,12 +265,14 @@ export default function AdminInvoiceTable() {
         ...filters,
         sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'
       });
+      setPagination({ ...pagination, page: 0 });
     } else {
       setFilters({
         ...filters,
         sortField: field as any,
         sortOrder: 'desc'
       });
+      setPagination({ ...pagination, page: 0 });
     }
   };
 
@@ -156,6 +284,7 @@ export default function AdminInvoiceTable() {
       sortField: 'invoiceTimestamp',
       sortOrder: 'desc'
     });
+    setPagination({ ...pagination, page: 0 });
   };
 
   return (
@@ -170,7 +299,10 @@ export default function AdminInvoiceTable() {
                 placeholder="Search invoices..."
                 className="pl-8 h-8 text-sm"
                 value={filters.searchQuery}
-                onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
+                onChange={(e) => {
+                  setFilters({ ...filters, searchQuery: e.target.value });
+                  setPagination({ ...pagination, page: 0 });
+                }}
               />
             </div>
             
@@ -192,12 +324,13 @@ export default function AdminInvoiceTable() {
                   mode="single"
                   selected={filters.date ? new Date(filters.date) : undefined}
                   className="w-[300px] sm:w-auto"
-                  onSelect={(date) => 
+                  onSelect={(date) => {
                     setFilters({ 
                       ...filters, 
                       date: date ? format(date, 'yyyy-MM-dd') : null 
-                    })
-                  }
+                    });
+                    setPagination({ ...pagination, page: 0 });
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -212,6 +345,7 @@ export default function AdminInvoiceTable() {
                   sortField: field as any,
                   sortOrder: order as 'asc' | 'desc'
                 });
+                setPagination({ ...pagination, page: 0 });
               }}
             >
               <SelectTrigger className="w-auto gap-2 h-8">
@@ -266,6 +400,7 @@ export default function AdminInvoiceTable() {
                   <TableHead>Generated</TableHead>
                   <TableHead>Checked</TableHead>
                   <TableHead>Packed</TableHead>
+                  <TableHead>Picked Up</TableHead>
                   <TableHead>Delivered</TableHead>
                   <TableHead>Last Updated</TableHead>
                   <TableHead>Type</TableHead>
@@ -293,6 +428,7 @@ export default function AdminInvoiceTable() {
                       <TableCell><StatusBadge status={!!invoice.invoiceTimestamp} /></TableCell>
                       <TableCell><StatusBadge status={!!invoice.checkTimestamp} /></TableCell>
                       <TableCell><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
+                      <TableCell><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
                       <TableCell><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
                       <TableCell>{new Date(invoice.updatedAt).toLocaleString()}</TableCell>
                       <TableCell>
@@ -304,7 +440,7 @@ export default function AdminInvoiceTable() {
                         />
                       </TableCell>
                       <TableCell>
-                        <MoreInfoDialog invoice={invoice} />
+                        <InvoiceCard invoice={invoice} />
                       </TableCell>
                     </TableRow>
                   ))

@@ -11,37 +11,6 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const dateFilter = searchParams.get('date');
 
-  //Find day start
-  // const dayStart = await prisma.dayStart.findUnique({
-  //   where: {
-  //     date: moment(dateFilter).startOf('day').format('YYYY-MM-DD')
-  //   }
-  // })
-
-  // if(!dayStart){
-  //   //Create Start Date
-  //   let invoiceStartNo = 1;
-  //   const maxInvoiceNumber = await prisma.invoice.findFirst({
-  //     where : {
-  //       generatedDate : {
-  //         lt: moment(dateFilter).startOf('day').toDate()
-  //       }
-  //     },
-  //     orderBy: {
-  //       invoiceNumber: 'desc',
-  //     }
-  //   });
-  //   if(maxInvoiceNumber){
-  //     invoiceStartNo = maxInvoiceNumber.invoiceNumber + 1;
-  //   }
-  //   await prisma.dayStart.create({
-  //     data: {
-  //       date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
-  //       invoiceStartNo
-  //     }
-  //   })
-  // }
-
   const where = dateFilter
     ? {
       generatedDate: {

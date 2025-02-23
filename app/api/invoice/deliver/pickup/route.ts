@@ -36,11 +36,7 @@ export async function POST(request: NextRequest) {
             data: {
                 pickupTimestamp: moment().toDate(),
                 deliveryStatus: DeliveryStatus.PICKED_UP,
-                pickedUpBy: {
-                    connect: {
-                        username: session.user.username
-                    }
-                }
+                pickupUsername: session.user.username,
             },
         });
 
