@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       prisma.invoice.count({ where }), // ✅ Properly nested inside `where`
       prisma.invoice.count({ where: { ...where, checkStatus: CheckStatus.CHECKED } }),
       prisma.invoice.count({ where: { ...where, packageStatus: PackageStatus.PACKED } }),
-      prisma.invoice.count({ where: { ...where, deliveryStatus: DeliveryStatus.PICKED_UP } }),
+      prisma.invoice.count({ where: { ...where, deliveryStatus: { in: [DeliveryStatus.PICKED_UP, DeliveryStatus.DELIVERED] } } }),
       prisma.invoice.count({ where: { ...where, deliveryStatus: DeliveryStatus.DELIVERED } }),
       prisma.invoice.count({ where: { ...where, isOtc: true } })
     ]);

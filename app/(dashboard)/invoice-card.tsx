@@ -46,12 +46,12 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
             </Card>
           </div>
 
-          <Card className="p-6 dark:bg-gray-800">
+          <Card className="p-6 dark:bg-gray-800 md:h-[14rem]">
             <h3 className="font-semibold mb-6 text-lg">Order Status Timeline</h3>
-            <div className="relative w-[90%] mx-auto">
+            <div className="relative w-[100%] mx-auto">
               
-              <div className="absolute left-3 md:left-1/2 top-5 bottom-5 
-              md:top-[15px] md:bottom-auto w-2 md:w-[80%] h-[calc(100%-2.5rem)] 
+              <div className="absolute left-3 md:left-1/2 top-6 bottom-5 
+              md:top-[15px] md:bottom-auto w-2 md:w-[80%] h-[90%] 
               md:h-1 bg-gray-200 dark:bg-gray-600 md:-translate-x-1/2 
               transition-colors duration-500">
                 <div 
@@ -71,78 +71,78 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                 />
               </div>
 
-              <div className="flex flex-col md:flex-row w-full justify-between space-y-8 md:space-y-0">
+              <div className="flex flex-col md:flex-row w-full h-[100%] justify-between space-y-8 md:space-y-0">
                 
-                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="h-[5rem] w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.invoiceTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col md:items-center md:text-center">
-                    <p className="font-medium text-xs">Invoiced</p>
+                    <p className="font-medium text-sm">Invoiced</p>
                     {invoice.invoiceTimestamp && (
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.invoiceTimestamp))}</p>
-                        <p className="font-medium text-primary">{invoice.invoiceUsername}</p>
+                        <p className="font-medium text-primary text-[12px]">{invoice.invoiceUsername}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="h-[5rem] w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.checkTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <CheckCircle className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col md:items-center md:text-center">
-                    <p className="font-medium text-xs">Checked</p>
+                    <p className="font-medium text-sm">Checked</p>
                     {invoice.checkTimestamp && (
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.checkTimestamp))}</p>
-                        <p className="font-medium text-primary">{invoice.checkUsername}</p>
+                        <p className="font-medium text-primary text-[12px]">{invoice.checkUsername}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="h-[5rem] w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.packageTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <Package className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col md:items-center md:text-center">
-                    <p className="font-medium text-xs">Packed</p>
+                    <p className="font-medium text-sm">Packed</p>
                     {invoice.packageTimestamp && (
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.packageTimestamp))}</p>
-                        <p className="font-medium text-primary">{invoice.packageUsername}</p>
+                        <p className="font-medium text-primary text-[12px]">{invoice.packageUsername}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="h-[5rem] w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.pickupTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <Truck className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col md:items-center md:text-center">
-                    <p className="font-medium text-xs">Picked Up</p>
+                    <p className="font-medium text-sm">Picked Up</p>
                     {invoice.pickupTimestamp && (
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.pickupTimestamp))}</p>
-                        <p className="font-medium text-primary">{invoice.pickupUsername}</p>
+                        <p className="font-medium text-primary text-[12px]">{invoice.pickupUsername}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
+                <div className="h-[5rem] w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.deliveredTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <CheckCircle className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col md:items-center md:text-center">
-                    <p className="font-medium text-xs">Delivered</p>
+                    <p className="font-medium text-sm">Delivered</p>
                     {invoice.deliveredTimestamp && (
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.deliveredTimestamp))}</p>
-                        <p className="font-medium text-primary">{invoice.deliveredUsername}</p>
+                        <p className="font-medium text-primary text-[12px]">{invoice.deliveredUsername}</p>
                       </div>
                     )}
                   </div>
