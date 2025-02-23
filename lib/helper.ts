@@ -1,10 +1,14 @@
 export function tweleHrFormatDateString(date: Date) {
-  // return new Date(date).toLocaleString();
-  return new Date(date).toLocaleString('en-US', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
+  const formattedDate = new Date(date).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
     hour12: true
   });
+  return formattedDate;
 }
 
 const heic2anyPromise = import('heic2any').then((mod) => mod.default);

@@ -335,8 +335,9 @@ export default function DeliveryPage() {
                   <TableHead>Party Code</TableHead>
                   <TableHead>Medical Name</TableHead>
                   <TableHead>City</TableHead>
+                  <TableHead>Pickup Time</TableHead>
+                  <TableHead>Delivery Time</TableHead>
                   <TableHead>Image</TableHead>
-                  <TableHead>Timestamp</TableHead>
                   <TableHead>Location</TableHead>
                 </TableRow>
               </TableHeader>
@@ -356,10 +357,11 @@ export default function DeliveryPage() {
                       <TableCell>{invoice.partyCode}</TableCell>
                       <TableCell>{invoice.medicalName}</TableCell>
                       <TableCell>{invoice.city}</TableCell>
+                      <TableCell>{tweleHrFormatDateString(invoice.pickupTimestamp!)}</TableCell>
+                      <TableCell>{tweleHrFormatDateString(invoice.deliveredTimestamp!)}</TableCell>
                       <TableCell>
                         <ShowImage images={invoice.image} />
                       </TableCell>
-                      <TableCell>{tweleHrFormatDateString(invoice.deliveredTimestamp!)}</TableCell>
                       <TableCell>
                         {
                           invoice.deliveredLocationLink ? 

@@ -130,7 +130,7 @@ export default function CheckingPage() {
                   <TableHead>City</TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Check Timestamp</TableHead>
+                  <TableHead>Check Time</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

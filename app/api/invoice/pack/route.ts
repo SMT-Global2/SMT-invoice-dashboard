@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
 
   const data = await prisma.invoice.findMany({
     where: {
+      isOtc : false,
       OR: [
         {
           AND: [

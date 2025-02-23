@@ -212,7 +212,7 @@ export default function PackingPage() {
                 <TableHead>City</TableHead>
                 <TableHead>Image</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Timestamp</TableHead>  
+                <TableHead>Pack Time</TableHead>  
               </TableRow>
             </TableHeader>
             <TableBody>
