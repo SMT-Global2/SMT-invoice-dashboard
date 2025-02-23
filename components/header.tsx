@@ -8,7 +8,7 @@ export const Header = () => {
       <SMTLogo
         className="h-[4.2rem] w-[4.2rem]"
       />
-      <h1 className="text-3xl md:text-4xl font-bold text-primary">
+      <h1 className="text-2xl md:text-3xl font-bold text-primary">
         Sanjivan Medico Traders
       </h1>
     </header>
