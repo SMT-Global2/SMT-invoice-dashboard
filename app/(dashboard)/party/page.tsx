@@ -29,6 +29,16 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function PartyPage() {
   const { 
@@ -43,6 +53,8 @@ export default function PartyPage() {
   } = usePartyStore()
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [partyToDelete, setPartyToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     fetchParties(searchQuery)
@@ -68,6 +80,19 @@ export default function PartyPage() {
   const handleSearch = (value: string) => {
     setSearchQuery(value)
     setPagination({ ...pagination, page: 0 }) // Reset to first page on search
+  }
+
+  const handleDeleteClick = (partyId: string) => {
+    setPartyToDelete(partyId)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (partyToDelete) {
+      await handleDelete(partyToDelete)
+      setIsDeleteDialogOpen(false)
+      setPartyToDelete(null)
+    }
   }
 
   const displayedPages = () => {
@@ -167,7 +192,7 @@ export default function PartyPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(party.id!)}
+                          onClick={() => handleDeleteClick(party.id!)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -229,6 +254,24 @@ export default function PartyPage() {
       </Card>
 
       <PartyDialog />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the party
+              and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

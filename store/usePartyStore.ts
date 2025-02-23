@@ -100,7 +100,7 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
       const validatedParty = PartyCodeSchema.partial().parse(party)
-      const response = await fetch(`/api/party/${id}`, {
+      const response = await fetch(`/api/party?id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...validatedParty })
@@ -124,7 +124,7 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
   deleteParty: async (id) => {
     try {
       set({ isLoading: true, error: null })
-      const response = await fetch(`/api/party/${id}`, {
+      const response = await fetch(`/api/party?id=${id}`, {
         method: 'DELETE'
       })
       if (!response.ok) throw new Error('Failed to delete party')

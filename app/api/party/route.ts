@@ -5,21 +5,20 @@ import { prisma } from '@/lib/prisma'
 import { PartyCodeSchema } from '@/store/usePartyStore'
 
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.username) {
-    return Response.json({
-      success: false,
-      message: 'Unauthorized'
-    }, { status: 401 });
-  }
-  if(session.user.type !== 'ADMIN') {
-    return Response.json({
-      success: false,
-      message: 'Forbidden'
-    }, { status: 403 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+    if(session.user.type !== 'ADMIN') {
+      return Response.json({
+        success: false,
+        message: 'Forbidden'
+      }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '0')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -92,21 +91,20 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.username) {
-    return Response.json({
-      success: false,
-      message: 'Unauthorized'
-    }, { status: 401 });
-  }
-  if(session.user.type !== 'ADMIN') {
-    return Response.json({
-      success: false,
-      message: 'Forbidden'
-    }, { status: 403 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+    if(session.user.type !== 'ADMIN') {
+      return Response.json({
+        success: false,
+        message: 'Forbidden'
+      }, { status: 403 });
+    }
     const body = await request.json()
     const validatedData = PartyCodeSchema.parse(body)
     
@@ -159,21 +157,20 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.username) {
-    return Response.json({
-      success: false,
-      message: 'Unauthorized'
-    }, { status: 401 });
-  }
-  if(session.user.type !== 'ADMIN') {
-    return Response.json({
-      success: false,
-      message: 'Forbidden'
-    }, { status: 403 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+    if(session.user.type !== 'ADMIN') {
+      return Response.json({
+        success: false,
+        message: 'Forbidden'
+      }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
