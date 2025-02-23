@@ -3,8 +3,6 @@ import moment from 'moment';
 import { NextRequest } from 'next/server';
 import { findOrCreateDayStart } from './helper';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: NextRequest) {
   //find maximum invoice number
   const searchParams = request.nextUrl.searchParams;

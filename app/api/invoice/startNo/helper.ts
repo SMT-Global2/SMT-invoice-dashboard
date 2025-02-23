@@ -2,8 +2,6 @@ import { prisma } from '@/lib/prisma'
 import moment from 'moment';
 import { NextRequest } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
 export async function findOrCreateDayStart(dateFilter : Date) {
     const result = await prisma.$transaction(async (prismaTxn) => {
   

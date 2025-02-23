@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { userSeed } from "./data"
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: Request) {
   try {
 

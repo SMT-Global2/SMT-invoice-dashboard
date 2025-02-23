@@ -6,8 +6,6 @@ import { getServerSession } from 'next-auth';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
-export const dynamic = 'force-dynamic';
-
 export async function POST(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);

@@ -46,3 +46,30 @@ export async function convertHeicImage(file: File): Promise<File> {
   return file;
 }
 
+export async function getPresignedUrl(fileName: string , contentType: string) {
+  const response = await fetch('/api/s3/presignedUrl', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      fileName: fileName,
+      contentType: contentType
+      }),
+  });
+
+  const data = await response.json();
+  const presignedUrl = data.presignedUrl;
+  const key = data.key;
+
+  return { presignedUrl, key };
+}
+
+export async function uploadFileToS3(presignedUrl: string, key: string, file: File) {
+  const response = await fetch(presignedUrl, {
+    method: 'PUT',
+    body: file,
+  });
+
+  const data = await response.json();
+  const uploadResult = data.uploadResult;
+
+  return uploadResult;
+}
