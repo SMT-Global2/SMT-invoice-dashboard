@@ -166,15 +166,24 @@ export async function DELETE(request: NextRequest) {
       }, { status: 403 });
     }
 
-    if(session.user.username === 'admin'){
-      return NextResponse.json({ error: 'Cannot delete admin user' }, { status: 400 });
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    //get user by id
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if(!user){
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if(user.username === 'admin'){
+      return NextResponse.json({ error: 'Cannot delete system admin user' }, { status: 400 });
     }
 
     await prisma.user.delete({
