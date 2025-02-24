@@ -94,7 +94,7 @@ export async function POST(req: Request) {
     
             // Create invoice with validated data
 
-            const result = await prisma.$transaction(async (prismaTxn) => {
+            result = await prisma.$transaction(async (prismaTxn) => {
                 //get todays number
                 const maxInvoiceNumber = await findOrCreateDayStart(moment().toDate());
 
