@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -50,6 +50,8 @@ import TableSkeleton from '@/components/table-skeleton';
 import { TableEmpty } from '@/components/TableEmpty';
 import { Spinner } from '@/components/icons';
 import { TakeImage } from '@/components/take-image';
+import { Input } from "@/components/ui/input";
+import { debounce } from 'lodash';
 
 interface PartyCode {
   id: string;
@@ -61,6 +63,7 @@ interface PartyCode {
 export default function InvoicePage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const { toast } = useToast();
+  const [invoiceSearchTerm, setInvoiceSearchTerm] = useState('');
 
   const {
     invoices,
@@ -87,7 +90,7 @@ export default function InvoicePage() {
     handleInvoices();
   }, [handleInvoices, selectedDate]);
 
-  const searchPartyCode = async (search: string) => {
+  const searchPartyCode = useCallback(async (search: string) => {
     try {
       setPartyCodeLoading(true);
       const response = await fetch(`/api/partycode?search=${search}`);
@@ -98,11 +101,18 @@ export default function InvoicePage() {
     } finally {
       setPartyCodeLoading(false);
     }
-  };
+  }, []);
+
+  const debouncedSearchPartyCode = useCallback(
+    debounce((search: string) => {
+      searchPartyCode(search);
+    }, 600),
+    [searchPartyCode]
+  );
 
   const handleSearchChange = (invoiceNumber: number, value: string) => {
     setSearchTerms(prev => ({ ...prev, [invoiceNumber]: value }));
-    searchPartyCode(value);
+    debouncedSearchPartyCode(value);
   };
 
   const toggleCombobox = (invoiceNumber: number, isOpen: boolean) => {
@@ -111,24 +121,6 @@ export default function InvoicePage() {
       searchPartyCode(searchTerms[invoiceNumber] || '');
     }
   };
-
-  useEffect(() => {
-    const searchPartyCode = async () => {
-      try {
-        const response = await fetch(`/api/partycode?search=${searchTerm}`);
-        const { data } = await response.json();
-        setPartyCodes(data);
-      } catch (error) {
-        console.error('Failed to fetch party codes:', error);
-      }
-    };
-
-    const debounceTimer = setTimeout(() => {
-      searchPartyCode();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchTerm]);
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -234,11 +226,15 @@ export default function InvoicePage() {
     }
   }
 
+  // Update filtering logic for invoices based on invoice search term
+  const filteredInvoices = invoices.filter(invoice => 
+    invoice.invoiceNumber.toString().includes(invoiceSearchTerm.trim())
+  );
 
-  const totalPages = Math.ceil(invoices.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentInvoices = invoices.slice(startIndex, endIndex);
+  const currentInvoices = filteredInvoices.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -255,14 +251,26 @@ export default function InvoicePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <DatePicker date={selectedDate} setDate={setSelectedDate} />
-              <Button
-                variant={'outline'}
-                disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
-                onClick={() => setSelectedDate(moment().startOf('day').toDate())}
-              >Clear Date</Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="w-full sm:max-w-[300px]">
+                <Input
+                  type="text"
+                  placeholder="Search invoice number..."
+                  value={invoiceSearchTerm}
+                  onChange={(e) => setInvoiceSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <DatePicker date={selectedDate} setDate={setSelectedDate} />
+                <Button
+                  variant={'outline'}
+                  disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
+                  onClick={() => setSelectedDate(moment().startOf('day').toDate())}
+                >Clear Date</Button>
+              </div>
             </div>
+
             <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <Table className=''>
                 <TableHeader>
@@ -393,61 +401,6 @@ export default function InvoicePage() {
                               isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                               showImages={[...row.image]}
                             />
-                            {/* <div className="flex items-center space-x-2">
-                              <div className="relative flex gap-1">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="gap-2 z-10"
-                                  // disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
-                                >
-                                  {
-                                    uploadingImage === row.invoiceNumber ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Uploading...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Upload className='w-5 h-5'/> 
-                                        Browse Files
-                                      </>
-                                    )
-                                  }
-                                </Button>
-
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="gap-2 z-10"
-                                    disabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
-                                  >
-                                    {
-                                      uploadingImage === row.invoiceNumber ? (
-                                        <>
-                                          <Camera className='w-5 h-5 text-gray-400'/> 
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Camera className='w-5 h-5'/> 
-                                        </>
-                                      )
-                                    }
-                                  </Button>
-
-                                <Input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleImageUpload(row.invoiceNumber)}
-                                  className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                                  hidden={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
-                                  style={{
-                                    pointerEvents: row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber ? 'none' : 'auto'
-                                  }}
-                                />
-                              </div>
-                              <ShowImage images={row?.image} />
-                            </div> */}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
