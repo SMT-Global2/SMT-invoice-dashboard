@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -114,23 +114,42 @@ export default function InvoicePage() {
     }
   };
 
-  useEffect(() => {
-    const searchPartyCode = async () => {
-      try {
-        const response = await fetch(`/api/partycode?search=${searchTerm}`);
-        const { data } = await response.json();
-        setPartyCodes(data);
-      } catch (error) {
-        console.error('Failed to fetch party codes:', error);
-      }
-    };
+  // useEffect(() => {
+  //   const searchPartyCode = async () => {
+  //     try {
+  //       const response = await fetch(`/api/partycode?search=${searchTerm}`);
+  //       const { data } = await response.json();
+  //       setPartyCodes(data);
+  //     } catch (error) {
+  //       console.error('Failed to fetch party codes:', error);
+  //     }
+  //   };
 
+  //   const debounceTimer = setTimeout(() => {
+  //     searchPartyCode();
+  //   }, 300);
+
+  //   return () => clearTimeout(debounceTimer);
+  // }, [searchTerm]);
+
+  const searchPartyCodeHandle = useCallback(async () => {
+    if (!searchTerm) return; // Prevent empty calls
+    try {
+      const response = await fetch(`/api/partycode?search=${searchTerm}`);
+      const { data } = await response.json();
+      setPartyCodes(data);
+    } catch (error) {
+      console.error("Failed to fetch party codes:", error);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      searchPartyCode();
+      searchPartyCodeHandle();
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchTerm]);
+  }, [searchPartyCode]);
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
