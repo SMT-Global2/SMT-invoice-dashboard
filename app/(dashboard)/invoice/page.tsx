@@ -51,6 +51,7 @@ import { TableEmpty } from '@/components/TableEmpty';
 import { Spinner } from '@/components/icons';
 import { TakeImage } from '@/components/take-image';
 import { Input } from "@/components/ui/input";
+import { debounce } from 'lodash';
 
 interface PartyCode {
   id: string;
@@ -89,7 +90,7 @@ export default function InvoicePage() {
     handleInvoices();
   }, [handleInvoices, selectedDate]);
 
-  const searchPartyCode = async (search: string) => {
+  const searchPartyCode = useCallback(async (search: string) => {
     try {
       setPartyCodeLoading(true);
       const response = await fetch(`/api/partycode?search=${search}`);
@@ -100,11 +101,18 @@ export default function InvoicePage() {
     } finally {
       setPartyCodeLoading(false);
     }
-  };
+  }, []);
+
+  const debouncedSearchPartyCode = useCallback(
+    debounce((search: string) => {
+      searchPartyCode(search);
+    }, 600),
+    [searchPartyCode]
+  );
 
   const handleSearchChange = (invoiceNumber: number, value: string) => {
     setSearchTerms(prev => ({ ...prev, [invoiceNumber]: value }));
-    searchPartyCode(value);
+    debouncedSearchPartyCode(value);
   };
 
   const toggleCombobox = (invoiceNumber: number, isOpen: boolean) => {
@@ -113,43 +121,6 @@ export default function InvoicePage() {
       searchPartyCode(searchTerms[invoiceNumber] || '');
     }
   };
-
-  // useEffect(() => {
-  //   const searchPartyCode = async () => {
-  //     try {
-  //       const response = await fetch(`/api/partycode?search=${searchTerm}`);
-  //       const { data } = await response.json();
-  //       setPartyCodes(data);
-  //     } catch (error) {
-  //       console.error('Failed to fetch party codes:', error);
-  //     }
-  //   };
-
-  //   const debounceTimer = setTimeout(() => {
-  //     searchPartyCode();
-  //   }, 300);
-
-  //   return () => clearTimeout(debounceTimer);
-  // }, [searchTerm]);
-
-  const searchPartyCodeHandle = useCallback(async () => {
-    if (!searchTerm) return; // Prevent empty calls
-    try {
-      const response = await fetch(`/api/partycode?search=${searchTerm}`);
-      const { data } = await response.json();
-      setPartyCodes(data);
-    } catch (error) {
-      console.error("Failed to fetch party codes:", error);
-    }
-  }, [searchTerm]);
-
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      searchPartyCodeHandle();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchPartyCode]);
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
