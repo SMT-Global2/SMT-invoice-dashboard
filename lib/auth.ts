@@ -31,7 +31,7 @@ declare module 'next-auth/jwt' {
 
 
 export const authOptions: AuthOptions = {
-  secret: process.env.AUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
