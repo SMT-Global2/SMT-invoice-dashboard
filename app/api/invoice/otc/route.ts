@@ -71,6 +71,13 @@ export async function POST(req: Request) {
             })
         } else {
 
+            //Check if image length is greater than 0
+            if (validatedData.image.length === 0) {
+                return Response.json({
+                    success: false,
+                    message: 'Atleast one image is required'
+                }, { status: 400 });
+            }
             // Invocie number should be greater than the current maximum invoice number
             // const maxInvoiceNumber = await prisma.invoice.findFirst({
             //     orderBy: {
