@@ -91,7 +91,7 @@ export function TakeImage({
                 </div>
             )}
             
-            <ShowImage images={showImages} />
+            <ShowImage invoice={invoice} images={showImages} />
         </div>
     );
 }

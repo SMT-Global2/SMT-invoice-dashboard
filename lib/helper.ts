@@ -52,6 +52,7 @@ export async function convertImage(file: File): Promise<File> {
 
 export async function compressImage(file: File) {
   console.log('Compressing image...');
+  
   const options = {
     maxSizeMB: 0.8,
     useWebWorker: true,
@@ -66,13 +67,14 @@ export async function compressImage(file: File) {
   return compressedFile;
 }
 
-export async function getPresignedUrl(fileName: string , contentType: string) {
+export async function getPresignedUrl(fileName: string , contentType: string , prefixKeyId : string = '') {
   console.log('Getting presigned url...');
   const response = await fetch('/api/s3/presignedUrl', {
     method: 'POST',
     body: JSON.stringify({ 
-      fileName: fileName,
-      contentType: contentType
+        fileName: prefixKeyId ? `invoice#${prefixKeyId}#${fileName}` : fileName,
+        contentType: contentType,
+        // customKey : prefixKeyId + fileName
       }),
   });
 
@@ -83,7 +85,7 @@ export async function getPresignedUrl(fileName: string , contentType: string) {
   return { presignedUrl, key };
 }
 
-export async function uploadFileToS3(file: File) {
+export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
   console.log('File details:', {
     name: file.name,
     type: file.type,
@@ -93,7 +95,7 @@ export async function uploadFileToS3(file: File) {
   const {
     presignedUrl,
     key
-  } = await getPresignedUrl(file.name, file.type);
+  } = await getPresignedUrl(file.name, file.type, prefixKeyId);
   
   await fetch(presignedUrl, {
     method: 'PUT',
@@ -110,5 +112,6 @@ export async function uploadFileToS3(file: File) {
 }
 //https://smt-images-bucket.s3.ap-south-1.amazonaws.com/1740321810294-shreyas
 export function getS3BucketUrl(key: string) {
-  return `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_S3_REGION}.amazonaws.com/${key}`;
+  const encodedKey = encodeURIComponent(key);
+  return `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_S3_REGION}.amazonaws.com/${encodedKey}`;
 }

@@ -51,8 +51,9 @@ export async function POST(request: Request) {
 
     const { fileName, contentType } = result.data;
 
-    // Generate a unique key for the file
-    const key = `${Date.now()}-${fileName}`;
+    // Generate a unique key for the file using a more URL-friendly format
+    const timestamp = new Date().toISOString().split('.')[0].replace(/[:\-]/g, '');
+    const key = `${fileName}_${timestamp}`;
 
     const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME,
