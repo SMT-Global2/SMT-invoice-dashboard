@@ -50,7 +50,7 @@ export async function convertImage(file: File): Promise<File> {
   return file;
 }
 
-export async function compressImage(file: File) {
+export async function compressImage(file: File) : Promise<File> {
   console.log('Compressing image...');
   
   const options = {
