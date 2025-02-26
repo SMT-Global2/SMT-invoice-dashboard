@@ -18,13 +18,15 @@ import {
 import { DialogTitle } from '@radix-ui/react-dialog';
 import { useState, useEffect, useRef } from 'react';
 import { getS3BucketUrl } from '@/lib/helper';
+import { InvoiceData } from '@/store/useInvoiceStore';
 
 interface ShowImageProps {
+  invoice: InvoiceData;
   images: string[];
   text?: string;
 }
 
-export function ShowImage({ images, text }: ShowImageProps) {
+export function ShowImage({ invoice , images, text }: ShowImageProps) {
   const [processedImages, setProcessedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -32,6 +34,7 @@ export function ShowImage({ images, text }: ShowImageProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [currentIndex, setCurrentIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,16 +93,21 @@ export function ShowImage({ images, text }: ShowImageProps) {
 
   const handleDownload = async (imageUrl: string) => {
     try {
-      const response = await fetch(imageUrl);
+      const url = imageUrl.includes('cloudinary') ? imageUrl : getS3BucketUrl(imageUrl + "?timestamp=" + new Date().getTime());
+      const response = await fetch(url);
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `image-${Date.now()}.jpg`;
+      link.href = downloadUrl;
+      
+      // Extract original filename or create one
+      const filename = imageUrl.split('/').pop() || `image-${Date.now()}.jpg`;
+      link.download = filename;
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Error downloading image:', error);
     }
@@ -178,8 +186,15 @@ export function ShowImage({ images, text }: ShowImageProps) {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <DialogTitle className="text-lg font-semibold m-2">View Images</DialogTitle>
-        <Carousel className="w-full relative">
+        <DialogTitle className="text-lg font-semibold m-2">View Images (Invoice #{invoice.invoiceNumber}) </DialogTitle>
+        <Carousel   
+          className="w-full relative"
+          setApi={(api) => {
+            api?.on("select", () => {
+              setCurrentIndex(api.selectedScrollSnap());
+            });
+          }}
+        >
           <CarouselContent>
             {images.map((image, index) => (
               <CarouselItem key={index}>
@@ -259,7 +274,7 @@ export function ShowImage({ images, text }: ShowImageProps) {
               variant="secondary"
               size="icon"
               className="hover:bg-accent"
-              onClick={() => handleDownload(images[0])}
+              onClick={() => handleDownload(images[currentIndex])}
             >
               <Download className="h-4 w-4" />
             </Button>

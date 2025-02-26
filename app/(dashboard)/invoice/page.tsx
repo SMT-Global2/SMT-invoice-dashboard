@@ -131,7 +131,7 @@ export default function InvoicePage() {
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile);
+      const uploadedImage = await uploadFileToS3(compressedFile , invoiceNumber.toString());
 
       updateInvoiceImage(invoiceNumber , uploadedImage.key);
 
@@ -247,7 +247,6 @@ export default function InvoicePage() {
       <Card>
         <CardHeader>
           <CardTitle>Invoices</CardTitle>
-          <CardDescription>Manage your invoices</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -426,7 +425,7 @@ export default function InvoicePage() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Reset Invoice</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to reset this invoice? This will clear all entered data.
+                                      Are you sure you want to reset this invoice {row.invoiceNumber}? This will clear all entered data.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -444,14 +443,31 @@ export default function InvoicePage() {
                                     showIcon='ok'
                                   />
                                 ) : (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    disabled={row.isDisabled || isLoading}
-                                    onClick={async () => await handleOtc(row.invoiceNumber)}
-                                  >
-                                    OTC
-                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        disabled={row.isDisabled || isLoading}
+                                      >
+                                        OTC
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirm OTC</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to mark this invoice {row.invoiceNumber} as OTC? This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={async () => await handleOtc(row.invoiceNumber)}>
+                                          Confirm
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                 )
                               }
                             </div>
