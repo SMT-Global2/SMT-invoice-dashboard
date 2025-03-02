@@ -46,32 +46,33 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
       }
 
       try {
-        const { default: heic2any } = await import('heic2any'); // Import dynamically on the client
+        // const { default: heic2any } = await import('heic2any'); // Import dynamically on the client
 
-        const processed = await Promise.all(
-          images.map(async (imageUrl) => {
-            if (imageUrl.toLowerCase().endsWith('.heic')) {
-              try {
-                const response = await fetch(imageUrl);
-                const blob = await response.blob();
+        // const processed = await Promise.all(
+        //   images.map(async (imageUrl) => {
+        //     if (imageUrl.toLowerCase().endsWith('.heic')) {
+        //       try {
+        //         const response = await fetch(imageUrl);
+        //         const blob = await response.blob();
 
-                const jpegBlob = await heic2any({
-                  blob,
-                  toType: 'image/jpeg',
-                  quality: 1,
-                });
+        //         const jpegBlob = await heic2any({
+        //           blob,
+        //           toType: 'image/jpeg',
+        //           quality: 1,
+        //         });
 
-                return URL.createObjectURL(jpegBlob as Blob);
-              } catch (error) {
-                console.error('Error converting HEIC image:', error);
-                return imageUrl;
-              }
-            }
-            return imageUrl;
-          })
-        );
+        //         return URL.createObjectURL(jpegBlob as Blob);
+        //       } catch (error) {
+        //         console.error('Error converting HEIC image:', error);
+        //         return imageUrl;
+        //       }
+        //     }
+        //     return imageUrl;
+        //   })
+        // );
 
-        setProcessedImages(processed);
+        // setProcessedImages(processed);
+        setProcessedImages(images);
       } catch (error) {
         console.error('Error processing images:', error);
         setProcessedImages(images);
@@ -93,25 +94,50 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
 
   const handleDownload = async (imageUrl: string) => {
     try {
-      const url = imageUrl.includes('cloudinary') ? imageUrl : getS3BucketUrl(imageUrl + "?timestamp=" + new Date().getTime());
-      const response = await fetch(url);
+      // Append a cache-busting timestamp to avoid cached responses
+      const url = imageUrl.includes('cloudinary') 
+        ? imageUrl 
+        : `${getS3BucketUrl(imageUrl)}?timestamp=${new Date().getTime()}`;
+  
+      // Fetch with specific options to handle CORS
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors', // Explicitly set to 'cors'
+        cache: 'no-store', // Avoid caching issues
+        headers: {
+          'Accept': 'image/*', // Ensure the browser expects an image
+        },
+      });
+  
+      // Check if the response is OK
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
-      
-      // Extract original filename or create one
-      const filename = imageUrl.split('/').pop() || `image-${Date.now()}.jpg`;
+  
+      // Extract filename (fixed splitting logic)
+      const filenameParts = imageUrl.split('/').pop()?.split('_') || [];
+      const filename = filenameParts[0] || `image-${Date.now()}.jpg`;
       link.download = filename;
-      
+  
+      // Trigger download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
+    } catch (error : any) {
       console.error('Error downloading image:', error);
+      // Log more details about the CORS error if available
+      if (error.name === 'TypeError' && error.message.includes('cors')) {
+        console.error('CORS issue detected. Check bucket CORS policy or network logs.');
+      }
     }
   };
+
 
   const handleZoom = (type: 'in' | 'out') => {
     setZoom(prev => {

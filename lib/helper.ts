@@ -1,7 +1,5 @@
 'use client';
 
-import imageCompression from 'browser-image-compression';
-
 export function tweleHrFormatDateString(date: Date) {
   const formattedDate = new Date(date).toLocaleString('en-GB', {
     day: '2-digit',
@@ -47,32 +45,78 @@ export async function convertImage(file: File): Promise<File> {
       throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
     }
   }
+  console.log("HERE" , {file})
   return file;
 }
 
-export async function compressImage(file: File) : Promise<File> {
-  console.log('Compressing image...');
-  
-  const options = {
-    maxSizeMB: 0.8,
-    useWebWorker: true,
-    fileType: 'image/jpeg',
-  };
+// Helper function to load an image from a File object
+async function loadImage(file: File): Promise<HTMLImageElement> {
+  const url = URL.createObjectURL(file);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url); // Clean up the object URL after loading
+      resolve(img);
+    };
+    img.onerror = (error) => {
+      URL.revokeObjectURL(url); // Clean up on error
+      reject(error);
+    };
+    img.src = url;
+  });
+}
 
-  // Compress the image
-  const compressedFile = await imageCompression(file, options);
-  console.log('Original file size:', file.size / 1024 / 1024, 'MB');
-  console.log('Compressed file size:', compressedFile.size / 1024 / 1024, 'MB');
+// Main compression function
+export async function compressImage(file: File): Promise<File> {
+  // Load the image from the input file
+  const img = await loadImage(file);
 
+  // Define maximum width and calculate scaling factor
+  const MAX_WIDTH = 1920;
+  const scaleFactor = Math.min(1, MAX_WIDTH / img.width);
+  const width = img.width * scaleFactor;
+  const height = img.height * scaleFactor;
+
+  // Create a canvas to draw the resized image
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(img, 0, 0, width, height);
+
+  // Convert the canvas to a Blob with JPEG format and quality 0.25
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      'image/jpeg',
+      0.25
+    );
+  });
+
+  // Generate a new file name with '_compressed.jpg' suffix
+  const originalName = file.name;
+  // const nameWithoutExtension = originalName.replace(/\.[^/.]+$/, '');
+  const compressedName = originalName;
+
+  // Create and return the compressed File object
+  const compressedFile = new File([blob], compressedName, { type: 'image/jpeg' });
   return compressedFile;
 }
 
 export async function getPresignedUrl(fileName: string , contentType: string , prefixKeyId : string = '') {
   console.log('Getting presigned url...');
+  const fileType = fileName.split('.').pop()?.toLowerCase();
+  const fileNameWithoutType = fileName.split('.').slice(0, -1).join('.');
   const response = await fetch('/api/s3/presignedUrl', {
     method: 'POST',
     body: JSON.stringify({ 
-        fileName: prefixKeyId ? `invoice#${prefixKeyId}#${fileName}` : fileName,
+        fileName: (prefixKeyId ? `invoice#${prefixKeyId}#${fileNameWithoutType}` : fileNameWithoutType) + new Date().toISOString() + '.' + fileType,
         contentType: contentType,
         // customKey : prefixKeyId + fileName
       }),

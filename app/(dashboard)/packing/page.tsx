@@ -174,6 +174,7 @@ export default function PackingPage() {
                               handleImageUpload={handleImageUpload}
                               isDisabled={uploadingImage === invoice.invoiceNumber}
                               showImages={[...invoice.image , ...invoice.packImage]}
+                              takeType='BOTH'
                             />
                           </TableCell>
                           <TableCell>

@@ -399,6 +399,7 @@ export default function InvoicePage() {
                               handleImageUpload={handleImageUpload}
                               isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                               showImages={[...row.image]}
+                              takeType='BOTH'
                             />
                           </TableCell>
                           <TableCell>

@@ -127,14 +127,18 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
       const response = await fetch(`/api/party?id=${id}`, {
         method: 'DELETE'
       })
+
       const data = await response.json()
 
       if (!data.success) throw new Error(data.message)
+
       await get().fetchParties()
+
       toast({
         title: "Success",
         description: "Party deleted successfully"
       })
+
     } catch (error : any) {
       set({ error: 'Failed to delete party', isLoading: false })
       console.log({error})
