@@ -62,6 +62,7 @@ interface PartyCode {
 
 export default function InvoicePage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
+  const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
   const { toast } = useToast();
   const [invoiceSearchTerm, setInvoiceSearchTerm] = useState('');
 
@@ -124,6 +125,7 @@ export default function InvoicePage() {
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       const file = event.target.files?.[0];
       if (!file) return;
 
@@ -156,6 +158,7 @@ export default function InvoicePage() {
   };
 
   const handlePartyCodeSelect = (invoice: InvoiceData, partyCode: PartyCode) => {
+    setLastInteractedInvoice(invoice.invoiceNumber);
     const newData = [...invoices];
     const index = newData.findIndex(item => item.invoiceNumber === invoice.invoiceNumber);
     if (index !== -1) {
@@ -171,6 +174,7 @@ export default function InvoicePage() {
 
   const handleReset = async (invoiceNumber: number) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       await resetInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -190,6 +194,7 @@ export default function InvoicePage() {
 
   const handleSave = async (invoiceNumber: number) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       await saveInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -209,6 +214,7 @@ export default function InvoicePage() {
 
   const handleOtc = async (invoiceNumber: number) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       await saveInvoice(invoiceNumber, true);
       toast({
         title: 'Success',
@@ -298,7 +304,10 @@ export default function InvoicePage() {
                     (
                       currentInvoices.map((row, i) => (
                         <TableRow key={row.invoiceNumber}
-                          className={` border-gray-400`}
+                          className={cn(
+                            "border-gray-400",
+                            lastInteractedInvoice === row.invoiceNumber && "border-[2px] border-yellow-300"
+                          )}
                         >
                           <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
                           <TableCell>{
