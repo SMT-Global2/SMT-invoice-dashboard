@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -78,15 +77,19 @@ export async function GET(request: Request) {
       })
     ])
 
-    return NextResponse.json({
+    return Response.json({
+      success: true,
       data: parties,
       total,
       page,
       limit
     })
+
   } catch (error) {
-    console.error('Error fetching parties:', error)
-    return new NextResponse('Internal Error', { status: 500 })
+    return Response.json({
+      success: false,
+      message: 'Internal server error'
+    }, { status: 500 })
   }
 }
 
@@ -112,11 +115,17 @@ export async function POST(request: Request) {
     const partyCode = await prisma.partyCode.create({
       data: validatedData
     })
-    
-    return NextResponse.json(partyCode)
+
+    return Response.json({
+      success: true,
+      message: 'Party code created successfully'
+    }, { status: 200 })
+
   } catch (error) {
-    console.error('Error creating party:', error)
-    return new NextResponse('Invalid Request', { status: 400 })
+    return Response.json({
+      success: false,
+      message: 'Invalid Request'
+    }, { status: 400 })
   }
 }
 
@@ -140,20 +149,29 @@ export async function PUT(request: Request) {
     const { id, ...updateData } = body
     
     if (!id) {
-      return new NextResponse('Party ID is required', { status: 400 })
+      return Response.json({
+        success: false,
+        message: 'Party ID is required'
+      }, { status: 400 })
     }
-    
+
     const validatedData = PartyCodeSchema.partial().parse(updateData)
     
     const partyCode = await prisma.partyCode.update({
       where: { id },
       data: validatedData
     })
+
+    return Response.json({
+      success: true,
+      message: 'Party code updated successfully'
+    }, { status: 200 })
     
-    return NextResponse.json(partyCode)
   } catch (error) {
-    console.error('Error updating party:', error)
-    return new NextResponse('Invalid Request', { status: 400 })
+    return Response.json({
+      success: false,
+      message: 'Invalid Request'
+    }, { status: 400 })
   }
 }
 
@@ -177,15 +195,25 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id')
     
     if (!id) {
-      return new NextResponse('Party ID is required', { status: 400 })
+      return Response.json({
+        success: false,
+        message: 'Party ID is required'
+      }, { status: 400 })
     }
 
     // Check if party code is in use
-    const partyCode = await prisma.partyCode.count({
-      where: { id }
+    const invoicesWithPartyCode = await prisma.invoice.count({
+      where: {
+        party : {
+          id : id
+        }
+      }
     })
 
-    if(partyCode > 0) {
+    console.log("HERE" , {invoicesWithPartyCode})
+
+    if(invoicesWithPartyCode > 0) {
+      console.log({invoicesWithPartyCode})
       return Response.json({
         success: false,
         message: 'Party code is in use by some invoices'
@@ -196,9 +224,15 @@ export async function DELETE(request: Request) {
       where: { id }
     })
     
-    return new NextResponse(null, { status: 204 })
+    return Response.json({
+      success: true,
+      message: 'Party code deleted successfully'
+    }, { status: 200 })
+    
   } catch (error) {
-    console.error('Error deleting party:', error)
-    return new NextResponse('Invalid Request', { status: 400 })
+    return Response.json({
+      success: false,
+      message: 'Invalid Request'
+    }, { status: 400 })
   }
 }

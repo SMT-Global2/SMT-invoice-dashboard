@@ -277,6 +277,7 @@ export default function DeliveryPage() {
                               handleImageUpload={handleImageUpload}
                               isDisabled={uploadingImage === invoice.invoiceNumber}
                               showImages={[...invoice.image]}
+                              takeType='CAMERA'
                             />
                           </TableCell>
                           <TableCell>

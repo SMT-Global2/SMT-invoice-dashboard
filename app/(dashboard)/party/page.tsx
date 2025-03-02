@@ -10,9 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { PlusIcon, Pencil, Trash2, Search } from "lucide-react"
+import { PlusIcon, Pencil, Trash2, Search, History } from "lucide-react"
 import { usePartyStore } from "@/store/usePartyStore"
 import { PartyDialog } from "./party-dialog"
+import { PastDeliveriesDialog } from "./past-deliveries-dialog"
 import {
   Card,
   CardContent,
@@ -49,7 +50,9 @@ export default function PartyPage() {
     isLoading,
     pagination,
     setPagination,
-    totalPages 
+    totalPages,
+    setSelectedPartyForDeliveries,
+    resetDeliveriesState
   } = usePartyStore()
 
   const [searchQuery, setSearchQuery] = useState("")
@@ -57,8 +60,11 @@ export default function PartyPage() {
   const [partyToDelete, setPartyToDelete] = useState<string | null>(null)
 
   useEffect(() => {
+    // Reset deliveries state when component mounts
+    resetDeliveriesState()
+    
     fetchParties(searchQuery)
-  }, [fetchParties, pagination.page, pagination.limit, searchQuery])
+  }, [fetchParties, pagination.page, pagination.limit, searchQuery, resetDeliveriesState])
 
   const handleEdit = (party: any) => {
     setSelectedParty(party)
@@ -93,6 +99,10 @@ export default function PartyPage() {
       setIsDeleteDialogOpen(false)
       setPartyToDelete(null)
     }
+  }
+
+  const handleViewPastDeliveries = (partyCode: string) => {
+    setSelectedPartyForDeliveries(partyCode)
   }
 
   const displayedPages = () => {
@@ -185,6 +195,14 @@ export default function PartyPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => handleViewPastDeliveries(party.code)}
+                          title="View Past Deliveries"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleEdit(party)}
                         >
                           <Pencil className="h-4 w-4" />
@@ -254,6 +272,7 @@ export default function PartyPage() {
       </Card>
 
       <PartyDialog />
+      <PastDeliveriesDialog />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

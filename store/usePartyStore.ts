@@ -14,6 +14,15 @@ export const PartyCodeSchema = z.object({
 
 export type PartyCode = z.infer<typeof PartyCodeSchema>
 
+// Define the PastDelivery type
+export interface PastDelivery {
+  id: string
+  invoiceNumber: number
+  generatedDate: Date
+  deliveredTimestamp: Date | null
+  deliveredLocationLink: string | null
+}
+
 interface Pagination {
   page: number
   limit: number
@@ -26,6 +35,9 @@ interface PartyStore {
   selectedParty: PartyCode | null
   pagination: Pagination
   totalPages: number
+  pastDeliveries: PastDelivery[]
+  isPastDeliveriesLoading: boolean
+  selectedPartyForDeliveries: string | null
   
   // Actions
   fetchParties: (search?: string) => Promise<void>
@@ -34,6 +46,9 @@ interface PartyStore {
   deleteParty: (id: string) => Promise<void>
   setSelectedParty: (party: PartyCode | null) => void
   setPagination: (pagination: Pagination) => void
+  fetchPastDeliveries: (partyCode: string) => Promise<void>
+  setSelectedPartyForDeliveries: (partyCode: string | null) => void
+  resetDeliveriesState: () => void
 }
 
 export const usePartyStore = create<PartyStore>((set, get) => ({
@@ -46,6 +61,9 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
     limit: 10,
   },
   totalPages: 0,
+  pastDeliveries: [],
+  isPastDeliveriesLoading: false,
+  selectedPartyForDeliveries: null,
 
   fetchParties: async (search = "") => {
     try {
@@ -127,14 +145,18 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
       const response = await fetch(`/api/party?id=${id}`, {
         method: 'DELETE'
       })
+
       const data = await response.json()
 
       if (!data.success) throw new Error(data.message)
+
       await get().fetchParties()
+
       toast({
         title: "Success",
         description: "Party deleted successfully"
       })
+
     } catch (error : any) {
       set({ error: 'Failed to delete party', isLoading: false })
       console.log({error})
@@ -152,5 +174,47 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
 
   setPagination: (pagination) => {
     set({ pagination })
+  },
+
+  fetchPastDeliveries: async (partyCode) => {
+    try {
+      set({ isPastDeliveriesLoading: true, error: null })
+      const response = await fetch(`/api/party/pastDelivery?partyCode=${partyCode}`)
+      
+      if (!response.ok) throw new Error('Failed to fetch past deliveries')
+      
+      const { data, success } = await response.json()
+      
+      if (!success) throw new Error('Failed to fetch past deliveries')
+      
+      set({ 
+        pastDeliveries: data,
+        isPastDeliveriesLoading: false 
+      })
+    } catch (error) {
+      set({ error: 'Failed to fetch past deliveries', isPastDeliveriesLoading: false })
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch past deliveries"
+      })
+    }
+  },
+
+  setSelectedPartyForDeliveries: (partyCode) => {
+    set({ selectedPartyForDeliveries: partyCode })
+    if (partyCode) {
+      get().fetchPastDeliveries(partyCode)
+    } else {
+      set({ pastDeliveries: [] })
+    }
+  },
+
+  resetDeliveriesState: () => {
+    set({ 
+      selectedPartyForDeliveries: null,
+      pastDeliveries: [],
+      isPastDeliveriesLoading: false
+    })
   }
 }))

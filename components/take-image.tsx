@@ -6,18 +6,23 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ShowImage } from "./show-image";
 
+
+type TakeType = 'BOTH' | 'CAMERA' | 'UPLOAD'
+
 export function TakeImage({ 
     invoice, 
     handleImageUpload, 
     uploadingImage,
     isDisabled,
-    showImages
+    showImages,
+    takeType = 'BOTH'
 } : {
     invoice: any;
     handleImageUpload: any;
     uploadingImage: any;
     isDisabled: boolean;
     showImages: any[];
+    takeType : TakeType
 }) {
     const [cameraAvailable, setCameraAvailable] = useState(false);
 
@@ -38,37 +43,39 @@ export function TakeImage({
 
     return (
         <div className="flex items-center space-x-2">
-            <div className="relative">
-                <Button
-                    variant="outline"
-                    className="gap-2 z-10"
-                    disabled={isDisabled}
-                >
-                    {uploadingImage === invoice.invoiceNumber ? (
-                        <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            {/* Uploading... */}
-                        </>
-                    ) : (
-                        <>
-                            <Upload className='w-5 h-5'/> 
-                            {/* Upload Image  */}
-                        </>
-                    )}
-                </Button>
-                <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload(invoice.invoiceNumber)}
-                    className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                    hidden={isDisabled}
-                    style={{
-                        pointerEvents: isDisabled ? 'none' : 'auto'
-                    }}
-                />
-            </div>
+            {(takeType === 'BOTH' || takeType === 'UPLOAD') && (
+                <div className="relative">
+                        <Button
+                            variant="outline"
+                            className="gap-2 z-10"
+                            disabled={isDisabled}
+                    >
+                        {uploadingImage === invoice.invoiceNumber ? (
+                            <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                {/* Uploading... */}
+                            </>
+                        ) : (
+                            <>
+                                <Upload className='w-5 h-5'/> 
+                                {/* Upload Image  */}
+                            </>
+                        )}
+                    </Button>
+                    <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload(invoice.invoiceNumber)}
+                        className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
+                        hidden={isDisabled}
+                        style={{
+                            pointerEvents: isDisabled ? 'none' : 'auto'
+                        }}
+                    />
+                </div>
+            )}
             
-            {cameraAvailable && (
+            {cameraAvailable && (takeType === 'BOTH' || takeType === 'CAMERA') && (
                 <div className="relative">
                     <Button
                         variant="outline"

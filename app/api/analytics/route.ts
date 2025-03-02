@@ -75,6 +75,9 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('Analytics API Error:', (error as any).message)
-    return new NextResponse('Internal Error', { status: 500 })
+    return Response.json({
+      success: false,
+      message: 'Internal server error'
+    }, { status: 500 })
   }
 }
