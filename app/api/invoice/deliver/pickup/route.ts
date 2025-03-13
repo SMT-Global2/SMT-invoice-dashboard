@@ -4,7 +4,6 @@ import { DeliveryStatus } from '@prisma/client';
 import moment from 'moment';
 import { getServerSession } from 'next-auth';
 import { NextRequest } from 'next/server';
-import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
     try {
@@ -45,14 +44,6 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        if (error instanceof z.ZodError) {
-            return Response.json({
-                success: false,
-                message: 'Validation failed : ' + error.errors.map(err => err.message).join(', '),
-                errors: error.errors.map(err => err.message)
-            }, { status: 400 });
-        }
-
         return Response.json({
             success: false,
             message: 'Internal server error'

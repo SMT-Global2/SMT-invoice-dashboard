@@ -14,54 +14,103 @@ export async function GET(request: NextRequest) {
             message: 'Unauthorized'
         }, { status: 401 });
     }
+    
     const searchParams = request.nextUrl.searchParams;
-
-    const data = await prisma.invoice.findMany({
-        where: {
-            isOtc : false,
+    const dateParam = searchParams.get('date');
+    
+    // Pagination parameters
+    const page = searchParams.get('page') || '1';
+    const limit = searchParams.get('limit') || '10';
+    
+    // Create date filters based on the provided date parameter
+    let dateFilter = {};
+    if (dateParam) {
+        const selectedDate = moment(dateParam);
+        
+        // For delivered packages, filter by delivery date
+        const deliveredDateFilter = {
+            deliveredTimestamp: {
+                gte: selectedDate.startOf('day').toDate(),
+                lte: selectedDate.endOf('day').toDate(),
+            }
+        };
+        
+        // For packages to be delivered or in transit, filter by package date
+        const packageDateFilter = {
+            packageTimestamp: {
+                gte: selectedDate.startOf('day').toDate(),
+                lte: selectedDate.endOf('day').toDate(),
+            }
+        };
+        
+        dateFilter = {
             OR: [
                 {
                     AND: [
-                        { packageTimestamp: { not: null } },
-                        { packageStatus: PackageStatus.PACKED },
-                        { deliveryStatus: DeliveryStatus.NOT_DELIVERED }
+                        { deliveryStatus: DeliveryStatus.DELIVERED },
+                        deliveredDateFilter
                     ]
                 },
                 {
                     AND: [
-                        { packageTimestamp: { not: null } },
-                        { deliveryStatus: DeliveryStatus.PICKED_UP }
+                        { deliveryStatus: { not: DeliveryStatus.DELIVERED } },
+                        packageDateFilter
                     ]
-                },
-                {
-                    AND: [
-                        {
-                            deliveredTimestamp: {
-                                not: null,
-                                gte: moment().startOf('day').toDate(),
-                                lte: moment().endOf('day').toDate(),
-                            }
-                        },
-                        { deliveryStatus: DeliveryStatus.DELIVERED }
-                    ]
-                },
+                }
             ]
-        },
-        include: {
-            party: true,
-            // invoicedBy: true,
-            // checkedBy: true,
-            // packedBy: true,
-            // deliveredBy: true,
-            // pickedUpBy: true
-        },
-        orderBy: {
-            packageTimestamp : 'asc'
-        }
-    });
+        };
+    }
+
+    // Fetch data from all three endpoints and combine
+    const [toDeliverResponse, inTransitResponse, deliveredResponse] = await Promise.all([
+        fetch(new URL(`/api/invoice/deliver/to-deliver?page=${page}&limit=${limit}${dateParam ? `&date=${dateParam}` : ''}`, request.url).toString(), {
+            headers: {
+                cookie: request.headers.get('cookie') || ''
+            }
+        }),
+        fetch(new URL(`/api/invoice/deliver/in-transit?page=${page}&limit=${limit}${dateParam ? `&date=${dateParam}` : ''}`, request.url).toString(), {
+            headers: {
+                cookie: request.headers.get('cookie') || ''
+            }
+        }),
+        fetch(new URL(`/api/invoice/deliver/delivered?page=${page}&limit=${limit}${dateParam ? `&date=${dateParam}` : ''}`, request.url).toString(), {
+            headers: {
+                cookie: request.headers.get('cookie') || ''
+            }
+        })
+    ]);
+
+    const [toDeliverData, inTransitData, deliveredData] = await Promise.all([
+        toDeliverResponse.json(),
+        inTransitResponse.json(),
+        deliveredResponse.json()
+    ]);
+
+    // Combine all data
+    const combinedData = [
+        ...(toDeliverData.data || []),
+        ...(inTransitData.data || []),
+        ...(deliveredData.data || [])
+    ];
+
+    // Calculate total pages as the maximum of all three endpoints
+    const totalPages = Math.max(
+        toDeliverData.totalPages || 1,
+        inTransitData.totalPages || 1,
+        deliveredData.totalPages || 1
+    );
+
+    // Calculate total count as the sum of all three endpoints
+    const totalCount = (toDeliverData.totalCount || 0) + 
+                       (inTransitData.totalCount || 0) + 
+                       (deliveredData.totalCount || 0);
 
     return Response.json({
-        data: data || []
+        data: combinedData,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalCount,
+        totalPages
     });
 }
 

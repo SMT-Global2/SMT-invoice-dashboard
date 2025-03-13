@@ -1,0 +1,410 @@
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
+import { DeliveryStatus } from '@prisma/client'
+import moment from 'moment'
+
+export interface DeliveryInvoiceData {
+  invoiceNumber: number
+  partyCode: string
+  medicalName: string
+  isOtc: boolean
+  city: string
+  image: string[]
+  generatedDate: Date | null
+  invoiceTimestamp: Date | null
+  isDisabled: boolean
+  
+  pickupUsername: string | null
+  pickupTimestamp: Date | null
+  
+  deliveredUsername: string | null
+  deliveredTimestamp: Date | null
+  deliveredLocationLink: string | null
+  
+  deliveryStatus: DeliveryStatus
+}
+
+interface DeliveryInvoiceState {
+  // State
+  toDeliverInvoices: DeliveryInvoiceData[]
+  inTransitInvoices: DeliveryInvoiceData[]
+  deliveredInvoices: DeliveryInvoiceData[]
+  
+  // Separate date states for each tab
+  toDeliverSelectedDate: Date | undefined
+  inTransitSelectedDate: Date | undefined
+  deliveredSelectedDate: Date | undefined
+  
+  isLoading: boolean
+  error: string | null
+  
+  // Search state
+  toDeliverSearchTerm: string
+  inTransitSearchTerm: string
+  deliveredSearchTerm: string
+  
+  // Pagination state
+  toDeliverPage: number
+  inTransitPage: number
+  deliveredPage: number
+  toDeliverTotalPages: number
+  inTransitTotalPages: number
+  deliveredTotalPages: number
+  itemsPerPage: number
+
+  // Actions for date selection
+  setToDeliverSelectedDate: (date: Date | undefined) => void
+  setInTransitSelectedDate: (date: Date | undefined) => void
+  setDeliveredSelectedDate: (date: Date | undefined) => void
+  
+  updateDeliveryInvoiceImage: (invoiceNumber: number, image: string) => void
+  
+  // Search actions
+  setToDeliverSearchTerm: (term: string) => void
+  setInTransitSearchTerm: (term: string) => void
+  setDeliveredSearchTerm: (term: string) => void
+  
+  // Pagination actions
+  setToDeliverPage: (page: number) => void
+  setInTransitPage: (page: number) => void
+  setDeliveredPage: (page: number) => void
+  setItemsPerPage: (limit: number) => void
+
+  // API calls
+  fetchToDeliverInvoices: (date?: Date | null) => Promise<void>
+  fetchInTransitInvoices: (date?: Date | null) => Promise<void>
+  fetchDeliveredInvoices: (date?: Date | null) => Promise<void>
+  fetchAllDeliveryInvoices: () => Promise<void>
+  
+  pickupInvoice: (invoiceNumber: number) => Promise<void>
+  deliverInvoice: (invoiceNumber: number, location: { latitude: number, longitude: number }) => Promise<void>
+}
+
+export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
+  devtools(
+    (set, get) => ({
+      // State
+      toDeliverInvoices: [],
+      inTransitInvoices: [],
+      deliveredInvoices: [],
+      
+      // Initialize with separate date states
+      toDeliverSelectedDate: undefined,
+      inTransitSelectedDate: undefined,
+      deliveredSelectedDate: moment().startOf('day').toDate(), // Only delivered tab has today's date by default
+      
+      isLoading: false,
+      error: null,
+      
+      // Search state
+      toDeliverSearchTerm: '',
+      inTransitSearchTerm: '',
+      deliveredSearchTerm: '',
+      
+      // Pagination state
+      toDeliverPage: 1,
+      inTransitPage: 1,
+      deliveredPage: 1,
+      toDeliverTotalPages: 1,
+      inTransitTotalPages: 1,
+      deliveredTotalPages: 1,
+      itemsPerPage: 10,
+
+      // Actions for date selection
+      setToDeliverSelectedDate: (date) => {
+        if (date && moment(date).isAfter(moment(), 'day')) {
+          return;
+        }
+        set({ 
+          toDeliverSelectedDate: date,
+          toDeliverPage: 1
+        });
+        get().fetchToDeliverInvoices(date);
+      },
+      
+      setInTransitSelectedDate: (date) => {
+        if (date && moment(date).isAfter(moment(), 'day')) {
+          return;
+        }
+        set({ 
+          inTransitSelectedDate: date,
+          inTransitPage: 1
+        });
+        get().fetchInTransitInvoices(date);
+      },
+      
+      setDeliveredSelectedDate: (date) => {
+        if (date && moment(date).isAfter(moment(), 'day')) {
+          return;
+        }
+        set({ 
+          deliveredSelectedDate: date,
+          deliveredPage: 1
+        });
+        get().fetchDeliveredInvoices(date);
+      },
+
+      // Search actions
+      setToDeliverSearchTerm: (term) => {
+        set({ toDeliverSearchTerm: term, toDeliverPage: 1 });
+        get().fetchToDeliverInvoices();
+      },
+      
+      setInTransitSearchTerm: (term) => {
+        set({ inTransitSearchTerm: term, inTransitPage: 1 });
+        get().fetchInTransitInvoices();
+      },
+      
+      setDeliveredSearchTerm: (term) => {
+        set({ deliveredSearchTerm: term, deliveredPage: 1 });
+        get().fetchDeliveredInvoices();
+      },
+
+      updateDeliveryInvoiceImage: (invoiceNumber, image) => {
+        // Update image in all three arrays if the invoice exists
+        const updateInvoiceImage = (invoices: DeliveryInvoiceData[]) => {
+          return invoices.map(invoice => 
+            invoice.invoiceNumber === invoiceNumber 
+              ? { ...invoice, image: [...invoice.image, image] } 
+              : invoice
+          );
+        };
+
+        set({
+          toDeliverInvoices: updateInvoiceImage(get().toDeliverInvoices),
+          inTransitInvoices: updateInvoiceImage(get().inTransitInvoices),
+          deliveredInvoices: updateInvoiceImage(get().deliveredInvoices)
+        });
+      },
+      
+      // Pagination actions
+      setToDeliverPage: (page) => {
+        set({ toDeliverPage: page });
+        get().fetchToDeliverInvoices();
+      },
+      
+      setInTransitPage: (page) => {
+        set({ inTransitPage: page });
+        get().fetchInTransitInvoices();
+      },
+      
+      setDeliveredPage: (page) => {
+        set({ deliveredPage: page });
+        get().fetchDeliveredInvoices();
+      },
+
+      setItemsPerPage: (limit) => {
+        set({ 
+          itemsPerPage: limit,
+          // Reset pagination when items per page changes
+          toDeliverPage: 1,
+          inTransitPage: 1,
+          deliveredPage: 1
+        });
+        get().fetchAllDeliveryInvoices();
+      },
+
+      // API calls
+      fetchToDeliverInvoices: async (date = get().toDeliverSelectedDate) => {
+        try {
+          set({ isLoading: true, error: null });
+          const url = new URL('/api/invoice/deliver/to-deliver', window.location.origin);
+          if (date) {
+            url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
+          }
+          
+          // Add pagination parameters
+          const page = get().toDeliverPage;
+          const itemsPerPage = get().itemsPerPage;
+          url.searchParams.set('page', page.toString());
+          url.searchParams.set('limit', itemsPerPage.toString());
+          
+          // Add search parameter
+          const searchTerm = get().toDeliverSearchTerm;
+          if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+          }
+          
+          const response = await fetch(url.toString());
+          const { data, totalPages } = await response.json();
+          set({ 
+            toDeliverInvoices: data.map((item: any) => ({
+              ...item,
+              medicalName: item?.party?.customerName || '-',
+              city: item?.party?.city || '-',
+            })),
+            toDeliverTotalPages: totalPages || 1,
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ error: 'Failed to fetch to-deliver invoices', isLoading: false });
+        }
+      },
+
+      fetchInTransitInvoices: async (date = get().inTransitSelectedDate) => {
+        try {
+          set({ isLoading: true, error: null });
+          const url = new URL('/api/invoice/deliver/in-transit', window.location.origin);
+          if (date) {
+            url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
+          }
+          
+          // Add pagination parameters
+          const page = get().inTransitPage;
+          const itemsPerPage = get().itemsPerPage;
+          url.searchParams.set('page', page.toString());
+          url.searchParams.set('limit', itemsPerPage.toString());
+          
+          // Add search parameter
+          const searchTerm = get().inTransitSearchTerm;
+          if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+          }
+          
+          const response = await fetch(url.toString());
+          const { data, totalPages } = await response.json();
+          set({ 
+            inTransitInvoices: data.map((item: any) => ({
+              ...item,
+              medicalName: item?.party?.customerName || '-',
+              city: item?.party?.city || '-',
+            })),
+            inTransitTotalPages: totalPages || 1,
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ error: 'Failed to fetch in-transit invoices', isLoading: false });
+        }
+      },
+
+      fetchDeliveredInvoices: async (date = get().deliveredSelectedDate) => {
+        try {
+          set({ isLoading: true, error: null });
+          const url = new URL('/api/invoice/deliver/delivered', window.location.origin);
+          if (date) {
+            url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
+          }
+          
+          // Add pagination parameters
+          const page = get().deliveredPage;
+          const itemsPerPage = get().itemsPerPage;
+          url.searchParams.set('page', page.toString());
+          url.searchParams.set('limit', itemsPerPage.toString());
+          
+          // Add search parameter
+          const searchTerm = get().deliveredSearchTerm;
+          if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+          }
+          
+          const response = await fetch(url.toString());
+          const { data, totalPages } = await response.json();
+          set({ 
+            deliveredInvoices: data.map((item: any) => ({
+              ...item,
+              medicalName: item?.party?.customerName || '-',
+              city: item?.party?.city || '-',
+            })),
+            deliveredTotalPages: totalPages || 1,
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ error: 'Failed to fetch delivered invoices', isLoading: false });
+        }
+      },
+
+      fetchAllDeliveryInvoices: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          await Promise.all([
+            get().fetchToDeliverInvoices(),
+            get().fetchInTransitInvoices(),
+            get().fetchDeliveredInvoices()
+          ]);
+          set({ isLoading: false });
+        } catch (error) {
+          set({ error: 'Failed to fetch all delivery invoices', isLoading: false });
+        }
+      },
+
+      pickupInvoice: async (invoiceNumber: number) => {
+        try {
+          set({ isLoading: true });
+          
+          const invoice = get().toDeliverInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          
+          if (!invoice) {
+            throw new Error('Invoice not found');
+          }
+
+          const response = await fetch('/api/invoice/deliver/pickup?invoiceNumber=' + invoiceNumber, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to pickup invoice');
+          }
+
+          // Refresh all delivery invoices
+          await get().fetchAllDeliveryInvoices();
+
+          set({ isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to pickup invoice', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      deliverInvoice: async (invoiceNumber: number, location: { latitude: number, longitude: number }) => {
+        try {
+          set({ isLoading: true });
+          
+          const invoice = get().inTransitInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          
+          if (!invoice) {
+            throw new Error('Invoice not found');
+          }
+
+          const response = await fetch('/api/invoice/deliver?invoiceNumber=' + invoiceNumber, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              deliveredLocationLink: location.latitude + "," + location.longitude,
+              image: invoice.image
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to deliver invoice');
+          }
+
+          // Refresh all delivery invoices
+          await get().fetchAllDeliveryInvoices();
+
+          set({ isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to deliver invoice', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      }
+    }),
+    {
+      name: 'delivery-invoice-store'
+    }
+  )
+) 

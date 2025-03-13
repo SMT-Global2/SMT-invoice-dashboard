@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoiceStore } from '@/store/useInvoiceStore';
+import { useDeliveryInvoiceStore } from '@/store/useDeliveryInvoiceStore';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
@@ -23,45 +23,75 @@ import { compressImage, convertImage, tweleHrFormatDateString, uploadFileToS3 } 
 import Link from 'next/link';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
-import { Map } from 'lucide-react';
+import { Calendar, Map } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DatePicker } from '@/components/ui/date-picker';
+import moment from 'moment';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function DeliveryPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
-  const [toDeliverSearchTerm, setToDeliverSearchTerm] = useState('');
-  const [inTransitSearchTerm, setInTransitSearchTerm] = useState('');
-  const [deliveredSearchTerm, setDeliveredSearchTerm] = useState('');
   const { toast } = useToast()
   const { 
-    deliveryInvoices, 
-    fetchDeliveryInvoices, 
+    toDeliverInvoices,
+    inTransitInvoices,
+    deliveredInvoices,
+    fetchAllDeliveryInvoices,
+    fetchToDeliverInvoices,
+    fetchInTransitInvoices,
+    fetchDeliveredInvoices,
     deliverInvoice,
     pickupInvoice,
-    updateDeliverInvoiceImage,
-    isLoading 
-  } = useInvoiceStore();
+    updateDeliveryInvoiceImage,
+    isLoading,
+    
+    // Separate date states for each tab
+    toDeliverSelectedDate,
+    inTransitSelectedDate,
+    deliveredSelectedDate,
+    setToDeliverSelectedDate,
+    setInTransitSelectedDate,
+    setDeliveredSelectedDate,
+    
+    // Search state and actions
+    toDeliverSearchTerm,
+    inTransitSearchTerm,
+    deliveredSearchTerm,
+    setToDeliverSearchTerm,
+    setInTransitSearchTerm,
+    setDeliveredSearchTerm,
+    // Pagination states and actions
+    toDeliverPage,
+    inTransitPage,
+    deliveredPage,
+    toDeliverTotalPages,
+    inTransitTotalPages,
+    deliveredTotalPages,
+    setToDeliverPage,
+    setInTransitPage,
+    setDeliveredPage,
+    itemsPerPage,
+    setItemsPerPage
+  } = useDeliveryInvoiceStore();
 
   useEffect(() => {
-    fetchDeliveryInvoices();
-  }, [fetchDeliveryInvoices]);
-
-  // Filter invoices based on search terms
-  const filteredToDeliverInvoices = deliveryInvoices?.filter(invoice => 
-    !invoice.pickupTimestamp &&
-    invoice.invoiceNumber.toString().includes(toDeliverSearchTerm.trim())
-  );
-
-  const filteredInTransitInvoices = deliveryInvoices?.filter(invoice => 
-    invoice.pickupTimestamp && 
-    !invoice.deliveredTimestamp &&
-    invoice.invoiceNumber.toString().includes(inTransitSearchTerm.trim())
-  );
-
-  const filteredDeliveredInvoices = deliveryInvoices?.filter(invoice => 
-    invoice.deliveredTimestamp &&
-    invoice.invoiceNumber.toString().includes(deliveredSearchTerm.trim())
-  );
+    fetchAllDeliveryInvoices();
+  }, [fetchAllDeliveryInvoices]);
 
   const handlePickup = async (invoiceNumber: number) => {
     try {
@@ -128,7 +158,7 @@ export default function DeliveryPage() {
       const compressedFile = await compressImage(changedFile);
       const uploadedImage = await uploadFileToS3(compressedFile , invoiceNumber.toString());
 
-      updateDeliverInvoiceImage(invoiceNumber, uploadedImage.key);
+      updateDeliveryInvoiceImage(invoiceNumber, uploadedImage.key);
 
       toast({
         title: 'Success',
@@ -149,8 +179,54 @@ export default function DeliveryPage() {
     }
   };
 
+  const handleToDeliverDateChange = (date: Date | undefined) => {
+    setToDeliverSelectedDate(date);
+  };
+
+  const handleInTransitDateChange = (date: Date | undefined) => {
+    setInTransitSelectedDate(date);
+  };
+
+  const handleDeliveredDateChange = (date: Date | undefined) => {
+    setDeliveredSelectedDate(date);
+  };
+
+  // Helper function to display pagination pages
+  const displayedPages = (currentPage: number, totalPages: number) => {
+    const delta = 1;
+    const range = [];
+    
+    for (
+      let i = Math.max(0, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
+      range.push(i);
+    }
+
+    if (range[0] > 0) {
+      if (range[0] > 1) {
+        range.unshift(-1);
+      }
+      range.unshift(0);
+    }
+
+    if (range[range.length - 1] < totalPages - 1) {
+      if (range[range.length - 1] < totalPages - 2) {
+        range.push(-1);
+      }
+      range.push(totalPages - 1);
+    }
+
+    return range;
+  };
+
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2'>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Delivery Management</h1>
+      </div>
+      
       <Tabs defaultValue="to-deliver" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="to-deliver">To Deliver</TabsTrigger>
@@ -161,15 +237,33 @@ export default function DeliveryPage() {
         <TabsContent value="to-deliver">
           <Card>
             <CardHeader>
-              <CardTitle>Packages to be Delivered</CardTitle>
-              <div className="w-full sm:max-w-[300px] mt-2">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={toDeliverSearchTerm}
-                  onChange={(e) => setToDeliverSearchTerm(e.target.value)}
-                  className="w-full mt-2"
-                />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Packages to be Delivered</CardTitle>
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  <div className="w-full">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={toDeliverSearchTerm}
+                      onChange={(e) => setToDeliverSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <DatePicker
+                      date={toDeliverSelectedDate}
+                      setDate={handleToDeliverDateChange}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleToDeliverDateChange(moment().startOf('day').toDate())}
+                      className="flex items-center gap-1"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      <span>Today</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -188,14 +282,14 @@ export default function DeliveryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && deliveryInvoices?.length === 0 ? (
+                    {isLoading && toDeliverInvoices?.length === 0 ? (
                       <TableSkeleton rows={5} cols={8} />
-                    ) : filteredToDeliverInvoices?.length === 0 ? (
+                    ) : toDeliverInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center">No packages to be delivered</TableCell>
                       </TableRow>
                     ) : (
-                      filteredToDeliverInvoices?.map((invoice, index) => (
+                      toDeliverInvoices?.map((invoice, index) => (
                         <TableRow key={invoice.invoiceNumber}>
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
@@ -221,6 +315,64 @@ export default function DeliveryPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* Pagination Controls */}
+              {
+                <div className="mt-4 flex justify-center">
+                  <Pagination>
+                    <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => toDeliverPage > 1 && setToDeliverPage(toDeliverPage - 1)}
+                          className={toDeliverPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+
+                      {displayedPages(toDeliverPage - 1, toDeliverTotalPages).map((pageIndex, i) => (
+                        <PaginationItem key={i}>
+                          {pageIndex === -1 ? (
+                            <span className="px-4 py-2">...</span>
+                          ) : (
+                            <PaginationLink
+                              onClick={() => setToDeliverPage(pageIndex + 1)}
+                              isActive={toDeliverPage === pageIndex + 1}
+                            >
+                              {pageIndex + 1}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => toDeliverPage < toDeliverTotalPages && setToDeliverPage(toDeliverPage + 1)}
+                          className={toDeliverPage >= toDeliverTotalPages ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+
+                      <div className="ml-4 border-l pl-4">
+                        <Select
+                          value={itemsPerPage.toString()}
+                          onValueChange={(value) => {
+                            setItemsPerPage(parseInt(value));
+                            setToDeliverPage(1);
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px] h-8">
+                            <SelectValue placeholder="Per page" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5 / page</SelectItem>
+                            <SelectItem value="10">10 / page</SelectItem>
+                            <SelectItem value="20">20 / page</SelectItem>
+                            <SelectItem value="50">50 / page</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              }
             </CardContent>
           </Card>
         </TabsContent>
@@ -228,15 +380,33 @@ export default function DeliveryPage() {
         <TabsContent value="in-transit">
           <Card>
             <CardHeader>
-              <CardTitle>Packages in Transit | Out for Delivery</CardTitle>
-              <div className="w-full sm:max-w-[300px] mt-2">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={inTransitSearchTerm}
-                  onChange={(e) => setInTransitSearchTerm(e.target.value)}
-                  className="w-full mt-2"
-                />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Packages in Transit | Out for Delivery</CardTitle>
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  <div className="w-full">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={inTransitSearchTerm}
+                      onChange={(e) => setInTransitSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <DatePicker
+                      date={inTransitSelectedDate}
+                      setDate={handleInTransitDateChange}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleInTransitDateChange(moment().startOf('day').toDate())}
+                      className="flex items-center gap-1"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      <span>Today</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -255,14 +425,14 @@ export default function DeliveryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && deliveryInvoices?.length === 0 ? (
+                    {isLoading && inTransitInvoices?.length === 0 ? (
                       <TableSkeleton rows={5} cols={8} />
-                    ) : filteredInTransitInvoices?.length === 0 ? (
+                    ) : inTransitInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center">No packages in transit</TableCell>
                       </TableRow>
                     ) : (
-                      filteredInTransitInvoices?.map((invoice, index) => (
+                      inTransitInvoices?.map((invoice, index) => (
                         <TableRow key={invoice.invoiceNumber}>
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
@@ -295,6 +465,64 @@ export default function DeliveryPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* Pagination Controls */}
+              {
+                <div className="mt-4 flex justify-center">
+                  <Pagination>
+                    <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => inTransitPage > 1 && setInTransitPage(inTransitPage - 1)}
+                          className={inTransitPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+
+                      {displayedPages(inTransitPage - 1, inTransitTotalPages).map((pageIndex, i) => (
+                        <PaginationItem key={i}>
+                          {pageIndex === -1 ? (
+                            <span className="px-4 py-2">...</span>
+                          ) : (
+                            <PaginationLink
+                              onClick={() => setInTransitPage(pageIndex + 1)}
+                              isActive={inTransitPage === pageIndex + 1}
+                            >
+                              {pageIndex + 1}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => inTransitPage < inTransitTotalPages && setInTransitPage(inTransitPage + 1)}
+                          className={inTransitPage >= inTransitTotalPages ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+
+                      <div className="ml-4 border-l pl-4">
+                        <Select
+                          value={itemsPerPage.toString()}
+                          onValueChange={(value) => {
+                            setItemsPerPage(parseInt(value));
+                            setInTransitPage(1);
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px] h-8">
+                            <SelectValue placeholder="Per page" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5 / page</SelectItem>
+                            <SelectItem value="10">10 / page</SelectItem>
+                            <SelectItem value="20">20 / page</SelectItem>
+                            <SelectItem value="50">50 / page</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              }
             </CardContent>
           </Card>
         </TabsContent>
@@ -302,15 +530,33 @@ export default function DeliveryPage() {
         <TabsContent value="delivered">
           <Card>
             <CardHeader>
-              <CardTitle>Delivered Packages</CardTitle>
-              <div className="w-full sm:max-w-[300px] mt-2">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={deliveredSearchTerm}
-                  onChange={(e) => setDeliveredSearchTerm(e.target.value)}
-                  className="w-full mt-2"
-                />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Delivered Packages</CardTitle>
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  <div className="w-full">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={deliveredSearchTerm}
+                      onChange={(e) => setDeliveredSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <DatePicker
+                      date={deliveredSelectedDate}
+                      setDate={handleDeliveredDateChange}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleDeliveredDateChange(moment().startOf('day').toDate())}
+                      className="flex items-center gap-1"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      <span>Today</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -331,14 +577,14 @@ export default function DeliveryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && deliveryInvoices?.length === 0 ? (
+                    {isLoading && deliveredInvoices?.length === 0 ? (
                       <TableSkeleton rows={5} cols={8} />
-                    ) : filteredDeliveredInvoices?.length === 0 ? (
+                    ) : deliveredInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={10} className="text-center">No delivered packages</TableCell>
                       </TableRow>
                     ) : (
-                      filteredDeliveredInvoices?.map((invoice, index) => (
+                      deliveredInvoices?.map((invoice, index) => (
                         <TableRow key={invoice.invoiceNumber}>
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
@@ -379,6 +625,64 @@ export default function DeliveryPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* Pagination Controls */}
+              {
+                <div className="mt-4 flex justify-center">
+                  <Pagination>
+                    <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => deliveredPage > 1 && setDeliveredPage(deliveredPage - 1)}
+                          className={deliveredPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+
+                      {displayedPages(deliveredPage - 1, deliveredTotalPages).map((pageIndex, i) => (
+                        <PaginationItem key={i}>
+                          {pageIndex === -1 ? (
+                            <span className="px-4 py-2">...</span>
+                          ) : (
+                            <PaginationLink
+                              onClick={() => setDeliveredPage(pageIndex + 1)}
+                              isActive={deliveredPage === pageIndex + 1}
+                            >
+                              {pageIndex + 1}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => deliveredPage < deliveredTotalPages && setDeliveredPage(deliveredPage + 1)}
+                          className={deliveredPage >= deliveredTotalPages ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+
+                      <div className="ml-4 border-l pl-4">
+                        <Select
+                          value={itemsPerPage.toString()}
+                          onValueChange={(value) => {
+                            setItemsPerPage(parseInt(value));
+                            setDeliveredPage(1);
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px] h-8">
+                            <SelectValue placeholder="Per page" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5 / page</SelectItem>
+                            <SelectItem value="10">10 / page</SelectItem>
+                            <SelectItem value="20">20 / page</SelectItem>
+                            <SelectItem value="50">50 / page</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              }
             </CardContent>
           </Card>
         </TabsContent>
