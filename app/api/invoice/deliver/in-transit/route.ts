@@ -60,11 +60,9 @@ export async function GET(request: NextRequest) {
         prisma.invoice.findMany({
             where: {
                 isOtc: false,
+                pickupTimestamp: { not: null },
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
-                packageTimestamp: { not: null },
-                pickupTimestamp: { not: null },
-                deliveredTimestamp: null,
                 deliveryStatus: DeliveryStatus.PICKED_UP
             },
             include: {

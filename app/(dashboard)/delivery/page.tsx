@@ -239,7 +239,7 @@ export default function DeliveryPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Packages to be Delivered</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2">
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
                   <div className="w-full">
                     <Input
                       type="text"
@@ -256,11 +256,11 @@ export default function DeliveryPage() {
                     />
                     <Button 
                       variant="outline" 
-                      onClick={() => handleToDeliverDateChange(moment().startOf('day').toDate())}
+                      onClick={() => handleToDeliverDateChange(undefined)}
                       className="flex items-center gap-1"
                     >
                       <Calendar className="h-4 w-4" />
-                      <span>Today</span>
+                      <span>Clear</span>
                     </Button>
                   </div>
                 </div>
@@ -382,7 +382,7 @@ export default function DeliveryPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Packages in Transit | Out for Delivery</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2">
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
                   <div className="w-full">
                     <Input
                       type="text"
@@ -399,11 +399,11 @@ export default function DeliveryPage() {
                     />
                     <Button 
                       variant="outline" 
-                      onClick={() => handleInTransitDateChange(moment().startOf('day').toDate())}
+                      onClick={() => handleInTransitDateChange(undefined)}
                       className="flex items-center gap-1"
                     >
                       <Calendar className="h-4 w-4" />
-                      <span>Today</span>
+                      <span>Clear</span>
                     </Button>
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export default function DeliveryPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Delivered Packages</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2">
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
                   <div className="w-full">
                     <Input
                       type="text"
@@ -549,11 +549,11 @@ export default function DeliveryPage() {
                     />
                     <Button 
                       variant="outline" 
-                      onClick={() => handleDeliveredDateChange(moment().startOf('day').toDate())}
+                      onClick={() => handleDeliveredDateChange(undefined)}
                       className="flex items-center gap-1"
                     >
                       <Calendar className="h-4 w-4" />
-                      <span>Today</span>
+                      <span>Clear</span>
                     </Button>
                   </div>
                 </div>

@@ -33,16 +33,7 @@ export async function GET(request: NextRequest) {
                 lte: selectedDate.endOf('day').toDate(),
             }
         };
-    } else {
-        // Default to today if no date is provided
-        dateFilter = {
-            deliveredTimestamp: {
-                gte: moment().startOf('day').toDate(),
-                lte: moment().endOf('day').toDate(),
-            }
-        };
     }
-
     // Create search filter
     let searchFilter = {};
     if (searchTerm) {

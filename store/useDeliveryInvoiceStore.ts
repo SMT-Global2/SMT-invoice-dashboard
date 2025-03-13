@@ -91,7 +91,7 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
       // Initialize with separate date states
       toDeliverSelectedDate: undefined,
       inTransitSelectedDate: undefined,
-      deliveredSelectedDate: moment().startOf('day').toDate(), // Only delivered tab has today's date by default
+      deliveredSelectedDate: undefined,
       
       isLoading: false,
       error: null,
