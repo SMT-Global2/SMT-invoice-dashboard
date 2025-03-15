@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Camera, Loader2, Upload } from "lucide-react";
+import { Camera, CameraOff, Loader2, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ShowImage } from "./show-image";
@@ -97,6 +97,16 @@ export function TakeImage({
                     />
                 </div>
             )}
+            {!cameraAvailable && takeType === 'CAMERA' && (
+                <Button
+                    variant="outline"
+                    className="gap-2 z-10"
+                    disabled={true}
+                >
+                    <CameraOff className='w-5 h-5 text-muted-foreground' />
+                </Button>
+             )
+            }
             
             <ShowImage invoice={invoice} images={showImages} />
         </div>

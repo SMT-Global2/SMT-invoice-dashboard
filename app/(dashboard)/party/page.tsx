@@ -164,6 +164,7 @@ export default function PartyPage() {
                 <TableRow>
                   <TableHead>Sr. No.</TableHead>
                   <TableHead>Party Code</TableHead>
+                  <TableHead>Regional Code</TableHead>
                   <TableHead>Customer Name</TableHead>
                   <TableHead>City</TableHead>
                   <TableHead>Created At</TableHead>
@@ -186,6 +187,7 @@ export default function PartyPage() {
                         {pagination.page * pagination.limit + index + 1}
                       </TableCell>
                       <TableCell>{party.code}</TableCell>
+                      <TableCell>{party.regionalCode || '-'}</TableCell>
                       <TableCell>{party.customerName || '-'}</TableCell>
                       <TableCell>{party.city || '-'}</TableCell>
                       <TableCell>

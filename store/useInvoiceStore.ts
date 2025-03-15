@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { CheckStatus, DeliveryStatus, PackageStatus } from '@prisma/client'
+import { BilledStatus, CheckStatus, DeliveryStatus, PackageStatus } from '@prisma/client'
 import moment from 'moment'
 
 export interface InvoiceData {
@@ -40,11 +40,19 @@ export interface DeliveryInvoiceData extends InvoiceData {
   deliveryStatus : DeliveryStatus
 }
 
+// export interface BillInvoiceData extends InvoiceData {
+//   billedUsername : string | null
+//   billedTimestamp : Date | null
+//   billedStatus : BilledStatus
+//   billImage : string[]
+// }
+
 interface InvoiceState {
   invoices: InvoiceData[]
   checkInvoices: CheckInvoiceData[]
   packInvoices: PackInvoiceData[]
   // deliveryInvoices : DeliveryInvoiceData[]
+  // billInvoices: BillInvoiceData[]
   selectedDate: Date | undefined
   deliverySelectedDate: Date | undefined
   currentPage: number
@@ -62,6 +70,7 @@ interface InvoiceState {
 
   updateInvoiceImage: (sr: number, image: string) => void
   updatePackInvoiceImage: (sr: number, image: string) => void
+  // updateBillInvoiceImage: (sr: number, image: string) => void
   // updateDeliverInvoiceImage: (sr: number, image: string) => void
 
   handleInvoices: () => Promise<void>
@@ -70,6 +79,7 @@ interface InvoiceState {
   fetchCheckInvoices: () => Promise<void>
   fetchPackInvoices: () => Promise<void>
   // fetchDeliveryInvoices: (date?: Date | null) => Promise<void>
+  fetchBillInvoices: () => Promise<void>
 
   saveInvoice: (invoiceNumber: number, isOtc?: boolean) => Promise<void>
   resetInvoice: (invoiceNumber: number) => Promise<void>
@@ -77,6 +87,7 @@ interface InvoiceState {
   packInvoice: (invoiceNumber: number) => Promise<void>
   // pickupInvoice: (invoiceNumber: number) => Promise<void>
   // deliverInvoice: (invoiceNumber: number, location: { latitude: number, longitude: number }) => Promise<void>
+  billInvoice: (invoiceNumber: number) => Promise<void>
 
 }
 
@@ -87,6 +98,7 @@ export const useInvoiceStore = create<InvoiceState>()(
       checkInvoices: [],
       packInvoices: [],
       deliveryInvoices: [],
+      billInvoices: [],
 
       invoiceStartNo: -1,
       selectedDate: moment().startOf('day').toDate(),
@@ -130,6 +142,15 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ invoices })
         }
       },
+
+      // updateBillInvoiceImage: (sr, image) => {
+      //   const invoices = [...get().billInvoices]
+      //   const index = invoices.findIndex(item => item.invoiceNumber === sr)
+      //   if (index !== -1) {
+      //     invoices[index].billImage.push(image)
+      //     set({ invoices })
+      //   }
+      // },
 
       // updateDeliverInvoiceImage: (sr, image) => {
       //   const invoices = [...get().deliveryInvoices]
@@ -325,6 +346,25 @@ export const useInvoiceStore = create<InvoiceState>()(
       //   }
       // },
 
+      // fetchBillInvoices: async () => {
+      //   try {
+      //     set({ isLoading: true, error: null });
+      //     const response = await fetch('/api/invoice/bill');
+      //     const { data } = await response.json();
+      //     set({ 
+      //       billInvoices : data.map((item: any) => ({
+      //         ...item,
+      //         billImage : [],
+      //         medicalName : item?.party?.customerName || '-',
+      //         city : item?.party?.city || '-',
+      //       })),
+      //       isLoading: false 
+      //     });
+      //   } catch (error) {
+      //     set({ error: 'Failed to fetch bill invoices', isLoading: false });
+      //   }
+      // },
+
       saveInvoice: async (invoiceNumber: number , isOtc?: boolean) => {
         try {
           set({ isLoading: true });
@@ -478,7 +518,7 @@ export const useInvoiceStore = create<InvoiceState>()(
             throw new Error(errorData.message || 'Failed to pack invoice');
           }
 
-          //call hanldeInvoice
+          //call hanldeInvoice  
           await get().fetchPackInvoices();
 
           set({ isLoading: false });
@@ -562,6 +602,49 @@ export const useInvoiceStore = create<InvoiceState>()(
       //   } catch (error) {
       //     set({ 
       //       error: error instanceof Error ? error.message : 'Failed to deliver invoice', 
+      //       isLoading: false 
+      //     });
+      //     throw error;
+      //   }
+      // },
+
+      // billInvoice: async (invoiceNumber: number) => {
+      //   try {
+      //     set({ isLoading: true });
+          
+      //     const invoice = get().billInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          
+      //     if (!invoice) {
+      //       throw new Error('Invoice not found');
+      //     }
+
+      //     if(invoice.billImage.length === 0) {
+      //       throw new Error('At least one billing image is required');
+      //     } 
+
+      //     const response = await fetch('/api/invoice/bill?invoiceNumber=' + invoiceNumber, {
+      //       method: 'POST',
+      //       headers: {
+      //         'Content-Type': 'application/json',
+      //       },
+      //       body: JSON.stringify({
+      //         image : [...invoice.image , ...invoice.billImage]
+      //       })
+      //     });
+
+      //     if (!response.ok) {
+      //       const errorData = await response.json();
+      //       throw new Error(errorData.message || 'Failed to bill invoice');
+      //     }
+
+      //     //call hanldeInvoice
+      //     await get().fetchBillInvoices();
+
+      //     set({ isLoading: false });
+
+      //   } catch (error) {
+      //     set({ 
+      //       error: error instanceof Error ? error.message : 'Failed to bill invoice', 
       //       isLoading: false 
       //     });
       //     throw error;

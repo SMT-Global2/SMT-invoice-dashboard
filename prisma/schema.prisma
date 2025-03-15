@@ -35,6 +35,7 @@ model PartyCode {
     code         String    @unique
     customerName String?
     city         String?
+    regionalCode String?
 
     invoice Invoice[]
 
@@ -80,6 +81,11 @@ model Invoice {
   deliveredLocationLink     String?
   deliveryStatus            DeliveryStatus @default(NOT_DELIVERED)
 
+  billedUsername            String?
+  billedTimestamp           DateTime?
+  billedStatus              BilledStatus @default(NOT_BILLED)
+  // billedBy                  User? @relation("BilledToUser",fields: [billedUsername], references: [username] , onDelete: NoAction)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -116,4 +122,9 @@ enum DeliveryStatus {
   NOT_DELIVERED
   PICKED_UP
   DELIVERED
+}
+
+enum BilledStatus {
+  NOT_BILLED
+  BILLED
 }

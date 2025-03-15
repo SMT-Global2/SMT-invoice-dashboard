@@ -1,6 +1,6 @@
 import { RoleGuard } from "@/components/auth/role-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, CheckCircle, Package, Truck, User, Building, Table } from "lucide-react"
+import { FileText, CheckCircle, Package, Truck, User, Building, Table, Newspaper } from "lucide-react"
 import Link from "next/link"
 import AdminInvoiceTable from "./admin-table"
 
@@ -65,6 +65,20 @@ export default async function DashboardPage() {
             <CardContent>
               <p className="text-xs text-muted-foreground">
               Pick Up, Ship, and Deliver Orders
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/billing">
+          <Card className="h-[10rem] transition-all hover:scale-105 hover:shadow-lg cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-2xl font-medium">Billing</CardTitle>
+              <Newspaper className="h-6 w-6 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">
+                Billing Management
               </p>
             </CardContent>
           </Card>

@@ -6,6 +6,7 @@ import { toast } from '@/components/ui/use-toast'
 export const PartyCodeSchema = z.object({
   id: z.string().optional(),
   code: z.string().min(1, "Party code is required"),
+  regionalCode: z.string().optional(),
   customerName: z.string().optional(),
   city: z.string().optional(),
   createdAt: z.date().optional(),
