@@ -50,6 +50,21 @@ export async function GET(request: Request) {
         {
           AND : [
             {
+              regionalCode: {
+                not : null,
+              },
+            },
+            {
+              regionalCode: {
+                contains: search,
+                mode: 'insensitive'
+              }
+            }
+          ]
+        },
+        {
+          AND : [
+            {
               customerName: {
                 not : null,
               },
