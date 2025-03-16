@@ -16,7 +16,7 @@ interface DashboardTileProps {
 
 const DashboardTile = ({ title, href, icon: Icon, description, roles }: DashboardTileProps) => {
   const tileContent = (
-    <Card className="h-[10rem] transition-all hover:scale-105 hover:shadow-lg cursor-pointer">
+    <Card className="h-[10rem] transition-all hover:scale-105 hover:shadow-lg cursor-pointer dashboard-tile">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-2xl font-medium">{title}</CardTitle>
         <Icon className="h-6 w-6 text-muted-foreground" />
@@ -32,7 +32,7 @@ const DashboardTile = ({ title, href, icon: Icon, description, roles }: Dashboar
   if (roles) {
     return (
       <RoleGuard allowedRoles={roles}>
-        <Link href={href}>
+        <Link href={href} className="w-full">
           {tileContent}
         </Link>
       </RoleGuard>
@@ -40,7 +40,7 @@ const DashboardTile = ({ title, href, icon: Icon, description, roles }: Dashboar
   }
 
   return (
-    <Link href={href}>
+    <Link href={href} className="w-full">
       {tileContent}
     </Link>
   );
@@ -56,7 +56,7 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-semibold text-muted-foreground">{title}</h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 w-full">
+      <div className="dashboard-tiles">
         {children}
       </div>
     </div>
@@ -65,8 +65,20 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
 
 export default async function DashboardPage() {
   return (
-    <div className="flex-1 space-y-6 py-5 text-lg max-w-[100vw] w-[90vw] overflow-y-auto px-2 md:px-4">
-      <div className="space-y-8">
+    <div className="flex-1 w-full">
+      <div className="space-y-8 p-4">
+        
+        {/* Administration Group - Only for Admins */}
+        <TileGroup title="Administration">
+          <DashboardTile 
+            title="Analytics" 
+            href="/analytics" 
+            icon={BarChart} 
+            description="View detailed invoice analytics and reports" 
+            roles={['ADMIN'] as UserType[]}
+          />
+        </TileGroup>
+        
         {/* Invoice Management Group */}
         <TileGroup title="Invoice Management">
           <DashboardTile 
@@ -119,16 +131,6 @@ export default async function DashboardPage() {
           />
         </TileGroup>
 
-        {/* Administration Group - Only for Admins */}
-        <TileGroup title="Administration">
-          <DashboardTile 
-            title="Analytics" 
-            href="/analytics" 
-            icon={BarChart} 
-            description="View detailed invoice analytics and reports" 
-            roles={['ADMIN'] as UserType[]}
-          />
-        </TileGroup>
       </div>
     </div>
   )

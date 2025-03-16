@@ -2,6 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom sidebar styling */
+@layer components {
+  [data-sidebar="sidebar"] {
+    @apply bg-background shadow-md;
+  }
+
+  .dark [data-sidebar="sidebar"] {
+    @apply bg-background shadow-md;
+  }
+
+  /* Floating sidebar styles */
+  .sidebar-floating {
+    @apply my-3 ml-3 rounded-xl border border-border overflow-hidden shadow-lg;
+    height: calc(100vh - 1.5rem);
+  }
+
+  /* Icon-only mode when collapsed */
+  [data-state="collapsed"] [data-sidebar="sidebar"] {
+    @apply transition-all duration-300 ease-in-out opacity-100 translate-x-0;
+    width: 4rem !important;
+  }
+
+  [data-state="expanded"] [data-sidebar="sidebar"] {
+    @apply transition-all duration-300 ease-in-out opacity-100 translate-x-0;
+  }
+
+  /* Hide text and show only icons when collapsed */
+  [data-state="collapsed"] [data-sidebar="menu-button"] span,
+  [data-state="collapsed"] [data-sidebar="group-label"],
+  [data-state="collapsed"] [data-sidebar="menu-badge"] {
+    @apply hidden;
+  }
+
+  [data-state="collapsed"] [data-sidebar="menu-button"] {
+    @apply justify-center px-0 w-10 mx-auto;
+  }
+
+  [data-state="collapsed"] [data-sidebar="header"] span {
+    @apply hidden;
+  }
+
+  /* Fix profile alignment in collapsed mode */
+  [data-state="collapsed"] [data-sidebar="footer"] button {
+    @apply justify-center;
+  }
+
+  [data-state="collapsed"] [data-sidebar="footer"] button div {
+    @apply hidden;
+  }
+
+  /* Center the icons in collapsed mode */
+  [data-state="collapsed"] [data-sidebar="menu-item"] {
+    @apply flex justify-center;
+  }
+
+  [data-state="collapsed"] [data-sidebar="group-content"] {
+    @apply flex flex-col items-center;
+  }
+
+  /* Sidebar menu button hover effects */
+  [data-sidebar="menu-button"]:hover {
+    @apply bg-accent text-accent-foreground transition-all duration-200;
+  }
+
+  /* Search bar styling */
+  .search-container {
+    @apply relative mx-auto max-w-md w-full;
+  }
+
+  .search-input {
+    @apply pl-10 pr-4 py-2 rounded-full border border-border bg-background/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0;
+  }
+  
+  /* Dashboard tile styling */
+  .dashboard-tiles {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full;
+    max-width: 100%;
+  }
+  
+  .dashboard-tile {
+    @apply w-full;
+    max-width: 100%;
+  }
+}
 
 @layer base {
   :root {
@@ -34,6 +118,13 @@
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-ring: 222.2 84% 4.9%;
   }
 
   .dark {
@@ -64,6 +155,13 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
+    --sidebar: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 212.7 26.8% 83.9%;
   }
 }
 

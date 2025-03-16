@@ -19,15 +19,21 @@ export function SearchInput() {
   }
 
   return (
-    <form action={searchAction} className="relative ml-auto flex-1 md:grow-0">
-      <Search className="absolute left-2.5 top-[.75rem] h-4 w-4 text-muted-foreground" />
-      <Input
-        name="q"
-        type="search"
-        placeholder="Search..."
-        className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-      />
-      {isPending && <Spinner />}
+    <form action={searchAction} className="relative w-full">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none z-10" />
+        <Input
+          name="q"
+          type="search"
+          placeholder="Search..."
+          className="pl-9 pr-3 py-1 h-8 text-sm rounded-full border border-border bg-background/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 w-full"
+        />
+        {isPending && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none">
+            <Spinner />
+          </div>
+        )}
+      </div>
     </form>
   );
 }
