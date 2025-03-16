@@ -14,8 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoiceStore } from '@/store/useInvoiceStore';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,21 +28,54 @@ import {
   TabsTrigger,
   TabsContent
 } from '@/components/ui/tabs';
+import { useCheckingInvoiceStore } from '@/store/useCheckingInvoiceStore';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function CheckingPage() {
-  const { toast } = useToast()
-  const [uncheckedInvoiceSearchTerm, setUncheckedInvoiceSearchTerm] = useState('');
-  const [checkedInvoiceSearchTerm, setCheckedInvoiceSearchTerm] = useState('');
+  const { toast } = useToast();
   const { 
-    checkInvoices, 
-    fetchCheckInvoices, 
+    uncheckedInvoices,
+    checkedInvoices,
+    fetchUncheckedInvoices,
+    fetchCheckedInvoices,
     checkInvoice,
-    isLoading
-  } = useInvoiceStore();
+    isLoading,
+    
+    // Pagination
+    uncheckedCurrentPage,
+    uncheckedTotalPages,
+    checkedCurrentPage,
+    checkedTotalPages,
+    itemsPerPage,
+    setUncheckedCurrentPage,
+    setCheckedCurrentPage,
+    setItemsPerPage,
+    
+    // Search
+    uncheckedSearchTerm,
+    checkedSearchTerm,
+    setUncheckedSearchTerm,
+    setCheckedSearchTerm
+  } = useCheckingInvoiceStore();
 
   useEffect(() => {
-    fetchCheckInvoices();
-  }, [fetchCheckInvoices , checkInvoice]);
+    fetchUncheckedInvoices();
+    fetchCheckedInvoices();
+  }, [fetchUncheckedInvoices, fetchCheckedInvoices]);
 
   const handleCheckInvoice = async (invoiceNumber: number) => {
     try {
@@ -64,16 +96,35 @@ export default function CheckingPage() {
     }
   }
 
-  // Filter invoices based on search terms
-  const filteredUncheckedInvoices = checkInvoices?.filter(invoice => 
-    invoice.checkTimestamp === null && 
-    invoice.invoiceNumber.toString().includes(uncheckedInvoiceSearchTerm.trim())
-  );
+  // Helper function to display pagination pages
+  const displayedPages = (currentPage: number, totalPages: number) => {
+    const delta = 1;
+    const range = [];
+    
+    for (
+      let i = Math.max(0, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
+      range.push(i);
+    }
 
-  const filteredCheckedInvoices = checkInvoices?.filter(invoice => 
-    invoice.checkTimestamp !== null && 
-    invoice.invoiceNumber.toString().includes(checkedInvoiceSearchTerm.trim())
-  );
+    if (range[0] > 0) {
+      if (range[0] > 1) {
+        range.unshift(-1);
+      }
+      range.unshift(0);
+    }
+
+    if (range[range.length - 1] < totalPages - 1) {
+      if (range[range.length - 1] < totalPages - 2) {
+        range.push(-1);
+      }
+      range.push(totalPages - 1);
+    }
+
+    return range;
+  };
 
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2'>
@@ -86,15 +137,19 @@ export default function CheckingPage() {
         <TabsContent value="unchecked">
           <Card>
             <CardHeader>
-              <CardTitle>Unchecked Invoices</CardTitle>
-              <div className="w-full sm:max-w-[300px] mt-2">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={uncheckedInvoiceSearchTerm}
-                  onChange={(e) => setUncheckedInvoiceSearchTerm(e.target.value)}
-                  className="w-full mt-2"
-                />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Unchecked Invoices</CardTitle>
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
+                  <div className="w-full">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={uncheckedSearchTerm}
+                      onChange={(e) => setUncheckedSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -113,16 +168,16 @@ export default function CheckingPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && checkInvoices?.length === 0 ? (
+                    {isLoading && uncheckedInvoices?.length === 0 ? (
                       <TableSkeleton rows={5} cols={8} />
-                    ) : filteredUncheckedInvoices?.length === 0 ? (
+                    ) : uncheckedInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center">No invoices found</TableCell>
                       </TableRow>
                     ) : (
-                      filteredUncheckedInvoices?.map((invoice, index) => (
+                      uncheckedInvoices?.map((invoice, index) => (
                         <TableRow key={invoice.invoiceNumber}>
-                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{(uncheckedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.partyCode}</TableCell>
@@ -146,6 +201,61 @@ export default function CheckingPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* Pagination Controls */}
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => uncheckedCurrentPage > 1 && setUncheckedCurrentPage(uncheckedCurrentPage - 1)}
+                        className={uncheckedCurrentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    {displayedPages(uncheckedCurrentPage - 1, uncheckedTotalPages).map((pageIndex, i) => (
+                      <PaginationItem key={i}>
+                        {pageIndex === -1 ? (
+                          <span className="px-4 py-2">...</span>
+                        ) : (
+                          <PaginationLink
+                            onClick={() => setUncheckedCurrentPage(pageIndex + 1)}
+                            isActive={uncheckedCurrentPage === pageIndex + 1}
+                          >
+                            {pageIndex + 1}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => uncheckedCurrentPage < uncheckedTotalPages && setUncheckedCurrentPage(uncheckedCurrentPage + 1)}
+                        className={uncheckedCurrentPage >= uncheckedTotalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    <div className="ml-4 border-l pl-4">
+                      <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={(value) => {
+                          setItemsPerPage(parseInt(value));
+                        }}
+                      >
+                        <SelectTrigger className="w-[100px] h-8">
+                          <SelectValue placeholder="Per page" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 / page</SelectItem>
+                          <SelectItem value="10">10 / page</SelectItem>
+                          <SelectItem value="20">20 / page</SelectItem>
+                          <SelectItem value="50">50 / page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -153,15 +263,19 @@ export default function CheckingPage() {
         <TabsContent value="checked">
           <Card>
             <CardHeader>
-              <CardTitle>Checked Invoices</CardTitle>
-              <div className="w-full sm:max-w-[300px] mt-2">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={checkedInvoiceSearchTerm}
-                  onChange={(e) => setCheckedInvoiceSearchTerm(e.target.value)}
-                  className="w-full mt-2"
-                />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Checked Invoices</CardTitle>
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
+                  <div className="w-full">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={checkedSearchTerm}
+                      onChange={(e) => setCheckedSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -181,18 +295,18 @@ export default function CheckingPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && checkInvoices?.length === 0 ? (
+                    {isLoading && checkedInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center">Loading...</TableCell>
                       </TableRow>
-                    ) : filteredCheckedInvoices?.length === 0 ? (
+                    ) : checkedInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center">No invoices found</TableCell>
                       </TableRow>
                     ) : (
-                      filteredCheckedInvoices?.map((invoice, index) => (
+                      checkedInvoices?.map((invoice, index) => (
                         <TableRow key={invoice.invoiceNumber}>
-                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{(checkedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.partyCode}</TableCell>
@@ -213,6 +327,61 @@ export default function CheckingPage() {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => checkedCurrentPage > 1 && setCheckedCurrentPage(checkedCurrentPage - 1)}
+                        className={checkedCurrentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    {displayedPages(checkedCurrentPage - 1, checkedTotalPages).map((pageIndex, i) => (
+                      <PaginationItem key={i}>
+                        {pageIndex === -1 ? (
+                          <span className="px-4 py-2">...</span>
+                        ) : (
+                          <PaginationLink
+                            onClick={() => setCheckedCurrentPage(pageIndex + 1)}
+                            isActive={checkedCurrentPage === pageIndex + 1}
+                          >
+                            {pageIndex + 1}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => checkedCurrentPage < checkedTotalPages && setCheckedCurrentPage(checkedCurrentPage + 1)}
+                        className={checkedCurrentPage >= checkedTotalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    <div className="ml-4 border-l pl-4">
+                      <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={(value) => {
+                          setItemsPerPage(parseInt(value));
+                        }}
+                      >
+                        <SelectTrigger className="w-[100px] h-8">
+                          <SelectValue placeholder="Per page" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 / page</SelectItem>
+                          <SelectItem value="10">10 / page</SelectItem>
+                          <SelectItem value="20">20 / page</SelectItem>
+                          <SelectItem value="50">50 / page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </PaginationContent>
+                </Pagination>
               </div>
             </CardContent>
           </Card>
