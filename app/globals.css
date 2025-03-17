@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 /* Custom sidebar styling */
+
 @layer components {
   [data-sidebar="sidebar"] {
     @apply bg-background shadow-md;
@@ -84,6 +85,22 @@
   .dashboard-tile {
     @apply w-full;
     max-width: 100%;
+  }
+
+  /* Responsive table styling */
+  .table-container {
+    @apply w-full max-w-full overflow-hidden;
+  }
+
+  .table-responsive {
+    @apply w-full table-auto;
+    table-layout: fixed;
+  }
+
+  /* For table cells to control their width better */
+  .table-cell-compact {
+    @apply whitespace-nowrap overflow-hidden text-ellipsis;
+    max-width: 150px;
   }
 }
 

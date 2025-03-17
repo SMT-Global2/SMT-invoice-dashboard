@@ -217,8 +217,10 @@ function MainContent({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       
-      <main className="flex-1 p-4 md:p-6 bg-muted/40 overflow-x-hidden">
-        {children}
+      <main className="flex-1 p-4 md:p-6 bg-muted/40 overflow-auto">
+        <div className="w-full h-full overflow-x-hidden overflow-y-auto">
+          {children}
+        </div>
       </main>
     </div>
   );

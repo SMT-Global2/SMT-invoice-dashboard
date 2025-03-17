@@ -143,8 +143,8 @@ export default function AdminInvoiceTable() {
   };
 
   return (
-    <div className='space-y-4 overflow-hidden max-w-[100vw]'>
-      <Card>
+    <div className='w-full max-w-full overflow-x-hidden'>
+      <Card className="w-full">
         <CardHeader className="flex flex-col space-y-4 pb-4">
           <CardTitle className="text-xl md:text-2xl">Invoice Analytics</CardTitle>
           
@@ -308,14 +308,14 @@ export default function AdminInvoiceTable() {
           </Card>
         </div>
 
-        <CardContent className="pt-6">
-          <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw]">
-            <div className="min-w-[1000px]">
-              <Table>
+        <CardContent className="pt-6 overflow-hidden">
+          <div className="overflow-auto w-full border rounded-lg">
+            <div className="w-full lg:min-w-[800px] xl:min-w-[1200px]">
+              <Table className="w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sr. No.</TableHead>
-                    <TableHead>
+                    <TableHead className="w-12">Sr. No.</TableHead>
+                    <TableHead className="w-24">
                       <button
                         className="flex items-center gap-1"
                         onClick={() => handleSort('invoiceNumber')}
@@ -324,7 +324,7 @@ export default function AdminInvoiceTable() {
                         <SortIcon field="invoiceNumber" />
                       </button>
                     </TableHead>
-                    <TableHead>
+                    <TableHead className="w-24">
                       <button
                         className="flex items-center gap-1"
                         onClick={() => handleSort('invoiceTimestamp')}
@@ -333,17 +333,17 @@ export default function AdminInvoiceTable() {
                         <SortIcon field="invoiceTimestamp" />
                       </button>
                     </TableHead>
-                    <TableHead>Party Code</TableHead>
-                    <TableHead>Medical Name</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>Generated</TableHead>
-                    <TableHead>Checked</TableHead>
-                    <TableHead>Packed</TableHead>
-                    <TableHead>Picked Up</TableHead>
-                    <TableHead>Delivered</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-24">Party Code</TableHead>
+                    <TableHead className="w-36">Medical Name</TableHead>
+                    <TableHead className="w-24">City</TableHead>
+                    <TableHead className="w-24 text-center">Generated</TableHead>
+                    <TableHead className="w-24 text-center">Checked</TableHead>
+                    <TableHead className="w-24 text-center">Packed</TableHead>
+                    <TableHead className="w-24 text-center">Picked Up</TableHead>
+                    <TableHead className="w-24 text-center">Delivered</TableHead>
+                    <TableHead className="w-36">Last Updated</TableHead>
+                    <TableHead className="w-24">Type</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -358,17 +358,17 @@ export default function AdminInvoiceTable() {
                   ) : (
                     allInvoices.invoices.map((invoice, index) => (
                       <TableRow key={invoice.invoiceNumber}>
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell className="text-center">{index + 1}</TableCell>
                         <TableCell>{invoice.invoiceNumber}</TableCell>
                         <TableCell>{new Date(invoice.invoiceTimestamp!).toLocaleDateString()}</TableCell>
                         <TableCell>{invoice.partyCode}</TableCell>
-                        <TableCell>{invoice.party?.customerName}</TableCell>
+                        <TableCell className="truncate max-w-[140px]">{invoice.party?.customerName}</TableCell>
                         <TableCell>{invoice.party?.city}</TableCell>
-                        <TableCell><StatusBadge status={!!invoice.invoiceTimestamp} /></TableCell>
-                        <TableCell><StatusBadge status={!!invoice.checkTimestamp} /></TableCell>
-                        <TableCell><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
-                        <TableCell><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
-                        <TableCell><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.invoiceTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.checkTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
                         <TableCell>{tweleHrFormatDateString(new Date(invoice.updatedAt))}</TableCell>
                         <TableCell>
                           <Capsule
