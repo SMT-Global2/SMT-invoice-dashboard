@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { PackageStatus } from '@prisma/client';
 import moment from 'moment';
 import { getServerSession } from 'next-auth';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
     
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = new URL(request.url);
     
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1');
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     
     // Search parameter
     const search = searchParams.get('search') || '';
+    const regionalCodes = searchParams.get('regionalCodes')?.split(',') || [];
     
     // Build where clause
     const where: any = {
@@ -33,6 +34,12 @@ export async function GET(request: NextRequest) {
         not: null,
         gte: moment().startOf('day').toDate(),
         lte: moment().endOf('day').toDate(),
+      },
+      party: {
+        customerName: {
+          contains: search,
+          mode: 'insensitive'
+        }
       }
     };
     
@@ -43,24 +50,34 @@ export async function GET(request: NextRequest) {
       };
     }
     
-    // Get total count for pagination
-    const totalCount = await prisma.invoice.count({ where });
-    const totalPages = Math.ceil(totalCount / limit);
+    // Add regional code filter if provided
+    if (regionalCodes.length > 0) {
+      where.party = {
+        ...where.party,
+        regionalCode: {
+          in: regionalCodes
+        }
+      };
+    }
     
-    // Get paginated data
-    const data = await prisma.invoice.findMany({
-      where,
-      include: {
-        party: true,
-      },
-      orderBy: {
-        packageTimestamp: 'asc'
-      },
-      skip,
-      take: limit,
-    });
-  
-    return Response.json({
+    // Get total count and data in parallel using Promise.all
+    const [totalCount, data] = await Promise.all([
+      prisma.invoice.count({ where }),
+      prisma.invoice.findMany({
+        where,
+        include: {
+          party: true,
+        },
+        orderBy: {
+          packageTimestamp: 'desc'
+        },
+        skip,
+        take: limit,
+      })
+    ]);
+    
+    const totalPages = Math.ceil(totalCount / limit);
+    return NextResponse.json({
       data: data || [],
       currentPage: page,
       totalPages,
@@ -68,8 +85,10 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    return Response.json({
-      error: 'Error fetching data'
-    }, { status: 500 })
+    console.error('Error fetching packed invoices:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch packed invoices' },
+      { status: 500 }
+    );
   }
 } 

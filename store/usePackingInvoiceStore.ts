@@ -5,6 +5,8 @@ import moment from 'moment'
 import { InvoiceData } from './useInvoiceStore'
 
 export interface PackInvoiceData extends InvoiceData {
+  regionalCode: string
+
   packageUsername: string | null
   packageTimestamp: Date | null
   packageStatus: PackageStatus
@@ -32,6 +34,11 @@ interface PackingInvoiceState {
   // Search terms
   unpackedSearchTerm: string
   packedSearchTerm: string
+
+  // Regional code filters
+  unpackedSelectedRegionalCodes: string[]
+  packedSelectedRegionalCodes: string[]
+  availableRegionalCodes: string[]
   
   // Actions
   fetchUnpackedInvoices: () => Promise<void>
@@ -47,6 +54,13 @@ interface PackingInvoiceState {
   // Search actions
   setUnpackedSearchTerm: (term: string) => void
   setPackedSearchTerm: (term: string) => void
+
+  // Regional code filter actions
+  setUnpackedSelectedRegionalCodes: (codes: string[]) => void
+  setPackedSelectedRegionalCodes: (codes: string[]) => void
+  fetchAvailableRegionalCodes: () => Promise<void>
+
+  clearAllFilters: () => void
 }
 
 export const usePackingInvoiceStore = create<PackingInvoiceState>()(
@@ -67,6 +81,11 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
       // Search
       unpackedSearchTerm: '',
       packedSearchTerm: '',
+
+      // Regional code filters
+      unpackedSelectedRegionalCodes: [],
+      packedSelectedRegionalCodes: [],
+      availableRegionalCodes: [],
       
       setUnpackedCurrentPage: (page) => {
         set({ unpackedCurrentPage: page });
@@ -97,6 +116,42 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
         set({ packedSearchTerm: term, packedCurrentPage: 1 });
         get().fetchPackedInvoices();
       },
+
+      setUnpackedSelectedRegionalCodes: (codes) => {
+        set({ unpackedSelectedRegionalCodes: codes, unpackedCurrentPage: 1 });
+        get().fetchUnpackedInvoices();
+      },
+
+      setPackedSelectedRegionalCodes: (codes) => {
+        set({ packedSelectedRegionalCodes: codes, packedCurrentPage: 1 });
+        get().fetchPackedInvoices();
+      },
+
+      fetchAvailableRegionalCodes: async () => {
+        try {
+          const response = await fetch('/api/party/regionalCodes');
+          if (!response.ok) {
+            throw new Error('Failed to fetch regional codes');
+          }
+          const data = await response.json();
+          set({ availableRegionalCodes: data.regionalCodes || [] });
+        } catch (error) {
+          console.error('Error fetching regional codes:', error);
+        }
+      },
+
+      clearAllFilters: () => {
+        set({
+          unpackedSearchTerm: '',
+          packedSearchTerm: '',
+          unpackedSelectedRegionalCodes: [],
+          packedSelectedRegionalCodes: [],
+          unpackedCurrentPage: 1,
+          packedCurrentPage: 1
+        });
+        get().fetchUnpackedInvoices();
+        get().fetchPackedInvoices();
+      },
       
       updatePackInvoiceImage: (invoiceNumber, image) => {
         const invoices = [...get().unpackedInvoices];
@@ -114,7 +169,7 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const { unpackedCurrentPage, itemsPerPage, unpackedSearchTerm } = get();
+          const { unpackedCurrentPage, itemsPerPage, unpackedSearchTerm, unpackedSelectedRegionalCodes } = get();
           
           const url = new URL('/api/invoice/pack/unpacked', window.location.origin);
           url.searchParams.set('page', unpackedCurrentPage.toString());
@@ -122,6 +177,10 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
           
           if (unpackedSearchTerm) {
             url.searchParams.set('search', unpackedSearchTerm);
+          }
+
+          if (unpackedSelectedRegionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', unpackedSelectedRegionalCodes.join(','));
           }
           
           const response = await fetch(url.toString());
@@ -132,6 +191,7 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
               packImage: item.packImage || [],
             })),
             unpackedTotalPages: totalPages,
@@ -146,7 +206,7 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const { packedCurrentPage, itemsPerPage, packedSearchTerm } = get();
+          const { packedCurrentPage, itemsPerPage, packedSearchTerm, packedSelectedRegionalCodes } = get();
           
           const url = new URL('/api/invoice/pack/packed', window.location.origin);
           url.searchParams.set('page', packedCurrentPage.toString());
@@ -154,6 +214,10 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
           
           if (packedSearchTerm) {
             url.searchParams.set('search', packedSearchTerm);
+          }
+
+          if (packedSelectedRegionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', packedSelectedRegionalCodes.join(','));
           }
           
           const response = await fetch(url.toString());
@@ -164,6 +228,7 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
               packImage: item.packImage || [],
             })),
             packedTotalPages: totalPages,

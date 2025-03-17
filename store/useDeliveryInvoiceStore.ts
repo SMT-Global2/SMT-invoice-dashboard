@@ -2,18 +2,10 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { DeliveryStatus } from '@prisma/client'
 import moment from 'moment'
+import { InvoiceData } from './useInvoiceStore'
 
-export interface DeliveryInvoiceData {
-  invoiceNumber: number
-  partyCode: string
-  medicalName: string
-  isOtc: boolean
-  city: string
-  image: string[]
-  generatedDate: Date | null
-  invoiceTimestamp: Date | null
-  isDisabled: boolean
-  
+export interface DeliveryInvoiceData extends InvoiceData {
+  regionalCode: string
   pickupUsername: string | null
   pickupTimestamp: Date | null
   
@@ -305,6 +297,7 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
             })),
             toDeliverTotalPages: totalPages || 1,
             isLoading: false 
@@ -347,6 +340,7 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
             })),
             inTransitTotalPages: totalPages || 1,
             isLoading: false 
@@ -389,6 +383,7 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
             })),
             deliveredTotalPages: totalPages || 1,
             isLoading: false 

@@ -20,7 +20,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
-import { Camera, Loader2, Upload } from 'lucide-react';
+import { Camera, Loader2, Upload, FilterX } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RegionalCodeFilter } from '@/components/regional-code-filter';
 
 export default function PackingPage() {
   const { toast } = useToast();
@@ -73,7 +74,16 @@ export default function PackingPage() {
     unpackedSearchTerm,
     packedSearchTerm,
     setUnpackedSearchTerm,
-    setPackedSearchTerm
+    setPackedSearchTerm,
+
+    // Regional code filters
+    unpackedSelectedRegionalCodes,
+    packedSelectedRegionalCodes,
+    availableRegionalCodes,
+    setUnpackedSelectedRegionalCodes,
+    setPackedSelectedRegionalCodes,
+    fetchAvailableRegionalCodes,
+    clearAllFilters
   } = usePackingInvoiceStore();
 
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -81,7 +91,8 @@ export default function PackingPage() {
   useEffect(() => {
     fetchUnpackedInvoices();
     fetchPackedInvoices();
-  }, [fetchUnpackedInvoices, fetchPackedInvoices]);
+    fetchAvailableRegionalCodes();
+  }, [fetchUnpackedInvoices, fetchPackedInvoices, fetchAvailableRegionalCodes]);
 
   const handlePackInvoice = async (invoiceNumber: number) => {
     try {
@@ -177,8 +188,9 @@ export default function PackingPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Unpacked Invoices</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-                  <div className="w-full">
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  {/* Mobile Layout: Stacked */}
+                  <div className="flex flex-col gap-2 lg:hidden">
                     <Input
                       type="text"
                       placeholder="Search invoice number..."
@@ -186,6 +198,53 @@ export default function PackingPage() {
                       onChange={(e) => setUnpackedSearchTerm(e.target.value)}
                       className="w-full"
                     />
+                    <div className="flex items-center gap-2">
+                      <RegionalCodeFilter
+                        selectedRegionalCodes={unpackedSelectedRegionalCodes}
+                        availableRegionalCodes={availableRegionalCodes}
+                        setSelectedRegionalCodes={setUnpackedSelectedRegionalCodes}
+                        label="Regions"
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          clearAllFilters();
+                        }}
+                        className="flex items-center gap-1 ml-auto"
+                        size="sm"
+                      >
+                        <FilterX className="h-4 w-4" />
+                        <span>Clear All</span>
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Desktop Layout: Row */}
+                  <div className="hidden lg:flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={unpackedSearchTerm}
+                      onChange={(e) => setUnpackedSearchTerm(e.target.value)}
+                      className="w-[200px]"
+                    />
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={unpackedSelectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setUnpackedSelectedRegionalCodes}
+                      label="Regions"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        clearAllFilters();
+                      }}
+                      className="flex items-center gap-1"
+                      size="sm"
+                    >
+                      <FilterX className="h-4 w-4" />
+                      <span>Clear All</span>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -198,9 +257,10 @@ export default function PackingPage() {
                       <TableHead>Sr. No.</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Invoice No.</TableHead>
-                      <TableHead>Party Code</TableHead>
+                      <TableHead>Party Code</TableHead> 
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
@@ -221,6 +281,7 @@ export default function PackingPage() {
                           <TableCell>{invoice.partyCode}</TableCell>
                           <TableCell>{invoice.medicalName}</TableCell>
                           <TableCell>{invoice.city}</TableCell>
+                          <TableCell>{invoice.regionalCode}</TableCell>
                           <TableCell>
                             <TakeImage
                               invoice={invoice}
@@ -310,8 +371,9 @@ export default function PackingPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Packed Invoices</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-                  <div className="w-full">
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  {/* Mobile Layout: Stacked */}
+                  <div className="flex flex-col gap-2 lg:hidden">
                     <Input
                       type="text"
                       placeholder="Search invoice number..."
@@ -319,6 +381,53 @@ export default function PackingPage() {
                       onChange={(e) => setPackedSearchTerm(e.target.value)}
                       className="w-full"
                     />
+                    <div className="flex items-center gap-2">
+                      <RegionalCodeFilter
+                        selectedRegionalCodes={packedSelectedRegionalCodes}
+                        availableRegionalCodes={availableRegionalCodes}
+                        setSelectedRegionalCodes={setPackedSelectedRegionalCodes}
+                        label="Regions"
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          clearAllFilters();
+                        }}
+                        className="flex items-center gap-1 ml-auto"
+                        size="sm"
+                      >
+                        <FilterX className="h-4 w-4" />
+                        <span>Clear All</span>
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Desktop Layout: Row */}
+                  <div className="hidden lg:flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={packedSearchTerm}
+                      onChange={(e) => setPackedSearchTerm(e.target.value)}
+                      className="w-[200px]"
+                    />
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={packedSelectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setPackedSelectedRegionalCodes}
+                      label="Regions"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        clearAllFilters();
+                      }}
+                      className="flex items-center gap-1"
+                      size="sm"
+                    >
+                      <FilterX className="h-4 w-4" />
+                      <span>Clear All</span>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -334,6 +443,7 @@ export default function PackingPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Pack Time</TableHead>  
@@ -355,6 +465,7 @@ export default function PackingPage() {
                           <TableCell>{invoice.partyCode}</TableCell>
                           <TableCell>{invoice.medicalName}</TableCell>
                           <TableCell>{invoice.city}</TableCell>
+                          <TableCell>{invoice.regionalCode}</TableCell>
                           <TableCell>
                             <ShowImage invoice={invoice} images={[...invoice.image, ...invoice.packImage]} />  
                           </TableCell>

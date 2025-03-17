@@ -4,68 +4,69 @@ import { CheckStatus, PackageStatus } from '@prisma/client';
 import moment from 'moment';
 import { getServerSession } from 'next-auth';
 import { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.username) {
-      return Response.json({
-        success: false,
-        message: 'Unauthorized'
-      }, { status: 401 });
-    }
-    
-    const searchParams = request.nextUrl.searchParams;
-    
-    // Pagination parameters
+    const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    const skip = (page - 1) * limit;
-    
-    // Search parameter
     const search = searchParams.get('search') || '';
-    
+    const regionalCodes = searchParams.get('regionalCodes')?.split(',') || [];
+
+    const skip = (page - 1) * limit;
+
     // Build where clause
     const where: any = {
-      isOtc: false,
-      checkStatus: CheckStatus.CHECKED,
-      packageStatus: PackageStatus.NOT_PACKED
+      packageStatus: PackageStatus.NOT_PACKED,
+      party: {
+        customerName: {
+          contains: search,
+          mode: 'insensitive'
+        }
+      }
     };
-    
-    // Add search filter if provided
-    if (search) {
-      where.invoiceNumber = {
-        equals: isNaN(parseInt(search)) ? undefined : parseInt(search),
+
+    // Add regional code filter if provided
+    if (regionalCodes.length > 0) {
+      where.party = {
+        ...where.party,
+        regionalCode: {
+          in: regionalCodes
+        }
       };
     }
-    
-    // Get total count for pagination
-    const totalCount = await prisma.invoice.count({ where });
+
+    // Get total count and data in parallel using Promise.all
+    const [totalCount, invoices] = await Promise.all([
+      prisma.invoice.count({ where }),
+      prisma.invoice.findMany({
+        where,
+        include: {
+          party: true,
+        },
+        orderBy: {
+          generatedDate: 'desc'
+        },
+        skip,
+        take: limit
+      })
+    ]);
     const totalPages = Math.ceil(totalCount / limit);
-    
-    // Get paginated data
-    const data = await prisma.invoice.findMany({
-      where,
-      include: {
-        party: true,
-      },
-      orderBy: {
-        checkTimestamp: 'asc'
-      },
-      skip,
-      take: limit,
-    });
-  
-    return Response.json({
-      data: data || [],
+
+    return NextResponse.json({
+      data: invoices,
       currentPage: page,
       totalPages,
       totalCount
     });
-    
+
   } catch (error) {
-    return Response.json({
-      error: 'Error fetching data'
-    }, { status: 500 })
+    console.log(error);
+    console.error('Error fetching unpacked invoices:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch unpacked invoices' },
+      { status: 500 }
+    );
   }
 } 
