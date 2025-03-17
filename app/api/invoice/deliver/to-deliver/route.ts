@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const dateParam = searchParams.get('date');
     const searchTerm = searchParams.get('search') || '';
+    const regionalCodesParam = searchParams.get('regionalCodes');
     
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1');
@@ -46,6 +47,25 @@ export async function GET(request: NextRequest) {
             ]
         };
     }
+    
+    // Create regional codes filter
+    let regionalCodesFilter = {};
+    if (regionalCodesParam) {
+        try {
+            const regionalCodes = JSON.parse(regionalCodesParam);
+            if (Array.isArray(regionalCodes) && regionalCodes.length > 0) {
+                regionalCodesFilter = {
+                    party: {
+                        regionalCode: {
+                            in: regionalCodes
+                        }
+                    }
+                };
+            }
+        } catch (error) {
+            console.error('Error parsing regional codes:', error);
+        }
+    }
 
     const [totalCount, data] = await Promise.all([
         prisma.invoice.count({
@@ -53,6 +73,7 @@ export async function GET(request: NextRequest) {
                 isOtc: false,
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
+                ...regionalCodesFilter,
                 packageTimestamp: { not: null },
                 packageStatus: PackageStatus.PACKED,
                 deliveryStatus: DeliveryStatus.NOT_DELIVERED
@@ -63,6 +84,7 @@ export async function GET(request: NextRequest) {
                 isOtc: false,
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
+                ...regionalCodesFilter,
                 packageTimestamp: { not: null },
                 packageStatus: PackageStatus.PACKED,
                 deliveryStatus: DeliveryStatus.NOT_DELIVERED

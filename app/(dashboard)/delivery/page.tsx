@@ -23,7 +23,7 @@ import { compressImage, convertImage, tweleHrFormatDateString, uploadFileToS3 } 
 import Link from 'next/link';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
-import { Calendar, Map } from 'lucide-react';
+import { Calendar, Cross, Filter, FilterX, Map } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from '@/components/ui/date-picker';
@@ -43,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RegionalCodeFilter } from '@/components/regional-code-filter';
 
 export default function DeliveryPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -55,6 +56,7 @@ export default function DeliveryPage() {
     fetchToDeliverInvoices,
     fetchInTransitInvoices,
     fetchDeliveredInvoices,
+    clearAllFilters,
     deliverInvoice,
     pickupInvoice,
     updateDeliveryInvoiceImage,
@@ -75,6 +77,16 @@ export default function DeliveryPage() {
     setToDeliverSearchTerm,
     setInTransitSearchTerm,
     setDeliveredSearchTerm,
+    
+    // Regional code filter state and actions
+    toDeliverSelectedRegionalCodes,
+    inTransitSelectedRegionalCodes,
+    deliveredSelectedRegionalCodes,
+    availableRegionalCodes,
+    setToDeliverSelectedRegionalCodes,
+    setInTransitSelectedRegionalCodes,
+    setDeliveredSelectedRegionalCodes,
+    
     // Pagination states and actions
     toDeliverPage,
     inTransitPage,
@@ -239,8 +251,9 @@ export default function DeliveryPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Packages to be Delivered</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-                  <div className="w-full">
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  {/* Mobile Layout: Stacked */}
+                  <div className="flex flex-col gap-2 lg:hidden">
                     <Input
                       type="text"
                       placeholder="Search invoice number..."
@@ -248,19 +261,62 @@ export default function DeliveryPage() {
                       onChange={(e) => setToDeliverSearchTerm(e.target.value)}
                       className="w-full"
                     />
+                    <div className="flex items-center gap-2">
+                      <DatePicker
+                        date={toDeliverSelectedDate}
+                        setDate={handleToDeliverDateChange}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RegionalCodeFilter
+                        selectedRegionalCodes={toDeliverSelectedRegionalCodes}
+                        availableRegionalCodes={availableRegionalCodes}
+                        setSelectedRegionalCodes={setToDeliverSelectedRegionalCodes}
+                        label="Regions"
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          clearAllFilters();
+                        }}
+                        className="flex items-center gap-1 ml-auto"
+                        size="sm"
+                      >
+                        <FilterX className="h-4 w-4" />
+                        <span>Clear All</span>
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-end gap-2">
+                  
+                  {/* Desktop Layout: Row */}
+                  <div className="hidden lg:flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={toDeliverSearchTerm}
+                      onChange={(e) => setToDeliverSearchTerm(e.target.value)}
+                      className="w-[200px]"
+                    />
                     <DatePicker
                       date={toDeliverSelectedDate}
                       setDate={handleToDeliverDateChange}
                     />
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={toDeliverSelectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setToDeliverSelectedRegionalCodes}
+                      label="Regions"
+                    />
                     <Button 
                       variant="outline" 
-                      onClick={() => handleToDeliverDateChange(undefined)}
+                      onClick={() => {
+                        clearAllFilters();
+                      }}
                       className="flex items-center gap-1"
+                      size="sm"
                     >
-                      <Calendar className="h-4 w-4" />
-                      <span>Clear</span>
+                      <FilterX className="h-4 w-4" />
+                      <span>Clear All</span>
                     </Button>
                   </div>
                 </div>
@@ -382,8 +438,9 @@ export default function DeliveryPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Packages in Transit | Out for Delivery</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-                  <div className="w-full">
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  {/* Mobile Layout: Stacked */}
+                  <div className="flex flex-col gap-2 lg:hidden">
                     <Input
                       type="text"
                       placeholder="Search invoice number..."
@@ -391,19 +448,62 @@ export default function DeliveryPage() {
                       onChange={(e) => setInTransitSearchTerm(e.target.value)}
                       className="w-full"
                     />
+                    <div className="flex items-center gap-2">
+                      <DatePicker
+                        date={inTransitSelectedDate}
+                        setDate={handleInTransitDateChange}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RegionalCodeFilter
+                        selectedRegionalCodes={inTransitSelectedRegionalCodes}
+                        availableRegionalCodes={availableRegionalCodes}
+                        setSelectedRegionalCodes={setInTransitSelectedRegionalCodes}
+                        label="Regions"
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          clearAllFilters();
+                        }}
+                        className="flex items-center gap-1 ml-auto"
+                        size="sm"
+                      >
+                        <FilterX className="h-4 w-4" />
+                        <span>Clear All</span>
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-end gap-2">
+                  
+                  {/* Desktop Layout: Row */}
+                  <div className="hidden lg:flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={inTransitSearchTerm}
+                      onChange={(e) => setInTransitSearchTerm(e.target.value)}
+                      className="w-[200px]"
+                    />
                     <DatePicker
                       date={inTransitSelectedDate}
                       setDate={handleInTransitDateChange}
                     />
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={inTransitSelectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setInTransitSelectedRegionalCodes}
+                      label="Regions"
+                    />
                     <Button 
                       variant="outline" 
-                      onClick={() => handleInTransitDateChange(undefined)}
+                      onClick={() => {
+                        clearAllFilters();
+                      }}
                       className="flex items-center gap-1"
+                      size="sm"
                     >
-                      <Calendar className="h-4 w-4" />
-                      <span>Clear</span>
+                      <FilterX className="h-4 w-4" />
+                      <span>Clear All</span>
                     </Button>
                   </div>
                 </div>
@@ -532,8 +632,9 @@ export default function DeliveryPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Delivered Packages</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-                  <div className="w-full">
+                <div className="flex flex-col w-full md:w-auto gap-2">
+                  {/* Mobile Layout: Stacked */}
+                  <div className="flex flex-col gap-2 lg:hidden">
                     <Input
                       type="text"
                       placeholder="Search invoice number..."
@@ -541,19 +642,62 @@ export default function DeliveryPage() {
                       onChange={(e) => setDeliveredSearchTerm(e.target.value)}
                       className="w-full"
                     />
+                    <div className="flex items-center gap-2">
+                      <DatePicker
+                        date={deliveredSelectedDate}
+                        setDate={handleDeliveredDateChange}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RegionalCodeFilter
+                        selectedRegionalCodes={deliveredSelectedRegionalCodes}
+                        availableRegionalCodes={availableRegionalCodes}
+                        setSelectedRegionalCodes={setDeliveredSelectedRegionalCodes}
+                        label="Regions"
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          clearAllFilters();
+                        }}
+                        className="flex items-center gap-1 ml-auto"
+                        size="sm"
+                      >
+                        <FilterX className="h-4 w-4" />
+                        <span>Clear All</span>
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-end gap-2">
+                  
+                  {/* Desktop Layout: Row */}
+                  <div className="hidden lg:flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={deliveredSearchTerm}
+                      onChange={(e) => setDeliveredSearchTerm(e.target.value)}
+                      className="w-[200px]"
+                    />
                     <DatePicker
                       date={deliveredSelectedDate}
                       setDate={handleDeliveredDateChange}
                     />
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={deliveredSelectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setDeliveredSelectedRegionalCodes}
+                      label="Regions"
+                    />
                     <Button 
                       variant="outline" 
-                      onClick={() => handleDeliveredDateChange(undefined)}
+                      onClick={() => {
+                        clearAllFilters();
+                      }}
                       className="flex items-center gap-1"
+                      size="sm"
                     >
-                      <Calendar className="h-4 w-4" />
-                      <span>Clear</span>
+                      <FilterX className="h-4 w-4" />
+                      <span>Clear All</span>
                     </Button>
                   </div>
                 </div>

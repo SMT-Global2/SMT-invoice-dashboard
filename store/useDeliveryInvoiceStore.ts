@@ -43,6 +43,12 @@ interface DeliveryInvoiceState {
   inTransitSearchTerm: string
   deliveredSearchTerm: string
   
+  // Regional code filter state
+  toDeliverSelectedRegionalCodes: string[]
+  inTransitSelectedRegionalCodes: string[]
+  deliveredSelectedRegionalCodes: string[]
+  availableRegionalCodes: string[]
+  
   // Pagination state
   toDeliverPage: number
   inTransitPage: number
@@ -58,11 +64,19 @@ interface DeliveryInvoiceState {
   setDeliveredSelectedDate: (date: Date | undefined) => void
   
   updateDeliveryInvoiceImage: (invoiceNumber: number, image: string) => void
+
+  clearAllFilters: () => void
   
   // Search actions
   setToDeliverSearchTerm: (term: string) => void
   setInTransitSearchTerm: (term: string) => void
   setDeliveredSearchTerm: (term: string) => void
+  
+  // Regional code filter actions
+  setToDeliverSelectedRegionalCodes: (codes: string[]) => void
+  setInTransitSelectedRegionalCodes: (codes: string[]) => void
+  setDeliveredSelectedRegionalCodes: (codes: string[]) => void
+  fetchAvailableRegionalCodes: () => Promise<void>
   
   // Pagination actions
   setToDeliverPage: (page: number) => void
@@ -100,6 +114,12 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
       toDeliverSearchTerm: '',
       inTransitSearchTerm: '',
       deliveredSearchTerm: '',
+      
+      // Regional code filter state
+      toDeliverSelectedRegionalCodes: [],
+      inTransitSelectedRegionalCodes: [],
+      deliveredSelectedRegionalCodes: [],
+      availableRegionalCodes: [],
       
       // Pagination state
       toDeliverPage: 1,
@@ -144,6 +164,24 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
         get().fetchDeliveredInvoices(date);
       },
 
+      clearAllFilters: () => {
+        set({
+          toDeliverSearchTerm: '',
+          inTransitSearchTerm: '',
+          deliveredSearchTerm: '',
+          toDeliverSelectedRegionalCodes: [],
+          inTransitSelectedRegionalCodes: [],
+          deliveredSelectedRegionalCodes: [],
+          toDeliverSelectedDate: undefined,
+          inTransitSelectedDate: undefined,
+          deliveredSelectedDate: undefined,
+          toDeliverPage: 1,
+          inTransitPage: 1,
+          deliveredPage: 1,
+        });
+        get().fetchAllDeliveryInvoices();
+      },
+
       // Search actions
       setToDeliverSearchTerm: (term) => {
         set({ toDeliverSearchTerm: term, toDeliverPage: 1 });
@@ -158,6 +196,35 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
       setDeliveredSearchTerm: (term) => {
         set({ deliveredSearchTerm: term, deliveredPage: 1 });
         get().fetchDeliveredInvoices();
+      },
+      
+      // Regional code filter actions
+      setToDeliverSelectedRegionalCodes: (codes) => {
+        set({ toDeliverSelectedRegionalCodes: codes, toDeliverPage: 1 });
+        get().fetchToDeliverInvoices();
+      },
+      
+      setInTransitSelectedRegionalCodes: (codes) => {
+        set({ inTransitSelectedRegionalCodes: codes, inTransitPage: 1 });
+        get().fetchInTransitInvoices();
+      },
+      
+      setDeliveredSelectedRegionalCodes: (codes) => {
+        set({ deliveredSelectedRegionalCodes: codes, deliveredPage: 1 });
+        get().fetchDeliveredInvoices();
+      },
+      
+      fetchAvailableRegionalCodes: async () => {
+        try {
+          const response = await fetch('/api/party/regionalCodes');
+          if (!response.ok) {
+            throw new Error('Failed to fetch regional codes');
+          }
+          const data = await response.json();
+          set({ availableRegionalCodes: data.regionalCodes || [] });
+        } catch (error) {
+          console.error('Error fetching regional codes:', error);
+        }
       },
 
       updateDeliveryInvoiceImage: (invoiceNumber, image) => {
@@ -225,6 +292,12 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
             url.searchParams.set('search', searchTerm);
           }
           
+          // Add regional code filter parameters
+          const regionalCodes = get().toDeliverSelectedRegionalCodes;
+          if (regionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', JSON.stringify(regionalCodes));
+          }
+          
           const response = await fetch(url.toString());
           const { data, totalPages } = await response.json();
           set({ 
@@ -259,6 +332,12 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
           const searchTerm = get().inTransitSearchTerm;
           if (searchTerm) {
             url.searchParams.set('search', searchTerm);
+          }
+          
+          // Add regional code filter parameters
+          const regionalCodes = get().inTransitSelectedRegionalCodes;
+          if (regionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', JSON.stringify(regionalCodes));
           }
           
           const response = await fetch(url.toString());
@@ -297,6 +376,12 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
             url.searchParams.set('search', searchTerm);
           }
           
+          // Add regional code filter parameters
+          const regionalCodes = get().deliveredSelectedRegionalCodes;
+          if (regionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', JSON.stringify(regionalCodes));
+          }
+          
           const response = await fetch(url.toString());
           const { data, totalPages } = await response.json();
           set({ 
@@ -319,7 +404,8 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
           await Promise.all([
             get().fetchToDeliverInvoices(),
             get().fetchInTransitInvoices(),
-            get().fetchDeliveredInvoices()
+            get().fetchDeliveredInvoices(),
+            get().fetchAvailableRegionalCodes()
           ]);
           set({ isLoading: false });
         } catch (error) {
