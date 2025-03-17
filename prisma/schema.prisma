@@ -38,11 +38,29 @@ model PartyCode {
     regionalCode String?
 
     invoice Invoice[]
+    deliveryMemo DeliveryMemo[]
 
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
 }
 
+model DeliveryMemo {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  dmNumber          Int    @unique
+  generatedDate     DateTime
+
+  partyCode         String    
+  party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
+
+  goodsCollectedUsername   String?
+  goodsCollectedTimestamp  DateTime?
+
+  goodsCheckedUsername   String?
+  goodsCheckedTimestamp  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
 
 model Invoice {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
