@@ -4,11 +4,11 @@ import { NextRequest } from 'next/server';
 import { findOrCreateDayStart } from './helper';
 
 export async function GET(request: NextRequest) {
-  //find maximum invoice number
+  //find maximum delivery memo number
   const searchParams = request.nextUrl.searchParams;
   const dateFilter = searchParams.get('date') ?? new Date();
 
-  const dayStart = await prisma.dayStartInvoice.findUnique({
+  const dayStart = await prisma.dayStartDeliveryMemo.findUnique({
     where: {
       date: moment(dateFilter).startOf('day').format('YYYY-MM-DD')
     }
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
 
   if(dayStart){
     return Response.json({
-      invoiceStartNo : dayStart.invoiceStartNo,
-      invoiceEndNo : dayStart.invoiceEndNo
+      dmStartNo: dayStart.invoiceStartNo,
+      dmEndNo: dayStart.invoiceEndNo
     });
   }
   
@@ -27,9 +27,7 @@ export async function GET(request: NextRequest) {
   } = await findOrCreateDayStart(moment(dateFilter).toDate());
 
   return Response.json({
-    invoiceStartNo,
-    invoiceEndNo
+    dmStartNo: invoiceStartNo,
+    dmEndNo: invoiceEndNo
   });
-}
-
-
+} 

@@ -114,7 +114,7 @@ export async function DELETE(request: NextRequest) {
             }
           })
 
-          await prismaTxn.dayStart.update({
+          await prismaTxn.dayStartInvoice.update({
             where: {
                 date: moment().format('YYYY-MM-DD')
             },

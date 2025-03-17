@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { BilledStatus, CheckStatus, DeliveryStatus, PackageStatus } from '@prisma/client'
 import moment from 'moment'
 
 export interface InvoiceData {
@@ -12,49 +11,12 @@ export interface InvoiceData {
   image: string[]
   generatedDate: Date | null
   invoiceTimestamp: Date | null
-  isDisabled: boolean
+  isDisabled: boolean   
 }
-
-export interface CheckInvoiceData extends InvoiceData {
-  checkUsername : string | null
-  checkTimestamp : Date | null
-  checkStatus : CheckStatus
-}
-
-export interface PackInvoiceData extends InvoiceData {
-  packageUsername : string | null
-  packageTimestamp : Date | null
-  packageStatus : PackageStatus
-  packImage : string[]
-}
-
-export interface DeliveryInvoiceData extends InvoiceData {
-  pickupUsername : string | null
-  pickupTimestamp : Date | null
-
-  
-  deliveredUsername : string | null
-  deliveredTimestamp : Date | null
-  deliveredLocationLink : string | null
-  
-  deliveryStatus : DeliveryStatus
-}
-
-// export interface BillInvoiceData extends InvoiceData {
-//   billedUsername : string | null
-//   billedTimestamp : Date | null
-//   billedStatus : BilledStatus
-//   billImage : string[]
-// }
 
 interface InvoiceState {
   invoices: InvoiceData[]
-  checkInvoices: CheckInvoiceData[]
-  packInvoices: PackInvoiceData[]
-  // deliveryInvoices : DeliveryInvoiceData[]
-  // billInvoices: BillInvoiceData[]
   selectedDate: Date | undefined
-  deliverySelectedDate: Date | undefined
   currentPage: number
   itemsPerPage: number
   isLoading: boolean
@@ -65,48 +27,26 @@ interface InvoiceState {
   // Actions
   setInvoices: (invoices: InvoiceData[]) => void
   setSelectedDate: (date: Date | undefined) => void
-  // setDeliverySelectedDate: (date: Date | undefined) => void
   setCurrentPage: (page: number) => void
 
   updateInvoiceImage: (sr: number, image: string) => void
-  updatePackInvoiceImage: (sr: number, image: string) => void
-  // updateBillInvoiceImage: (sr: number, image: string) => void
-  // updateDeliverInvoiceImage: (sr: number, image: string) => void
-
   handleInvoices: () => Promise<void>
 
   fetchInvoices: (date?: Date | null) => Promise<void>
-  fetchCheckInvoices: () => Promise<void>
-  fetchPackInvoices: () => Promise<void>
-  // fetchDeliveryInvoices: (date?: Date | null) => Promise<void>
-  fetchBillInvoices: () => Promise<void>
-
   saveInvoice: (invoiceNumber: number, isOtc?: boolean) => Promise<void>
   resetInvoice: (invoiceNumber: number) => Promise<void>
-  checkInvoice: (invoiceNumber: number) => Promise<void>
-  packInvoice: (invoiceNumber: number) => Promise<void>
-  // pickupInvoice: (invoiceNumber: number) => Promise<void>
-  // deliverInvoice: (invoiceNumber: number, location: { latitude: number, longitude: number }) => Promise<void>
-  billInvoice: (invoiceNumber: number) => Promise<void>
-
 }
 
 export const useInvoiceStore = create<InvoiceState>()(
   devtools(
     (set, get) => ({
       invoices: [],
-      checkInvoices: [],
-      packInvoices: [],
-      deliveryInvoices: [],
-      billInvoices: [],
 
       invoiceStartNo: -1,
       selectedDate: moment().startOf('day').toDate(),
-      deliverySelectedDate: moment().startOf('day').toDate(),
       currentPage: 1,
       itemsPerPage: 100,
       isLoading: false,
-
 
       setInvoices: (invoices) => set({ invoices }),
       setSelectedDate: (date) => {
@@ -116,13 +56,6 @@ export const useInvoiceStore = create<InvoiceState>()(
         set({ selectedDate: date });
         get().fetchInvoices(date);
       },
-      // setDeliverySelectedDate: (date) => {
-      //   if (moment(date).isAfter(moment(), 'day')) {
-      //     return;
-      //   }
-      //   set({ deliverySelectedDate: date });
-      //   get().fetchDeliveryInvoices(date);
-      // },
       setCurrentPage: (page) => set({ currentPage: page }),
       
       updateInvoiceImage: (sr, image) => {
@@ -133,33 +66,6 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ invoices })
         }
       },
-
-      updatePackInvoiceImage: (sr, image) => {
-        const invoices = [...get().packInvoices]
-        const index = invoices.findIndex(item => item.invoiceNumber === sr)
-        if (index !== -1) {
-          invoices[index].packImage.push(image)
-          set({ invoices })
-        }
-      },
-
-      // updateBillInvoiceImage: (sr, image) => {
-      //   const invoices = [...get().billInvoices]
-      //   const index = invoices.findIndex(item => item.invoiceNumber === sr)
-      //   if (index !== -1) {
-      //     invoices[index].billImage.push(image)
-      //     set({ invoices })
-      //   }
-      // },
-
-      // updateDeliverInvoiceImage: (sr, image) => {
-      //   const invoices = [...get().deliveryInvoices]
-      //   const index = invoices.findIndex(item => item.invoiceNumber === sr)
-      //   if (index !== -1) {
-      //     invoices[index].image.push(image)
-      //     set({ invoices })
-      //   }
-      // },
 
       fetchInvoices: async (date = get().selectedDate) => {
         try {
@@ -286,85 +192,6 @@ export const useInvoiceStore = create<InvoiceState>()(
         }
       },
 
-      fetchCheckInvoices: async () => {
-        try {
-          set({ isLoading: true, error: null });
-
-          const response = await fetch('/api/invoice/check');
-          const { data } = await response.json();
-          set({ 
-            checkInvoices: data.map((item: any) => ({
-              ...item,
-              medicalName : item?.party?.customerName || '-',
-              city : item?.party?.city || '-',
-            })),
-            isLoading: false 
-          });
-        } catch (error) {
-          set({ error: 'Failed to fetch check invoices', isLoading: false });
-        }
-      },
-
-      fetchPackInvoices: async () => {
-        try {
-          set({ isLoading: true, error: null });
-          const response = await fetch('/api/invoice/pack');
-          const { data } = await response.json();
-          set({ 
-            packInvoices: data.map((item: any) => ({
-              ...item,
-              packImage : [],
-              medicalName : item?.party?.customerName || '-',
-              city : item?.party?.city || '-',
-            })),
-            isLoading: false 
-          });
-        } catch (error) {
-          set({ error: 'Failed to fetch pack invoices', isLoading: false });
-        }
-      },
-
-      // fetchDeliveryInvoices: async (date = get().deliverySelectedDate) => {
-      //   try {
-      //     set({ isLoading: true, error: null });
-      //     const url = new URL('/api/invoice/deliver', window.location.origin);
-      //     if (date) {
-      //       url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
-      //     }
-      //     const response = await fetch(url.toString());
-      //     const { data } = await response.json();
-      //     set({ 
-      //       deliveryInvoices: data.map((item: any) => ({
-      //         ...item,
-      //         medicalName : item?.party?.customerName || '-',
-      //         city : item?.party?.city || '-',
-      //       })),
-      //       isLoading: false 
-      //     });
-      //   } catch (error) {
-      //     set({ error: 'Failed to fetch delivery invoices', isLoading: false });
-      //   }
-      // },
-
-      // fetchBillInvoices: async () => {
-      //   try {
-      //     set({ isLoading: true, error: null });
-      //     const response = await fetch('/api/invoice/bill');
-      //     const { data } = await response.json();
-      //     set({ 
-      //       billInvoices : data.map((item: any) => ({
-      //         ...item,
-      //         billImage : [],
-      //         medicalName : item?.party?.customerName || '-',
-      //         city : item?.party?.city || '-',
-      //       })),
-      //       isLoading: false 
-      //     });
-      //   } catch (error) {
-      //     set({ error: 'Failed to fetch bill invoices', isLoading: false });
-      //   }
-      // },
-
       saveInvoice: async (invoiceNumber: number , isOtc?: boolean) => {
         try {
           set({ isLoading: true });
@@ -452,204 +279,6 @@ export const useInvoiceStore = create<InvoiceState>()(
           throw error;
         }
       },
-
-      checkInvoice: async (invoiceNumber: number) => {
-        try {
-          set({ isLoading: true });
-          
-          const invoice = get().checkInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
-          
-          if (!invoice) {
-            throw new Error('Invoice not found');
-          }
-
-          const response = await fetch('/api/invoice/check?invoiceNumber=' + invoiceNumber, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to check invoice');
-          }
-
-          //call hanldeInvoice
-          await get().fetchCheckInvoices();
-
-          set({ isLoading: false });
-
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Failed to check invoice', 
-            isLoading: false 
-          });
-          throw error;
-        }
-      },
-
-      packInvoice: async (invoiceNumber: number) => {
-        try {
-          set({ isLoading: true });
-          
-          const invoice = get().packInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
-          
-          if (!invoice) {
-            throw new Error('Invoice not found');
-          }
-
-          if(invoice.packImage.length === 0) {
-            throw new Error('At least one packaging image is required');
-          } 
-
-          const response = await fetch('/api/invoice/pack?invoiceNumber=' + invoiceNumber, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              image : [...invoice.image , ...invoice.packImage]
-            })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to pack invoice');
-          }
-
-          //call hanldeInvoice  
-          await get().fetchPackInvoices();
-
-          set({ isLoading: false });
-
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Failed to pack invoice', 
-            isLoading: false 
-          });
-          throw error;
-        }
-      },
-
-      // pickupInvoice: async (invoiceNumber: number) => {
-      //   try {
-      //     set({ isLoading: true });
-          
-      //     const invoice = get().deliveryInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
-          
-      //     if (!invoice) {
-      //       throw new Error('Invoice not found');
-      //     }
-
-      //     const response = await fetch('/api/invoice/deliver/pickup?invoiceNumber=' + invoiceNumber, {
-      //       method: 'POST',
-      //       headers: {
-      //         'Content-Type': 'application/json',
-      //       },
-      //     });
-
-      //     if (!response.ok) {
-      //       const errorData = await response.json();
-      //       throw new Error(errorData.message || 'Failed to pickup invoice');
-      //     }
-
-      //     //call hanldeInvoice
-      //     await get().fetchDeliveryInvoices();
-
-      //     set({ isLoading: false });
-
-      //   } catch (error) {
-      //     set({ 
-      //       error: error instanceof Error ? error.message : 'Failed to pickup invoice', 
-      //       isLoading: false 
-      //     });
-      //     throw error;
-      //   }
-      // },
-
-      // deliverInvoice: async (invoiceNumber: number , location: { latitude: number, longitude: number }) => {
-      //   try {
-      //     set({ isLoading: true });
-          
-      //     const invoice = get().deliveryInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
-          
-      //     if (!invoice) {
-      //       throw new Error('Invoice not found');
-      //     }
-
-      //     const response = await fetch('/api/invoice/deliver?invoiceNumber=' + invoiceNumber, {
-      //       method: 'POST',
-      //       headers: {
-      //         'Content-Type': 'application/json',
-      //       },
-      //       body: JSON.stringify({
-      //         deliveredLocationLink : location.latitude + "," + location.longitude,
-      //         image : invoice.image
-      //       })
-      //     });
-
-      //     if (!response.ok) {
-      //       const errorData = await response.json();
-      //       throw new Error(errorData.message || 'Failed to deliver invoice');
-      //     }
-
-      //     //call hanldeInvoice
-      //     await get().fetchDeliveryInvoices();
-
-      //     set({ isLoading: false });
-
-      //   } catch (error) {
-      //     set({ 
-      //       error: error instanceof Error ? error.message : 'Failed to deliver invoice', 
-      //       isLoading: false 
-      //     });
-      //     throw error;
-      //   }
-      // },
-
-      // billInvoice: async (invoiceNumber: number) => {
-      //   try {
-      //     set({ isLoading: true });
-          
-      //     const invoice = get().billInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
-          
-      //     if (!invoice) {
-      //       throw new Error('Invoice not found');
-      //     }
-
-      //     if(invoice.billImage.length === 0) {
-      //       throw new Error('At least one billing image is required');
-      //     } 
-
-      //     const response = await fetch('/api/invoice/bill?invoiceNumber=' + invoiceNumber, {
-      //       method: 'POST',
-      //       headers: {
-      //         'Content-Type': 'application/json',
-      //       },
-      //       body: JSON.stringify({
-      //         image : [...invoice.image , ...invoice.billImage]
-      //       })
-      //     });
-
-      //     if (!response.ok) {
-      //       const errorData = await response.json();
-      //       throw new Error(errorData.message || 'Failed to bill invoice');
-      //     }
-
-      //     //call hanldeInvoice
-      //     await get().fetchBillInvoices();
-
-      //     set({ isLoading: false });
-
-      //   } catch (error) {
-      //     set({ 
-      //       error: error instanceof Error ? error.message : 'Failed to bill invoice', 
-      //       isLoading: false 
-      //     });
-      //     throw error;
-      //   }
-      // }
     }),
     {
       name: 'invoice-store'

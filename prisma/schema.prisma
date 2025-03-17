@@ -58,6 +58,8 @@ model DeliveryMemo {
   goodsCheckedUsername   String?
   goodsCheckedTimestamp  DateTime?
 
+  image             String[]
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -108,7 +110,14 @@ model Invoice {
   updatedAt     DateTime  @updatedAt
 }
 
-model DayStart {
+model DayStartInvoice {
+  id             String    @id @map("_id") @default(auto()) @db.ObjectId
+  date           String    @unique
+  invoiceStartNo Int
+  invoiceEndNo   Int?
+}
+
+model DayStartDeliveryMemo {
   id             String    @id @map("_id") @default(auto()) @db.ObjectId
   date           String    @unique
   invoiceStartNo Int
@@ -145,4 +154,9 @@ enum DeliveryStatus {
 enum BilledStatus {
   NOT_BILLED
   BILLED
+}
+
+enum DayStartType {
+  INVOICE
+  DELIVERY_MEMO
 }
