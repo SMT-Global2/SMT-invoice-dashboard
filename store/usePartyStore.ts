@@ -34,19 +34,29 @@ interface PartyStore {
   isLoading: boolean
   error: string | null
   selectedParty: PartyCode | null
+  
+  // Pagination properties
   pagination: Pagination
   totalPages: number
+  
+  // Past deliveries properties
   pastDeliveries: PastDelivery[]
   isPastDeliveriesLoading: boolean
   selectedPartyForDeliveries: string | null
   
-  // Actions
+  // Party CRUD actions
   fetchParties: (search?: string) => Promise<void>
   createParty: (party: Omit<PartyCode, 'id'>) => Promise<void>
   updateParty: (id: string, party: Partial<PartyCode>) => Promise<void>
   deleteParty: (id: string) => Promise<void>
   setSelectedParty: (party: PartyCode | null) => void
+  
+  // Pagination actions
   setPagination: (pagination: Pagination) => void
+  setPage: (page: number) => void
+  setItemsPerPage: (limit: number) => void
+  
+  // Past deliveries actions
   fetchPastDeliveries: (partyCode: string) => Promise<void>
   setSelectedPartyForDeliveries: (partyCode: string | null) => void
   resetDeliveriesState: () => void
@@ -175,6 +185,20 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
 
   setPagination: (pagination) => {
     set({ pagination })
+  },
+  
+  // New convenience methods for pagination
+  setPage: (page) => {
+    set((state) => ({ 
+      pagination: { ...state.pagination, page } 
+    }))
+  },
+  
+  setItemsPerPage: (limit) => {
+    set((state) => ({ 
+      pagination: { ...state.pagination, limit, page: 0 } // Reset to first page when changing limit
+    }))
+    get().fetchParties()
   },
 
   fetchPastDeliveries: async (partyCode) => {

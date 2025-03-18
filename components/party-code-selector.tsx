@@ -37,7 +37,7 @@ export function PartyCodeSelector({
   const searchPartyCode = useCallback(async (search: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/partycode?search=${search}`);
+      const response = await fetch(`/api/party/partycode?search=${search}`);
       const { data } = await response.json();
       setPartyCodes(data);
     } catch (error) {

@@ -10,10 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { PlusIcon, Pencil, Trash2, Search, History } from "lucide-react"
-import { usePartyStore } from "@/store/usePartyStore"
-import { PartyDialog } from "./party-dialog"
-import { PastDeliveriesDialog } from "./past-deliveries-dialog"
+import { PlusIcon, Pencil, Trash2, Search } from "lucide-react"
+import { useAgencyStore } from "@/store/useAgencyStore"
+import { AgencyDialog } from "./agency-dialog"
 import {
   Card,
   CardContent,
@@ -48,46 +47,41 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export default function PartyPage() {
+export default function AgencyPage() {
   const { 
-    parties, 
-    fetchParties, 
-    deleteParty, 
-    setSelectedParty, 
+    agencies, 
+    fetchAgencies, 
+    deleteAgency, 
+    setSelectedAgency, 
     isLoading,
     pagination,
     totalPages,
     setPage,
-    setItemsPerPage,
-    setSelectedPartyForDeliveries,
-    resetDeliveriesState
-  } = usePartyStore()
+    setItemsPerPage
+  } = useAgencyStore()
 
   const [searchQuery, setSearchQuery] = useState("")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [partyToDelete, setPartyToDelete] = useState<string | null>(null)
+  const [agencyToDelete, setAgencyToDelete] = useState<string | null>(null)
 
   useEffect(() => {
-    // Reset deliveries state when component mounts
-    resetDeliveriesState()
-    
-    fetchParties(searchQuery)
-  }, [fetchParties, pagination.page, pagination.limit, searchQuery, resetDeliveriesState])
+    fetchAgencies(searchQuery)
+  }, [fetchAgencies, pagination.page, pagination.limit, searchQuery])
 
-  const handleEdit = (party: any) => {
-    setSelectedParty(party)
+  const handleEdit = (agency: any) => {
+    setSelectedAgency(agency)
   }
 
   const handleDelete = async (id: string) => {
-    await deleteParty(id)
-    await fetchParties()
+    await deleteAgency(id)
+    await fetchAgencies()
   }
 
   const handleAddNew = () => {
-    setSelectedParty({
+    setSelectedAgency({
       code: "",
-      customerName: "",
-      city: "",
+      companyName: "",
+      shortName: "",
     })
   }
 
@@ -96,24 +90,19 @@ export default function PartyPage() {
     setPage(0) // Reset to first page on search
   }
 
-  const handleDeleteClick = (partyId: string) => {
-    setPartyToDelete(partyId)
+  const handleDeleteClick = (agencyId: string) => {
+    setAgencyToDelete(agencyId)
     setIsDeleteDialogOpen(true)
   }
 
   const handleConfirmDelete = async () => {
-    if (partyToDelete) {
-      await handleDelete(partyToDelete)
+    if (agencyToDelete) {
+      await handleDelete(agencyToDelete)
       setIsDeleteDialogOpen(false)
-      setPartyToDelete(null)
+      setAgencyToDelete(null)
     }
   }
 
-  const handleViewPastDeliveries = (partyCode: string) => {
-    setSelectedPartyForDeliveries(partyCode)
-  }
-
-  // Helper function to display pagination pages
   const displayedPages = () => {
     const currentPage = pagination.page
     const total = totalPages
@@ -149,7 +138,7 @@ export default function PartyPage() {
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
-          <CardTitle className="m-2">Party List</CardTitle>
+          <CardTitle className="m-2">Agency List</CardTitle>
           <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2 sm:gap-4">
             <div className="relative w-full sm:w-64 flex items-center">
               <Search className="absolute left-2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -162,7 +151,7 @@ export default function PartyPage() {
             </div>
             <Button onClick={handleAddNew} size="sm" className="h-8 px-2 text-xs">
               <PlusIcon className="h-3 w-3 mr-1" />
-              Add Party
+              Add Agency
             </Button>
           </div>
         </CardHeader>
@@ -172,56 +161,46 @@ export default function PartyPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Sr. No.</TableHead>
-                  <TableHead>Party Code</TableHead>
-                  <TableHead>Regional Code</TableHead>
-                  <TableHead>Customer Name</TableHead>
-                  <TableHead>City</TableHead>
+                  <TableHead>Agency Code</TableHead>
+                  <TableHead>Company Name</TableHead>
+                  <TableHead>Short Name</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && parties?.length === 0 ? (
-                  <TableSkeleton rows={5} cols={6} />
-                ) : parties?.length === 0 ? (
+                {isLoading && agencies?.length === 0 ? (
+                  <TableSkeleton rows={5} cols={5} />
+                ) : agencies?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center">
-                      No parties found
+                      No agencies found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  parties.map((party, index) => (
-                    <TableRow key={party.id}>
+                  agencies.map((agency, index) => (
+                    <TableRow key={agency.id}>
                       <TableCell>
                         {pagination.page * pagination.limit + index + 1}
                       </TableCell>
-                      <TableCell>{party.code}</TableCell>
-                      <TableCell>{party.regionalCode || '-'}</TableCell>
-                      <TableCell>{party.customerName || '-'}</TableCell>
-                      <TableCell>{party.city || '-'}</TableCell>
+                      <TableCell>{agency.code}</TableCell>
+                      <TableCell>{agency.companyName || '-'}</TableCell>
+                      <TableCell>{agency.shortName || '-'}</TableCell>
                       <TableCell>
-                        {party.createdAt && new Date(party.createdAt).toLocaleDateString()}
+                        {agency.createdAt && new Date(agency.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleViewPastDeliveries(party.code)}
-                          title="View Past Deliveries"
-                        >
-                          <History className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(party)}
+                          onClick={() => handleEdit(agency)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteClick(party.id!)}
+                          onClick={() => handleDeleteClick(agency.id!)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -233,7 +212,6 @@ export default function PartyPage() {
             </Table>
           </div>
 
-          {/* Updated Pagination Controls */}
           <div className="mt-4 flex justify-center">
             <Pagination>
               <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
@@ -288,23 +266,19 @@ export default function PartyPage() {
         </CardContent>
       </Card>
 
-      <PartyDialog />
-      <PastDeliveriesDialog />
+      <AgencyDialog />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the party
-              and remove all associated data.
+              This action cannot be undone. This will permanently delete the agency code.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
