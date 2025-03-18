@@ -229,6 +229,7 @@ export async function DELETE(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const dmNumber = searchParams.get('dmNumber');
+    const isChecked = searchParams.get('isChecked') === 'true';
 
     if (!dmNumber) {
       return Response.json({
@@ -239,7 +240,8 @@ export async function DELETE(request: NextRequest) {
 
     const dm = await prisma.deliveryMemo.findUnique({
       where: {
-        dmNumber: parseInt(dmNumber)
+        dmNumber: parseInt(dmNumber),
+        ...(isChecked && { goodsCheckedUsername: session.user.username })
       }
     });
 
@@ -259,11 +261,25 @@ export async function DELETE(request: NextRequest) {
 
     const result = await prisma.$transaction(async (prismaTxn) => {
       // Delete delivery memo
-      const result = await prisma.deliveryMemo.delete({
-        where: {
-          dmNumber: parseInt(dmNumber)
-        },
-      });
+      let result;
+      if (isChecked) {
+        result = await prisma.deliveryMemo.update({
+          where: {
+            dmNumber: parseInt(dmNumber)
+          },
+          data : {
+            image : [],
+            goodsCheckedUsername : null,
+            goodsCheckedTimestamp : null,
+          }
+        });
+      } else {
+        result = await prisma.deliveryMemo.delete({
+          where: {
+            dmNumber: parseInt(dmNumber)
+          },
+        });
+      }
 
       // Check if this was the end number and update day start record if needed
       if (moment(dm.generatedDate).isSame(moment(), 'day')) {

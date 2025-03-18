@@ -39,7 +39,7 @@ interface DeliveryMemoState {
   fetchDeliveryMemos: (date?: Date | null) => Promise<void>
   saveDeliveryMemo: (dmNumber: number, isCollected: boolean) => Promise<void>
   checkDeliveryMemo: (dmNumber: number, isChecked: boolean) => Promise<void>
-  resetDeliveryMemo: (dmNumber: number) => Promise<void>
+  resetDeliveryMemo: (dmNumber: number , isChecked: boolean) => Promise<void>
   updateDeliveryMemoImage: (dmNumber: number, image: string) => void
 }
 
@@ -330,7 +330,7 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
         }
       },
 
-      resetDeliveryMemo: async (dmNumber: number) => {
+      resetDeliveryMemo: async (dmNumber: number , isChecked: boolean = false) => {
         try {
           set({ isLoading: true });
           
@@ -340,8 +340,8 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
             throw new Error('Delivery memo not found');
           }
 
-          if (dm.goodsCollectedTimestamp) {
-            const response = await fetch(`/api/deliverymemo?dmNumber=${dmNumber}`, {
+          if (dm.goodsCollectedTimestamp ) {
+            const response = await fetch(`/api/deliverymemo?dmNumber=${dmNumber}` + (isChecked ? '&isChecked=true' : ''), {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',
@@ -354,7 +354,6 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
             }
           }
 
-          // Refresh the data
           await get().handleDeliveryMemos();
 
           set({ isLoading: false });

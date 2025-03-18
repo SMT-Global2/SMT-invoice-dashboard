@@ -19,14 +19,16 @@ import { DialogTitle } from '@radix-ui/react-dialog';
 import { useState, useEffect, useRef } from 'react';
 import { getS3BucketUrl } from '@/lib/helper';
 import { InvoiceData } from '@/store/useInvoiceStore';
+import { DeliveryMemoData } from '@/store/useDeliveryMemoStore';
 
 interface ShowImageProps {
-  invoice: InvoiceData;
+  invoice ?: InvoiceData;
+  deliveryMemo ?: DeliveryMemoData;
   images: string[];
   text?: string;
 }
 
-export function ShowImage({ invoice , images, text }: ShowImageProps) {
+export function ShowImage({ invoice , deliveryMemo  , images, text }: ShowImageProps) {
   const [processedImages, setProcessedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -212,7 +214,16 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <DialogTitle className="text-lg font-semibold m-2">View Images (Invoice #{invoice.invoiceNumber}) </DialogTitle>
+        <DialogTitle className="text-lg font-semibold m-2">View Images 
+          {
+            invoice?.invoiceNumber ? (
+              <>
+                Invoice #{invoice?.invoiceNumber}
+              </>
+            ) : deliveryMemo?.dmNumber ? (
+              <>Delivery Memo #{deliveryMemo?.dmNumber}</>
+            ) : ''} 
+        </DialogTitle>
         <Carousel   
           className="w-full relative"
           setApi={(api) => {

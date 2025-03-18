@@ -60,6 +60,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ShowImage } from '@/components/show-image';
 
 interface PartyCode {
   id: string;
@@ -92,22 +93,6 @@ export default function DeliveryMemoPage() {
     resetDeliveryMemo,
     handleDeliveryMemos,
   } = useDeliveryMemoStore();
-
-  // Local method to update image key in delivery memo
-  const updateDeliveryMemoImageLocal = (dmNumber: number, image: string) => {
-    const newData = [...deliveryMemos];
-    const index = newData.findIndex(item => item.dmNumber === dmNumber);
-    if (index !== -1) {
-      const currentImages = newData[index].images || [];
-      newData[index] = {
-        ...newData[index],
-        images: [...currentImages, image],
-      };
-      setDeliveryMemos(newData);
-      // Also update in the store
-      updateDeliveryMemoImage(dmNumber, image);
-    }
-  };
 
   const [partyCodes, setPartyCodes] = useState<PartyCode[]>([]);
   const [partyCodeLoading, setPartyCodeLoading] = useState<boolean>(false)
@@ -164,7 +149,7 @@ export default function DeliveryMemoPage() {
       const uploadedImage = await uploadFileToS3(compressedFile, dmNumber.toString());
 
       // Update the image in the store
-      updateDeliveryMemoImageLocal(dmNumber, uploadedImage.key);
+      updateDeliveryMemoImage(dmNumber, uploadedImage.key);
 
       toast({
         title: 'Success',
@@ -201,10 +186,10 @@ export default function DeliveryMemoPage() {
     }
   };
 
-  const handleReset = async (dmNumber: number) => {
+  const handleReset = async (dmNumber: number , isChecked: boolean = false) => {
     try {
       setLastInteractedDm(dmNumber);
-      await resetDeliveryMemo(dmNumber);
+      await resetDeliveryMemo(dmNumber , isChecked);
       toast({
         title: 'Success',
         description: 'Delivery memo reset successfully',
@@ -367,8 +352,6 @@ export default function DeliveryMemoPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
-                      <TableHead>Goods Collected</TableHead>
-                      <TableHead>Image</TableHead>
                       <TableHead>Actions</TableHead>
                       <TableHead>Collected Time</TableHead>
                     </TableRow>
@@ -458,59 +441,11 @@ export default function DeliveryMemoPage() {
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
                           <TableCell>
-                            <Select
-                              disabled={row.isDisabled || row.goodsCollectedUsername !== null || !row.partyCode}
-                              value={row.goodsCollectedUsername ? "yes" : row._tempCollected ? "yes" : "no"}
-                              onValueChange={value => {
-                                if (value === "yes") {
-                                  // Update the UI state locally without saving immediately
-                                  const newData = [...deliveryMemos];
-                                  const index = newData.findIndex(item => item.dmNumber === row.dmNumber);
-                                  if (index !== -1) {
-                                    newData[index] = {
-                                      ...newData[index],
-                                      _tempCollected: true, // Use temporary flag to mark as collected in UI
-                                    };
-                                    setDeliveryMemos(newData);
-                                  }
-                                } else {
-                                  // If switched back to "no", remove the temp flag
-                                  const newData = [...deliveryMemos];
-                                  const index = newData.findIndex(item => item.dmNumber === row.dmNumber);
-                                  if (index !== -1) {
-                                    const updatedRow = { ...newData[index] };
-                                    delete updatedRow._tempCollected;
-                                    newData[index] = updatedRow;
-                                    setDeliveryMemos(newData);
-                                  }
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-[100px]">
-                                <SelectValue placeholder="Select" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="yes">Yes</SelectItem>
-                                <SelectItem value="no">No</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <TakeImage
-                              invoice={row as any}
-                              uploadingImage={uploadingImage}
-                              handleImageUpload={handleImageUpload}
-                              isDisabled={row.isDisabled || row.goodsCollectedUsername !== null || uploadingImage === row.dmNumber}
-                              showImages={row.images || []}
-                              takeType='BOTH'
-                            />
-                          </TableCell>
-                          <TableCell>
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="default"
                                 size="sm"
-                                disabled={row.isDisabled || isLoading || row.goodsCollectedUsername !== null || !row.partyCode || !row._tempCollected}
+                                disabled={row.isDisabled || isLoading || row.goodsCollectedUsername !== null || !row.partyCode}
                                 onClick={async () => await handleSave(row.dmNumber)}
                               >
                                 Save
@@ -520,7 +455,7 @@ export default function DeliveryMemoPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    disabled={row.isDisabled || isLoading}
+                                    disabled={row.isDisabled || isLoading || row.goodsCollectedUsername === null}
                                   >
                                     Reset
                                   </Button>
@@ -673,14 +608,13 @@ export default function DeliveryMemoPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
-                      <TableHead>Goods Checked</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Actions</TableHead>
                       <TableHead>Checked Time</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading ? (
+                    {isLoading && deliveryMemos?.length === 0 ? (
                       <TableSkeleton rows={5} cols={11} />
                     ) : deliveryMemos.length === 0 ? (
                       <TableEmpty
@@ -702,46 +636,8 @@ export default function DeliveryMemoPage() {
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
                           <TableCell>
-                            <Select
-                              disabled={row.goodsCheckedUsername !== null}
-                              value={row.goodsCheckedUsername ? "yes" : row._tempChecked ? "yes" : "no"}
-                              onValueChange={value => {
-                                if (value === "yes") {
-                                  // Update the UI state locally without saving immediately
-                                  const newData = [...deliveryMemos];
-                                  const index = newData.findIndex(item => item.dmNumber === row.dmNumber);
-                                  if (index !== -1) {
-                                    newData[index] = {
-                                      ...newData[index],
-                                      _tempChecked: true, // Use temporary flag to mark as checked in UI
-                                    };
-                                    setDeliveryMemos(newData);
-                                  }
-                                } else {
-                                  // If switched back to "no", remove the temp flag
-                                  const newData = [...deliveryMemos];
-                                  const index = newData.findIndex(item => item.dmNumber === row.dmNumber);
-                                  if (index !== -1) {
-                                    const updatedRow = { ...newData[index] };
-                                    delete updatedRow._tempChecked;
-                                    newData[index] = updatedRow;
-                                    setDeliveryMemos(newData);
-                                  }
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-[100px]">
-                                <SelectValue placeholder="Select" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="yes">Yes</SelectItem>
-                                <SelectItem value="no">No</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
                             <TakeImage
-                              invoice={row as any}
+                              deliveryMemo={row as any}
                               uploadingImage={uploadingImage}
                               handleImageUpload={handleImageUpload}
                               isDisabled={row.goodsCheckedUsername !== null || uploadingImage === row.dmNumber}
@@ -754,7 +650,7 @@ export default function DeliveryMemoPage() {
                               <Button
                                 variant="default"
                                 size="sm"
-                                disabled={isLoading || row.goodsCheckedUsername !== null || !row.images || row.images.length === 0 || !row._tempChecked}
+                                disabled={isLoading || row.goodsCheckedUsername !== null || !row.images || row.images.length === 0}
                                 onClick={async () => await handleCheck(row.dmNumber)}
                               >
                                 Save
@@ -764,7 +660,7 @@ export default function DeliveryMemoPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    disabled={isLoading}
+                                    disabled={isLoading || row.goodsCheckedUsername === null}
                                   >
                                     Reset
                                   </Button>
@@ -778,8 +674,8 @@ export default function DeliveryMemoPage() {
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={async () => await handleReset(row.dmNumber)}>Reset</AlertDialogAction>
-                                  </AlertDialogFooter>
+                                    <AlertDialogAction onClick={async () => await handleReset(row.dmNumber , true)}>Reset</AlertDialogAction>
+                                    </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
                             </div>

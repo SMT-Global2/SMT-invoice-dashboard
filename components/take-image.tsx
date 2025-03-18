@@ -11,13 +11,15 @@ type TakeType = 'BOTH' | 'CAMERA' | 'UPLOAD'
 
 export function TakeImage({ 
     invoice, 
+    deliveryMemo,
     handleImageUpload, 
     uploadingImage,
     isDisabled,
     showImages,
     takeType = 'BOTH'
 } : {
-    invoice: any;
+    invoice ?: any;
+    deliveryMemo?: any;
     handleImageUpload: any;
     uploadingImage: any;
     isDisabled: boolean;
@@ -45,27 +47,47 @@ export function TakeImage({
         <div className="flex items-center space-x-2">
             {(takeType === 'BOTH' || takeType === 'UPLOAD') && (
                 <div className="relative">
-                        <Button
-                            variant="outline"
-                            className="gap-2 z-10"
-                            disabled={isDisabled}
+                    <Button
+                        variant="outline"
+                        className="gap-2 z-10"
+                        disabled={isDisabled}
                     >
-                        {uploadingImage === invoice.invoiceNumber ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                {/* Uploading... */}
-                            </>
-                        ) : (
-                            <>
-                                <Upload className='w-5 h-5'/> 
-                                {/* Upload Image  */}
-                            </>
-                        )}
+                        {
+                            invoice && (
+                                uploadingImage === invoice?.invoiceNumber ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        {/* Uploading... */}
+                                    </>
+                                ) : 
+                                (
+                                    <>
+                                        <Upload className='w-5 h-5'/> 
+                                        {/* Upload Image  */}
+                                    </>
+                                )
+                            )
+                        }
+                        {
+                            deliveryMemo && (
+                                uploadingImage === deliveryMemo?.dmNumber ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        {/* Uploading... */}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className='w-5 h-5'/> 
+                                        {/* Upload Image  */}
+                                    </>
+                                )
+                            )
+                        }
                     </Button>
                     <Input
                         type="file"
                         accept="image/*"
-                        onChange={handleImageUpload(invoice.invoiceNumber)}
+                        onChange={handleImageUpload(invoice?.invoiceNumber || deliveryMemo?.dmNumber)}
                         className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
                         hidden={isDisabled}
                         style={{
@@ -88,7 +110,7 @@ export function TakeImage({
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        onChange={handleImageUpload(invoice.invoiceNumber)}
+                        onChange={handleImageUpload(invoice?.invoiceNumber || deliveryMemo?.dmNumber)}
                         className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
                         hidden={isDisabled}
                         style={{
@@ -108,7 +130,7 @@ export function TakeImage({
              )
             }
             
-            <ShowImage invoice={invoice} images={showImages} />
+            <ShowImage invoice={invoice} deliveryMemo={deliveryMemo} images={showImages} />
         </div>
     );
 }
