@@ -29,8 +29,6 @@ import {
 import { DeliveryMemoData, useDeliveryMemoStore } from '@/store/useDeliveryMemoStore';
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from '@/components/ui/use-toast';
 import { compressImage, convertImage, tweleHrFormatDateString, uploadFileToS3 } from '@/lib/helper';
 import {
@@ -61,13 +59,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ShowImage } from '@/components/show-image';
-
-interface PartyCode {
-  id: string;
-  code: string;
-  customerName: string | null;
-  city: string | null;
-}
+import { PartyCodeSelector, PartyCode } from '@/components/party-code-selector';
 
 export default function DeliveryMemoPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -94,47 +86,10 @@ export default function DeliveryMemoPage() {
     handleDeliveryMemos,
   } = useDeliveryMemoStore();
 
-  const [partyCodes, setPartyCodes] = useState<PartyCode[]>([]);
-  const [partyCodeLoading, setPartyCodeLoading] = useState<boolean>(false)
-  const [searchTerms, setSearchTerms] = useState<{ [key: number]: string }>({});
-  const [openComboboxes, setOpenComboboxes] = useState<{ [key: number]: boolean }>({});
-
   useEffect(() => {
     setCheckingMode(activeTab === "checking");
     handleDeliveryMemos();
   }, [handleDeliveryMemos, selectedDate, activeTab, setCheckingMode]);
-
-  const searchPartyCode = useCallback(async (search: string) => {
-    try {
-      setPartyCodeLoading(true);
-      const response = await fetch(`/api/partycode?search=${search}`);
-      const { data } = await response.json();
-      setPartyCodes(data);
-    } catch (error) {
-      console.error('Failed to fetch party codes:', error);
-    } finally {
-      setPartyCodeLoading(false);
-    }
-  }, []);
-
-  const debouncedSearchPartyCode = useCallback(
-    debounce((search: string) => {
-      searchPartyCode(search);
-    }, 600),
-    [searchPartyCode]
-  );
-
-  const handleSearchChange = (dmNumber: number, value: string) => {
-    setSearchTerms(prev => ({ ...prev, [dmNumber]: value }));
-    debouncedSearchPartyCode(value);
-  };
-
-  const toggleCombobox = (dmNumber: number, isOpen: boolean) => {
-    setOpenComboboxes(prev => ({ ...prev, [dmNumber]: isOpen }));
-    if (isOpen) {
-      searchPartyCode(searchTerms[dmNumber] || '');
-    }
-  };
 
   const handleImageUpload = (dmNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -376,67 +331,11 @@ export default function DeliveryMemoPage() {
                           <TableCell>{row.dmNumber}</TableCell>
                           <TableCell>{selectedDate ? selectedDate.toLocaleDateString() : new Date().toLocaleDateString()}</TableCell>
                           <TableCell>
-                            <Popover
-                              open={openComboboxes[row.dmNumber]}
-                              onOpenChange={(isOpen) => toggleCombobox(row.dmNumber, isOpen)}
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  aria-expanded={openComboboxes[row.dmNumber]}
-                                  className="justify-between"
-                                  disabled={row.isDisabled || row.goodsCollectedUsername !== null}
-                                >
-                                  {row.partyCode || "Select Party"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
-                                <Command>
-                                  <CommandInput
-                                    placeholder="Party Code"
-                                    value={searchTerms[row.dmNumber] || ''}
-                                    onValueChange={(value) => handleSearchChange(row.dmNumber, value)}
-                                  />
-
-                                  {
-                                    partyCodeLoading ?
-                                      <CommandEmpty className="m-auto flex items-center justify-center p-4 relative h-[100px]">
-                                        <div className="flex items-center justify-center w-full">
-                                          <Spinner />
-                                        </div>
-                                      </CommandEmpty>
-                                      :
-                                      <CommandEmpty className="m-auto flex items-center justify-center p-4">
-                                        No party found.
-                                      </CommandEmpty>
-                                  }
-
-                                  <div className="max-h-[200px] overflow-y-auto">
-                                    <CommandGroup>
-                                      {partyCodes.map((party) => (
-                                        <CommandItem
-                                          key={party.id}
-                                          value={party.code}
-                                          onSelect={() => {
-                                            handlePartyCodeSelect(row, party);
-                                            toggleCombobox(row.dmNumber, false);
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              row.partyCode === party.code ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                          {party.code} - {party?.customerName}
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </div>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
+                            <PartyCodeSelector
+                              value={row.partyCode || null}
+                              onChange={(partyCode) => handlePartyCodeSelect(row, partyCode)}
+                              disabled={row.isDisabled || row.goodsCollectedUsername !== null}
+                            />
                           </TableCell>
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
