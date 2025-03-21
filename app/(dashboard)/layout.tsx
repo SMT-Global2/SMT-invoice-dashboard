@@ -41,6 +41,13 @@ import {
   useSidebar
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { 
+  dashboardItems, 
+  getCategories, 
+  getItemsByCategory, 
+  DashboardItem, 
+  DashboardCategory 
+} from '@/lib/constants/dashboardData';
 
 export default function DashboardLayout({
   children
@@ -64,118 +71,60 @@ export default function DashboardLayout({
                 {/* Dashboard */}
                 <SidebarGroup>
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      <Link href="/" passHref legacyBehavior>
-                        <SidebarMenuButton tooltip="Dashboard">
-                          <Home className="h-5 w-5" />
-                          <span>Dashboard</span>
-                        </SidebarMenuButton>
-                      </Link>
-                    </SidebarMenuItem>
+                    {/* Dashboard home item */}
+                    {(() => {
+                      const homeItem = dashboardItems.find(item => item.id === 'dashboard');
+                      if (!homeItem) return null;
+                      
+                      const HomeIcon = homeItem.icon;
+                      return (
+                        <SidebarMenuItem>
+                          <Link href={homeItem.href} passHref legacyBehavior>
+                            <SidebarMenuButton tooltip={homeItem.title}>
+                              <HomeIcon className="h-5 w-5" />
+                              <span>{homeItem.title}</span>
+                            </SidebarMenuButton>
+                          </Link>
+                        </SidebarMenuItem>
+                      );
+                    })()}
                   </SidebarMenu>
                 </SidebarGroup>
 
-                {/* Administration Group */}
-                <SidebarGroup>
-                  <SidebarGroupLabel>Administration</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      <RoleGuard allowedRoles={['ADMIN']}>
-                        <SidebarMenuItem>
-                          <Link href="/analytics" passHref legacyBehavior>
-                            <SidebarMenuButton tooltip="Analytics">
-                              <BarChart className="h-5 w-5" />
-                              <span>Analytics</span>
-                            </SidebarMenuButton>
-                          </Link>
-                        </SidebarMenuItem>
-                      </RoleGuard>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-
-                {/* Invoice Management Group */}
-                <SidebarGroup>
-                  <SidebarGroupLabel>Invoice Management</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      <SidebarMenuItem>
-                        <Link href="/invoice" passHref legacyBehavior>
-                          <SidebarMenuButton tooltip="Invoices">
-                            <FileText className="h-5 w-5" />
-                            <span>Invoices</span>
-                          </SidebarMenuButton>
-                        </Link>
-                      </SidebarMenuItem>
-                      
-                      <SidebarMenuItem>
-                        <Link href="/checking" passHref legacyBehavior>
-                          <SidebarMenuButton tooltip="Checking">
-                            <CheckCircle className="h-5 w-5" />
-                            <span>Checking</span>
-                          </SidebarMenuButton>
-                        </Link>
-                      </SidebarMenuItem>
-                      
-                      <SidebarMenuItem>
-                        <Link href="/packing" passHref legacyBehavior>
-                          <SidebarMenuButton tooltip="Packing">
-                            <Package className="h-5 w-5" />
-                            <span>Packing</span>
-                          </SidebarMenuButton>
-                        </Link>
-                      </SidebarMenuItem>
-                      
-                      <SidebarMenuItem>
-                        <Link href="/delivery" passHref legacyBehavior>
-                          <SidebarMenuButton tooltip="Delivery">
-                            <Truck className="h-5 w-5" />
-                            <span>Delivery</span>
-                          </SidebarMenuButton>
-                        </Link>
-                      </SidebarMenuItem>
-                      
-                      <SidebarMenuItem>
-                        <Link href="/billing" passHref legacyBehavior>
-                          <SidebarMenuButton tooltip="Billing">
-                            <Newspaper className="h-5 w-5" />
-                            <span>Billing</span>
-                          </SidebarMenuButton>
-                        </Link>
-                      </SidebarMenuItem>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-
-                {/* Management Group */}
-                <SidebarGroup>
-                  <SidebarGroupLabel>Management</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      <RoleGuard allowedRoles={['ADMIN']}>
-                        <SidebarMenuItem>
-                          <Link href="/employee" passHref legacyBehavior>
-                            <SidebarMenuButton tooltip="Employee">
-                              <UserIcon className="h-5 w-5" />
-                              <span>Employee</span>
-                            </SidebarMenuButton>
-                          </Link>
-                        </SidebarMenuItem>
-                      </RoleGuard>
-                      
-                      <RoleGuard allowedRoles={['ADMIN']}>
-                        <SidebarMenuItem>
-                          <Link href="/party" passHref legacyBehavior>
-                            <SidebarMenuButton tooltip="Parties / Clients">
-                              <Building className="h-5 w-5" />
-                              <span>Parties / Clients</span>
-                            </SidebarMenuButton>
-                          </Link>
-                        </SidebarMenuItem>
-                      </RoleGuard>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
+                {/* Render all categories and their items */}
+                {getCategories().filter(cat => cat.id !== 'home').map(category => (
+                  <SidebarGroup key={category.id}>
+                    <SidebarGroupLabel>{category.label}</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {getItemsByCategory(category.id).map(item => {
+                          const ItemIcon = item.icon;
+                          return (
+                            <SidebarMenuItem key={item.id}>
+                              {item.roles ? (
+                                <RoleGuard allowedRoles={item.roles}>
+                                  <Link href={item.href} passHref legacyBehavior>
+                                    <SidebarMenuButton tooltip={item.title}>
+                                      <ItemIcon className="h-5 w-5" />
+                                      <span>{item.title}</span>
+                                    </SidebarMenuButton>
+                                  </Link>
+                                </RoleGuard>
+                              ) : (
+                                <Link href={item.href} passHref legacyBehavior>
+                                  <SidebarMenuButton tooltip={item.title}>
+                                    <ItemIcon className="h-5 w-5" />
+                                    <span>{item.title}</span>
+                                  </SidebarMenuButton>
+                                </Link>
+                              )}
+                            </SidebarMenuItem>
+                          );
+                        })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                ))}
               </SidebarContent>
               <SidebarFooter className="border-t">
                 <UserProfile />

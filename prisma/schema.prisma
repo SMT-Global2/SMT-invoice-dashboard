@@ -39,6 +39,7 @@ model PartyCode {
 
     invoice Invoice[]
     deliveryMemo DeliveryMemo[]
+    expiry Expiry[]
 
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
@@ -80,7 +81,31 @@ model Inventory {
   updatedAt     DateTime  @updatedAt  
 }
 
+model Expiry {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
 
+  generatedDate     DateTime
+
+
+  partyCode         String    
+  party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
+
+  voucherNumber     Int?
+
+
+  image             String[]
+
+  expiryDate        DateTime
+  expiryUsername    String?
+  expiryTimestamp   DateTime?
+  
+  creditNoteNumber  Int?
+  creditNoteUsername    String?
+  creditNoteTimestamp   DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt  
+}
 
 model DeliveryMemo {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId

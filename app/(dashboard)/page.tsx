@@ -1,20 +1,24 @@
 import { RoleGuard } from "@/components/auth/role-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, CheckCircle, Package, Truck, User, Building, Newspaper, LucideIcon, BarChart } from "lucide-react"
 import Link from "next/link"
 import { ReactNode } from "react"
 import { UserType } from "@prisma/client"
+import { 
+  dashboardItems, 
+  getCategories, 
+  getItemsByCategory, 
+  DashboardItem, 
+  DashboardCategory 
+} from "@/lib/constants/dashboardData"
 
 // Reusable tile component
 interface DashboardTileProps {
-  title: string
-  href: string
-  icon: LucideIcon
-  description: string
-  roles?: UserType[]
+  item: DashboardItem;
 }
 
-const DashboardTile = ({ title, href, icon: Icon, description, roles }: DashboardTileProps) => {
+const DashboardTile = ({ item }: DashboardTileProps) => {
+  const { title, href, icon: Icon, description, roles } = item;
+  
   const tileContent = (
     <Card className="h-[10rem] transition-all hover:scale-105 hover:shadow-lg cursor-pointer dashboard-tile">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -64,73 +68,24 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
 };
 
 export default async function DashboardPage() {
+  // Get all categories from our data
+  const categories = getCategories();
+  console.log(categories);
   return (
     <div className="flex-1 w-full">
       <div className="space-y-8 p-4">
-        
-        {/* Administration Group - Only for Admins */}
-        <TileGroup title="Administration">
-          <DashboardTile 
-            title="Analytics" 
-            href="/analytics" 
-            icon={BarChart} 
-            description="View detailed invoice analytics and reports" 
-            roles={['ADMIN'] as UserType[]}
-          />
-        </TileGroup>
-        
-        {/* Invoice Management Group */}
-        <TileGroup title="Invoice Management">
-          <DashboardTile 
-            title="Invoice" 
-            href="/invoice" 
-            icon={FileText} 
-            description="Create and Generate Invoices" 
-          />
-          <DashboardTile 
-            title="Checking" 
-            href="/checking" 
-            icon={CheckCircle} 
-            description="Review and Verify Generated Invoices" 
-          />
-          <DashboardTile 
-            title="Packing" 
-            href="/packing" 
-            icon={Package} 
-            description="Prepare and Pack Verified Invoices" 
-          />
-          <DashboardTile 
-            title="Delivery" 
-            href="/delivery" 
-            icon={Truck} 
-            description="Pick Up, Ship, and Deliver Orders" 
-          />
-          <DashboardTile 
-            title="Billing" 
-            href="/billing" 
-            icon={Newspaper} 
-            description="Billing Management" 
-          />
-        </TileGroup>
-
-        {/* Logistics Group */}
-        <TileGroup title="Management">
-          <DashboardTile 
-            title="Employee" 
-            href="/employee" 
-            icon={User} 
-            description="Manage Employee Profiles" 
-            roles={['ADMIN'] as UserType[]}
-          />
-          <DashboardTile 
-            title="Parties / Clients" 
-            href="/party" 
-            icon={Building} 
-            description="Maintain and organize client data" 
-            roles={['ADMIN'] as UserType[]}
-          />
-        </TileGroup>
-
+        {categories.map((category) => {
+          const items = getItemsByCategory(category.id);
+          if (items.length === 0 || category.id === 'home') return <></>;
+          
+          return (
+            <TileGroup key={category.id} title={category.label}>
+              {items.filter((item) => item.id !== 'dashboard').map((item) => (
+                <DashboardTile key={item.id} item={item} />
+              ))}
+            </TileGroup>
+          );
+        })}
       </div>
     </div>
   )

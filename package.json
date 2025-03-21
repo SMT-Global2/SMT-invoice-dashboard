@@ -43,6 +43,7 @@
     "drizzle-orm": "^0.31.4",
     "drizzle-zod": "^0.5.1",
     "embla-carousel-react": "^8.5.2",
+    "framer-motion": "^12.5.0",
     "heic2any": "^0.0.4",
     "lodash": "^4.17.21",
     "lucide-react": "^0.482.0",
