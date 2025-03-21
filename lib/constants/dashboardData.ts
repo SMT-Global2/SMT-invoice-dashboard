@@ -142,6 +142,14 @@ export const dashboardItems: DashboardItem[] = [
     description: 'Expiry Management',
     category: 'other-services',
   },
+  {
+    id: 'statement',
+    title: 'Statement',
+    href: '/statement',
+    icon: FileText,
+    description: 'Statement Management',
+    category: 'other-services',
+  },
 
   // Management Group
   {
