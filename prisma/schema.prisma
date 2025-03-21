@@ -67,8 +67,8 @@ model Inventory {
 
   invoiceNumber     Int
   invoiceDate       DateTime
+  voucherNumber     Int
 
-  voucherNumber     Int?
   inventoryVoucherUsername   String?
   inventoryVoucherTimestamp  DateTime?
 
@@ -85,21 +85,17 @@ model Expiry {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
 
   generatedDate     DateTime
-
+  voucherNumber     String
+  image             String[]
 
   partyCode         String    
   party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
-
-  voucherNumber     Int?
-
-
-  image             String[]
 
   expiryDate        DateTime
   expiryUsername    String?
   expiryTimestamp   DateTime?
   
-  creditNoteNumber  Int?
+  creditNoteNumber      String?
   creditNoteUsername    String?
   creditNoteTimestamp   DateTime?
 

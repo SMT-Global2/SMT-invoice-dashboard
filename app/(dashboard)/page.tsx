@@ -20,16 +20,19 @@ const DashboardTile = ({ item }: DashboardTileProps) => {
   const { title, href, icon: Icon, description, roles } = item;
   
   const tileContent = (
-    <Card className="h-[10rem] transition-all hover:scale-105 hover:shadow-lg cursor-pointer dashboard-tile">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-2xl font-medium">{title}</CardTitle>
-        <Icon className="h-6 w-6 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <p className="text-xs text-muted-foreground">
-          {description}
-        </p>
-      </CardContent>
+    <Card className="relative h-[10rem] dashboard-tile group">
+      {/* Simplified hover effect, removed transform-gpu for better performance */}
+      <div className="tile-content h-full bg-card rounded-lg p-6">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+          <CardTitle className="text-2xl font-medium group-hover:text-primary transition-colors">{title}</CardTitle>
+          <Icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+        </CardHeader>
+        <CardContent className="p-0 pt-2">
+          <p className="text-xs text-muted-foreground group-hover:text-foreground/90 transition-colors">
+            {description}
+          </p>
+        </CardContent>
+      </div>
     </Card>
   );
 
