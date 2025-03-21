@@ -156,7 +156,7 @@ import {
   
     return (
       <div className='space-y-4 overflow-hidden w-full'>
-        <Card className="w-full max-w-full">
+        <Card className="w-full">
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <CardTitle>Billing Invoices</CardTitle>
@@ -188,67 +188,69 @@ import {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-full">
-              <div className="min-w-0 lg:min-w-[800px] w-full">
-                <Table className="w-full table-auto">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[60px]">Sr. No.</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Invoice No.</TableHead>
-                      <TableHead>Party Code</TableHead>
-                      <TableHead>Medical Name</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>Image</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Bill Timestamp</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading && billInvoices?.length === 0 ? (
-                      <TableSkeleton rows={5} cols={9} />
-                    ) : billInvoices?.length === 0 ? (
+            <div className="w-full border rounded-lg">
+              <div className="overflow-auto max-h-[65vh] relative">
+                <div className="min-w-[700px] w-full">
+                  <Table className="w-full">
+                    <TableHeader className="sticky top-0 bg-background z-10">
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center">No invoices found</TableCell>
+                        <TableHead className="w-[60px]">Sr. No.</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Invoice No.</TableHead>
+                        <TableHead>Party Code</TableHead>
+                        <TableHead>Medical Name</TableHead>
+                        <TableHead>City</TableHead>
+                        <TableHead>Image</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Bill Timestamp</TableHead>
                       </TableRow>
-                    ) : (
-                      billInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}>
-                          <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
-                          <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
-                          <TableCell>{invoice.invoiceNumber}</TableCell>
-                          <TableCell>{invoice.partyCode}</TableCell>
-                          <TableCell>{invoice.medicalName || '-'}</TableCell>
-                          <TableCell>{invoice.city || '-'}</TableCell>
-                          <TableCell>
-                            <TakeImage
-                              invoice={invoice}
-                              uploadingImage={uploadingImage}
-                              handleImageUpload={handleImageUpload}
-                              isDisabled={uploadingImage === invoice.invoiceNumber || invoice.billedStatus === BilledStatus.BILLED}
-                              showImages={invoice.image}
-                              takeType='BOTH'
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                            <Button
-                                variant={"default"}
-                                disabled={isLoading || invoice.billedStatus === BilledStatus.BILLED}
-                                onClick={async () => await handleBillInvoice(invoice.invoiceNumber)}
-                              >
-                                Bill Invoice
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {invoice.billedTimestamp ? tweleHrFormatDateString(invoice.billedTimestamp) : '-'}
-                          </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading && billInvoices?.length === 0 ? (
+                        <TableSkeleton rows={5} cols={9} />
+                      ) : billInvoices?.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center">No invoices found</TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        billInvoices?.map((invoice, index) => (
+                          <TableRow key={invoice.invoiceNumber}>
+                            <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
+                            <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
+                            <TableCell>{invoice.invoiceNumber}</TableCell>
+                            <TableCell>{invoice.partyCode}</TableCell>
+                            <TableCell>{invoice.medicalName || '-'}</TableCell>
+                            <TableCell>{invoice.city || '-'}</TableCell>
+                            <TableCell>
+                              <TakeImage
+                                invoice={invoice}
+                                uploadingImage={uploadingImage}
+                                handleImageUpload={handleImageUpload}
+                                isDisabled={uploadingImage === invoice.invoiceNumber || invoice.billedStatus === BilledStatus.BILLED}
+                                showImages={invoice.image}
+                                takeType='BOTH'
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                              <Button
+                                  variant={"default"}
+                                  disabled={isLoading || invoice.billedStatus === BilledStatus.BILLED}
+                                  onClick={async () => await handleBillInvoice(invoice.invoiceNumber)}
+                                >
+                                  Bill Invoice
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {invoice.billedTimestamp ? tweleHrFormatDateString(invoice.billedTimestamp) : '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
             

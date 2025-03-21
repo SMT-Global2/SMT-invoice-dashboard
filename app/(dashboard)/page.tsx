@@ -60,7 +60,7 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-semibold text-muted-foreground">{title}</h3>
-      <div className="dashboard-tiles">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {children}
       </div>
     </div>
@@ -72,8 +72,8 @@ export default async function DashboardPage() {
   const categories = getCategories();
   console.log(categories);
   return (
-    <div className="flex-1 w-full">
-      <div className="space-y-8 p-4">
+    <div className="w-full overflow-hidden">
+      <div className="space-y-8">
         {categories.map((category) => {
           const items = getItemsByCategory(category.id);
           if (items.length === 0 || category.id === 'home') return <></>;

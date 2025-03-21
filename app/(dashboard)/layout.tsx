@@ -57,7 +57,7 @@ export default function DashboardLayout({
   return (
     <Providers>
       <SidebarProvider defaultOpen={false}>
-        {/* <div className="flex min-h-screen w-full bg-muted/40 max-w-[100vw] relative"> */}
+        <div className="flex min-h-screen w-full max-w-[100vw] overflow-hidden">
           <div className="fixed left-0 top-0 bottom-0 z-50">
             <Sidebar variant="floating" collapsible="icon">
               <SidebarHeader className="flex items-center gap-2 p-3 border-b">
@@ -135,7 +135,7 @@ export default function DashboardLayout({
           <MainContent>{children}</MainContent>
           
           <Analytics />
-        {/* </div> */}
+        </div>
       </SidebarProvider>
     </Providers>
   );
@@ -146,8 +146,9 @@ function MainContent({ children }: { children: React.ReactNode }) {
   
   return (
     <div className={cn(
-      "flex flex-col flex-1 transition-all duration-300 ease-in-out w-full",
-      state === "expanded" ? "ml-0 md:ml-[17rem]" : "ml-0 md:ml-[5rem]"
+      "flex flex-col transition-all duration-300 ease-in-out",
+      state === "expanded" ? "ml-0 md:ml-[17rem]" : "ml-0 md:ml-[5rem]",
+      "w-full max-w-[100vw] overflow-hidden"
     )}>
       <header className="sticky top-0 z-30 flex h-12 items-center gap-4 bg-background/80 backdrop-blur-sm px-4 shadow-sm">
         
@@ -166,10 +167,8 @@ function MainContent({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       
-      <main className="flex-1 p-4 md:p-6 bg-muted/40 overflow-auto">
-        <div className="w-full h-full overflow-x-hidden overflow-y-auto">
-          {children}
-        </div>
+      <main className="flex-1 p-4 md:p-6 bg-muted/40 w-full overflow-hidden">
+        {children}
       </main>
     </div>
   );
