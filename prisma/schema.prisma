@@ -92,8 +92,8 @@ model Expiry {
   party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
 
   expiryDate        DateTime
-  expiryUsername    String?
-  expiryTimestamp   DateTime?
+  expiryUsername    String
+  expiryTimestamp   DateTime
   
   creditNoteNumber      String?
   creditNoteUsername    String?
