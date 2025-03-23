@@ -68,12 +68,49 @@ export default function ReceiptPage() {
   };
 
   // Handle edit button click
-  const handleEditClick = (id: string) => {
-    const receiptItem = receiptItems.find(item => item.id === id);
-    if (receiptItem) {
-      setDialogType("edit");
-      setCurrentReceiptItem(receiptItem);
+  const handleEditClick = async (id: string) => {
+    try {
+      // First set loading state
       setIsDialogOpen(true);
+      setDialogType("edit");
+      
+      // Try to find the receipt in the local cache first as a fallback
+      const localReceiptItem = receiptItems.find(item => item.id === id);
+      
+      if (!localReceiptItem) {
+        toast({
+          title: "Error",
+          description: "Could not find receipt in local data",
+          variant: "destructive"
+        });
+        setIsDialogOpen(false);
+        return;
+      }
+      
+      // Set the local item first so the dialog can show something immediately
+      setCurrentReceiptItem(localReceiptItem);
+      
+      // Try to fetch fresh data
+      try {
+        const freshReceipt = await useReceiptStore.getState().fetchReceiptItemById(id);
+        if (freshReceipt) {
+          console.log('FETCHED FRESH RECEIPT FOR EDIT:', freshReceipt);
+          // Update with fresh data
+          setCurrentReceiptItem(freshReceipt);
+        }
+      } catch (fetchError) {
+        console.error("Error fetching fresh receipt data:", fetchError);
+        // Continue with local data, just log a warning
+        console.warn("Using cached receipt data instead of fresh data");
+      }
+    } catch (error) {
+      console.error("Error preparing receipt for edit:", error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare receipt data for editing",
+        variant: "destructive"
+      });
+      setIsDialogOpen(false);
     }
   };
 
@@ -145,6 +182,7 @@ export default function ReceiptPage() {
       />
 
       <ReceiptDialog 
+        key={`${dialogType}-${currentReceiptItem?.id || 'new'}`}
         isOpen={isDialogOpen}
         dialogType={dialogType}
         receiptItem={currentReceiptItem}

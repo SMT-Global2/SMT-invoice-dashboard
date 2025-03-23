@@ -272,8 +272,20 @@ export function ReceiptDialog({
         });
       }
       
+      // Explicitly reset form to clear all values
+      form.reset({
+        partyCode: '',
+        medicalName: '',
+        city: '',
+        amount: 0,
+        remarks: '',
+        paymentMethod: 'NONE',
+        generatedDate: new Date(),
+        currencyBills: null,
+        cheque: null
+      });
+      
       // Close the dialog
-      resetForm();
       onClose();
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -287,64 +299,124 @@ export function ReceiptDialog({
     }
   };
   
-  // Reset form
-  const resetForm = () => {
-    form.reset({
-      partyCode: '',
-      medicalName: '',
-      city: '',
-      amount: 0,
-      remarks: '',
-      paymentMethod: 'NONE',
-      generatedDate: new Date(),
-      currencyBills: null,  // For 'NONE' payment method, set to null
-      cheque: null          // For 'NONE' payment method, set to null
-    });
-  };
-  
   // Initialize form when receiptItem changes
   useEffect(() => {
-    if (isOpen && receiptItem && dialogType === 'edit') {
-      const paymentMethod = receiptItem.paymentMethod;
-      
-      // Set appropriate values based on payment method
-      let currencyBills = null;
-      let cheque = null;
-      
-      if (paymentMethod === 'CASH') {
-        currencyBills = receiptItem.currencyBills || {
-          '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, '10': 0,
-        };
-      } else if (paymentMethod === 'CHEQUE') {
-        cheque = receiptItem.cheque ? {
-          ...receiptItem.cheque,
-          date: new Date(receiptItem.cheque.date)
-        } : {
-          number: '',
-          bank: '',
-          date: new Date(),
-          amount: receiptItem.amount
-        };
+    // When the dialog opens
+    if (isOpen) {
+      if (receiptItem && dialogType === 'edit') {
+        const paymentMethod = receiptItem.paymentMethod;
+        
+        console.log('EDIT RECEIPT:', receiptItem);
+        console.log('CURRENCY BILLS IN RECEIPT:', receiptItem.currencyBills);
+        
+        // Set appropriate values based on payment method
+        let currencyBills = null;
+        let cheque = null;
+        
+        if (paymentMethod === 'CASH') {
+          // Ensure all currency bill values are properly populated with their default values
+          currencyBills = {
+            '500': receiptItem.currencyBills?.['500'] || 0,
+            '200': receiptItem.currencyBills?.['200'] || 0,
+            '100': receiptItem.currencyBills?.['100'] || 0,
+            '50': receiptItem.currencyBills?.['50'] || 0,
+            '20': receiptItem.currencyBills?.['20'] || 0,
+            '10': receiptItem.currencyBills?.['10'] || 0,
+          };
+          
+          console.log('PROCESSED CURRENCY BILLS FOR FORM:', currencyBills);
+        } else if (paymentMethod === 'CHEQUE') {
+          cheque = receiptItem.cheque ? {
+            ...receiptItem.cheque,
+            date: new Date(receiptItem.cheque.date)
+          } : {
+            number: '',
+            bank: '',
+            date: new Date(),
+            amount: receiptItem.amount
+          };
+        }
+        
+        form.reset({
+          partyCode: receiptItem.partyCode,
+          medicalName: receiptItem.party?.customerName || '',
+          city: receiptItem.party?.city || '',
+          amount: receiptItem.amount,
+          remarks: receiptItem.remarks || '',
+          paymentMethod,
+          generatedDate: receiptItem.generatedDate ? new Date(receiptItem.generatedDate) : new Date(),
+          currencyBills,
+          cheque
+        });
+        
+        console.log('FORM VALUES AFTER RESET:', form.getValues());
+      } else {
+        // For create mode, reset to empty form
+        form.reset({
+          partyCode: '',
+          medicalName: '',
+          city: '',
+          amount: 0,
+          remarks: '',
+          paymentMethod: 'NONE',
+          generatedDate: new Date(),
+          currencyBills: null,
+          cheque: null
+        });
       }
-      
+    } else {
+      // When dialog closes, reset the form to clear any leftover state
       form.reset({
-        partyCode: receiptItem.partyCode,
-        medicalName: receiptItem.party?.customerName || '',
-        city: receiptItem.party?.city || '',
-        amount: receiptItem.amount,
-        remarks: receiptItem.remarks || '',
-        paymentMethod,
-        generatedDate: receiptItem.generatedDate ? new Date(receiptItem.generatedDate) : new Date(),
-        currencyBills,
-        cheque
+        partyCode: '',
+        medicalName: '',
+        city: '',
+        amount: 0,
+        remarks: '',
+        paymentMethod: 'NONE',
+        generatedDate: new Date(),
+        currencyBills: null,
+        cheque: null
       });
-    } else if (isOpen && dialogType === 'create') {
-      resetForm();
     }
   }, [isOpen, receiptItem, dialogType, form]);
   
+  // Cleanup when component unmounts
+  useEffect(() => {
+    // Return cleanup function
+    return () => {
+      // Reset form when component unmounts to avoid stale state
+      form.reset({
+        partyCode: '',
+        medicalName: '',
+        city: '',
+        amount: 0,
+        remarks: '',
+        paymentMethod: 'NONE',
+        generatedDate: new Date(),
+        currencyBills: null,
+        cheque: null
+      });
+    };
+  }, []); // Empty dependency array since this only runs on mount/unmount
+  
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        // Reset form directly without using resetForm function
+        form.reset({
+          partyCode: '',
+          medicalName: '',
+          city: '',
+          amount: 0,
+          remarks: '',
+          paymentMethod: 'NONE',
+          generatedDate: new Date(),
+          currencyBills: null,
+          cheque: null
+        });
+        onClose();
+      }
+    }}>
       <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-[85vw] md:w-[80vw] lg:w-[75vw] xl:w-[70vw] 2xl:w-[65vw] p-4 sm:p-6 gap-4">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
@@ -473,7 +545,7 @@ export function ReceiptDialog({
                           // Reset the related fields when changing payment method
                           if (value === 'CASH') {
                             form.setValue('currencyBills', {
-                              '500': 0,
+                              '500': receiptItem?.currencyBills?.['500'] || 0,
                               '200': 0,
                               '100': 0,
                               '50': 0,
