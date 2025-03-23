@@ -15,16 +15,17 @@ import {
 interface DatePickerProps {
   date?: Date | undefined
   setDate: (value: Date | undefined) => void
+  initialFocus?: boolean
 }
 
-export function DatePicker({ date, setDate }: DatePickerProps) {
+export function DatePicker({ date, setDate, initialFocus = false }: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant={"outline"}
           className={cn(
-            "w-[240px] justify-start text-left font-normal",
+            "w-full sm:w-[240px] justify-start text-left font-normal",
             !date && "text-muted-foreground"
           )}
         >
@@ -37,7 +38,7 @@ export function DatePicker({ date, setDate }: DatePickerProps) {
           mode="single"
           selected={date}
           onSelect={setDate}
-          initialFocus
+          initialFocus={initialFocus}
         />
       </PopoverContent>
     </Popover>

@@ -159,3 +159,11 @@ export function getS3BucketUrl(key: string) {
   const encodedKey = encodeURIComponent(key);
   return `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_S3_REGION}.amazonaws.com/${encodedKey}`;
 }
+
+export function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(amount);
+}

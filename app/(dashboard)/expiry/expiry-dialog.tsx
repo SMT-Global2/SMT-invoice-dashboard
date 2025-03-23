@@ -324,6 +324,7 @@ export function ExpiryDialog({
                       <DatePicker
                         date={field.value}
                         setDate={(date) => date && field.onChange(date)}
+                        initialFocus={true}
                       />
                     </FormControl>
                     <FormMessage />

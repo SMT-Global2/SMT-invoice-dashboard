@@ -40,6 +40,7 @@ model PartyCode {
     invoice Invoice[]
     deliveryMemo DeliveryMemo[]
     expiry Expiry[]
+    receipt Receipt[]
 
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
@@ -169,6 +170,47 @@ model Invoice {
   updatedAt     DateTime  @updatedAt
 }
 
+type CurrencyBills {
+  500 Int @default(0)
+  200 Int @default(0)
+  100 Int @default(0)
+  50 Int @default(0)
+  20 Int @default(0)
+  10 Int @default(0)
+}
+
+type Cheque {
+  number String
+  bank String
+  date DateTime @default(now())
+  amount Int @default(0)
+}
+
+model Receipt {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+
+  generatedDate     DateTime
+  receiptNumber     Int @unique
+  amount            Int
+  remarks           String?
+
+  receiptUsername   String?
+  receiptTimestamp  DateTime?
+
+  paymentMethod     PaymentMethod @default(NONE)
+
+  currencyBills     CurrencyBills?
+  cheque            Cheque?
+
+  partyCode         String    
+  party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+
+
 model DayStartInvoice {
   id             String    @id @map("_id") @default(auto()) @db.ObjectId
   date           String    @unique
@@ -181,6 +223,13 @@ model DayStartDeliveryMemo {
   date           String    @unique
   invoiceStartNo Int
   invoiceEndNo   Int?
+}
+
+
+enum PaymentMethod {
+  NONE
+  CASH
+  CHEQUE
 }
 
 enum UserType {

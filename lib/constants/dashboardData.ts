@@ -119,11 +119,11 @@ export const dashboardItems: DashboardItem[] = [
 
   //other-services
   {
-    id: 'agency',
-    title: 'Agency',
-    href: '/agency',
-    icon: Building,
-    description: 'Agency Management',
+    id: 'inventory',
+    title: 'Inventory',
+    href: '/inventory',
+    icon: Package,
+    description: 'Inventory Management',
     category: 'other-services',
   },
   {
@@ -161,6 +161,14 @@ export const dashboardItems: DashboardItem[] = [
     category: 'management',
     roles: ['ADMIN'],
     searchTerms: ['employee', 'staff', 'personnel', 'team', 'users']
+  },
+  {
+    id: 'agency',
+    title: 'Agency',
+    href: '/agency',
+    icon: Building,
+    description: 'Agency Management',
+    category: 'management',
   },
   {
     id: 'party',
