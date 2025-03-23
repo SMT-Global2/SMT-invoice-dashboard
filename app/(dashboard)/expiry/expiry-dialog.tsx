@@ -62,18 +62,18 @@ export function ExpiryDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
-  
+
   // Initialize form with React Hook Form and Zod validation
   const form = useForm<ExpiryFormValues>({
     resolver: zodResolver(expiryFormSchema),
     defaultValues: {
-      partyCode: '',
-      medicalName: '',
-      city: '',
-      voucherNumber: '',
-      expiryDate: new Date(),
-      billImages: [],
-      goodsImages: []
+      partyCode: expiryItem?.partyCode || '',
+      medicalName: expiryItem?.party?.customerName || '',
+      city: expiryItem?.party?.city || '',
+      voucherNumber: expiryItem?.voucherNumber || '',
+      expiryDate: expiryItem?.expiryDate ? new Date(expiryItem?.expiryDate) : new Date(),
+      billImages: expiryItem?.image.filter(img => img.includes('bill_')) || [],
+      goodsImages: expiryItem?.image.filter(img => img.includes('goods_')) || []
     },
     mode: "onBlur",
   });
@@ -129,16 +129,17 @@ export function ExpiryDialog({
       
       // Combine both image arrays for backend submission
       const allImages = [...values.billImages, ...values.goodsImages];
-      
+
       // Prepare data for submission
       const data = {
         partyCode: values.partyCode,
         voucherNumber: values.voucherNumber,
         image: allImages,
         expiryDate: values.expiryDate,
-        generatedDate: new Date()
+        generatedDate: expiryItem?.generatedDate ? new Date(expiryItem?.generatedDate) : new Date()
       };
-      
+
+      console.log(data)
       // Call the appropriate API based on dialog type
       if (dialogType === 'edit' && expiryItem) {
         await onSave(expiryItem.id, data);
@@ -214,7 +215,7 @@ export function ExpiryDialog({
         medicalName: expiryItem.party?.customerName || '',
         city: expiryItem.party?.city || '',
         voucherNumber: expiryItem.voucherNumber,
-        expiryDate: expiryItem.expiryDate,
+        expiryDate: expiryItem.expiryDate ? new Date(expiryItem.expiryDate) : new Date(),
         billImages,
         goodsImages
       });

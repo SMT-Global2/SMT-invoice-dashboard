@@ -162,7 +162,7 @@ export function InternalOperatorTable({
             <CardContent>
                 <div className="w-full border rounded-lg">
                     <div className="overflow-auto max-h-[65vh] relative">
-                        <div className="min-w-[700px] w-full">
+                        <div className="w-full">
                             <Table className="w-full">
                                 <TableHeader className="sticky top-0 bg-background z-10">
                                     <TableRow>

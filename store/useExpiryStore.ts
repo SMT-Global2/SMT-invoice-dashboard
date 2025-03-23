@@ -55,6 +55,7 @@ interface ExpiryState {
     search?: string;
     date?: Date;
   }) => Promise<void>
+  fetchExpiryItemById: (id: string) => Promise<ExpiryData | null>
   createExpiryItem: (data: Partial<ExpiryData>) => Promise<void>
   updateExpiryItem: (id: string, data: Partial<ExpiryData>) => Promise<void>
   deleteExpiryItem: (id: string) => Promise<void>
@@ -185,6 +186,30 @@ export const useExpiryStore = create<ExpiryState>()(
         }
       },
       
+      fetchExpiryItemById: async (id) => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          const url = new URL('/api/expiry', window.location.origin);
+          url.searchParams.set('id', id);
+          
+          const response = await fetch(url.toString());
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch expiry item');
+          }
+          
+          const { data } = await response.json();
+          set({ isLoading: false });
+          
+          return data;
+        } catch (error) {
+          set({ error: 'Failed to fetch expiry item', isLoading: false });
+          console.error(error);
+          return null;
+        }
+      },
+      
       createExpiryItem: async (data) => {
         try {
           set({ isLoading: true, error: null });
@@ -220,7 +245,10 @@ export const useExpiryStore = create<ExpiryState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const response = await fetch(`/api/expiry/${id}`, {
+          const url = new URL('/api/expiry', window.location.origin);
+          url.searchParams.set('id', id);
+          
+          const response = await fetch(url.toString(), {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -253,7 +281,12 @@ export const useExpiryStore = create<ExpiryState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const response = await fetch(`/api/expiry/${id}`, {
+          console.log('Deleting expiry item with ID:', id);
+          
+          const url = new URL('/api/expiry', window.location.origin);
+          url.searchParams.set('id', id);
+          
+          const response = await fetch(url.toString(), {
             method: 'DELETE'
           });
           
@@ -290,7 +323,10 @@ export const useExpiryStore = create<ExpiryState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const response = await fetch(`/api/expiry/${id}/credit-note`, {
+          const url = new URL('/api/expiry/credit-note', window.location.origin);
+          url.searchParams.set('id', id);
+          
+          const response = await fetch(url.toString(), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -322,7 +358,10 @@ export const useExpiryStore = create<ExpiryState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const response = await fetch(`/api/expiry/${id}/credit-note`, {
+          const url = new URL('/api/expiry/credit-note', window.location.origin);
+          url.searchParams.set('id', id);
+          
+          const response = await fetch(url.toString(), {
             method: 'DELETE'
           });
           

@@ -6,20 +6,14 @@ import { z } from "zod";
 
 // Validation schemas
 const idParamSchema = z.object({
-  id: z.string().uuid({ message: "Invalid ID format" })
+  id: z.string()
 });
 
 const creditNoteSchema = z.object({
   creditNoteNumber: z.string().min(1, "Credit note number is required"),
 });
 
-interface Params {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest) {
   try {
     // Validate session
     const session = await getServerSession(authOptions);
@@ -30,16 +24,16 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
     
-    // Validate ID parameter
-    const validatedParams = idParamSchema.safeParse(params);
-    if (!validatedParams.success) {
+    // Get ID from query params
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    
+    if (!id) {
       return NextResponse.json(
-        { message: "Invalid ID format", errors: validatedParams.error.flatten() },
+        { message: "Missing ID parameter" },
         { status: 400 }
       );
     }
-    
-    const { id } = validatedParams.data;
     
     // Validate request body
     const body = await req.json();
@@ -91,7 +85,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest) {
   try {
     // Validate session
     const session = await getServerSession(authOptions);
@@ -102,16 +96,16 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       );
     }
     
-    // Validate ID parameter
-    const validatedParams = idParamSchema.safeParse(params);
-    if (!validatedParams.success) {
+    // Get ID from query params
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    
+    if (!id) {
       return NextResponse.json(
-        { message: "Invalid ID format", errors: validatedParams.error.flatten() },
+        { message: "Missing ID parameter" },
         { status: 400 }
       );
     }
-    
-    const { id } = validatedParams.data;
     
     // Check if expiry item exists
     const existingItem = await prisma.expiry.findUnique({
