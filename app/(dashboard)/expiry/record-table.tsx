@@ -170,7 +170,7 @@ export function RecordTable({
                     </TableRow>
                   ) : (
                     expiryItems?.map((expiry, index) => (
-                      <TableRow key={expiry.id}>
+                      <TableRow key={expiry.id} >
                         <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                         <TableCell>{expiry.partyCode}</TableCell>
                         <TableCell>{expiry.party?.customerName || '-'}</TableCell>

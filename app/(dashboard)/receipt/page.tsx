@@ -105,17 +105,31 @@ export default function ReceiptPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+    <div className="mx-auto py-6 space-y-6">
+      
+      <div className="flex flex-row md:flex-row justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Receipt Management</h1>
-        <Button 
-          onClick={handleAddClick}
-          className="flex items-center gap-2 mt-2 md:mt-0"
-          size="sm"
-        >
-          <Plus className="h-4 w-4" />
-          Add New Receipt
-        </Button>
+        <div className="flex flex-col md:flex-row gap-2">
+
+          <Button 
+            onClick={handleAddClick}
+            className="flex items-center gap-2 mt-2 md:mt-0"
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            Download PDF 
+          </Button>
+
+          <Button 
+            onClick={handleAddClick}
+            className="flex items-center gap-2 mt-2 md:mt-0"
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            Add New Receipt
+          </Button>
+
+        </div>
       </div>
 
       <RecordTable

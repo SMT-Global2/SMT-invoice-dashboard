@@ -166,7 +166,7 @@ export default function ExpiryPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="mx-auto py-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Expiry Management</h1>
       </div>
