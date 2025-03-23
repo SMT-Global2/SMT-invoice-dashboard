@@ -233,93 +233,91 @@ export function RecordTable({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="w-full border rounded-lg">
+        <div className="w-full rounded-lg border">
           <div className="overflow-auto max-h-[65vh] relative">
-            <div className="w-full">
-              <Table className="w-full">
-                <TableHeader className="sticky top-0 bg-background z-10">
+            <Table className="w-full">
+              <TableHeader className="sticky top-0 bg-background z-10">
+                <TableRow>
+                  <TableHead className="w-[60px]">Sr. No.</TableHead>
+                  <TableHead>Receipt No.</TableHead>
+                  <TableHead>Party Code</TableHead>
+                  <TableHead>Medical Name</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Payment Details</TableHead>
+                  <TableHead>Generated Date</TableHead>
+                  <TableHead>Remarks</TableHead>
+                  <TableHead>Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && receiptItems?.length === 0 ? (
+                  <TableSkeleton rows={5} cols={10} />
+                ) : receiptItems?.length === 0 ? (
                   <TableRow>
-                    <TableHead className="w-[60px]">Sr. No.</TableHead>
-                    <TableHead>Receipt No.</TableHead>
-                    <TableHead>Party Code</TableHead>
-                    <TableHead>Medical Name</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead>Payment Details</TableHead>
-                    <TableHead>Generated Date</TableHead>
-                    <TableHead>Remarks</TableHead>
-                    <TableHead>Action</TableHead>
+                    <TableCell colSpan={10} className="text-center">No receipt items found</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && receiptItems?.length === 0 ? (
-                    <TableSkeleton rows={5} cols={10} />
-                  ) : receiptItems?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center">No receipt items found</TableCell>
+                ) : (
+                  receiptItems?.map((receipt, index) => (
+                    <TableRow key={receipt.id}>
+                      <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
+                      <TableCell>{receipt.receiptNumber}</TableCell>
+                      <TableCell>{receipt.partyCode}</TableCell>
+                      <TableCell>{receipt.party?.customerName || '-'}</TableCell>
+                      <TableCell>{formatCurrency(receipt.amount)}</TableCell>
+                      <TableCell>{formatPaymentMethod(receipt.paymentMethod)}</TableCell>
+                      <TableCell>
+                        {receipt.paymentMethod === 'CASH' 
+                          ? displayCashInfo(receipt) 
+                          : receipt.paymentMethod === 'CHEQUE'
+                            ? displayChequeInfo(receipt)
+                            : '-'
+                        }
+                      </TableCell>
+                      <TableCell>{tweleHrFormatDateString(receipt.generatedDate)}</TableCell>
+                      <TableCell>{receipt.remarks || '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => onEditClick(receipt.id)}
+                            className="flex items-center gap-1"
+                          >
+                            <Edit className="h-3 w-3" />
+                            Edit
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                className="flex items-center gap-1"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Receipt</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this receipt? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDeleteClick(receipt.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ) : (
-                    receiptItems?.map((receipt, index) => (
-                      <TableRow key={receipt.id}>
-                        <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
-                        <TableCell>{receipt.receiptNumber}</TableCell>
-                        <TableCell>{receipt.partyCode}</TableCell>
-                        <TableCell>{receipt.party?.customerName || '-'}</TableCell>
-                        <TableCell>{formatCurrency(receipt.amount)}</TableCell>
-                        <TableCell>{formatPaymentMethod(receipt.paymentMethod)}</TableCell>
-                        <TableCell>
-                          {receipt.paymentMethod === 'CASH' 
-                            ? displayCashInfo(receipt) 
-                            : receipt.paymentMethod === 'CHEQUE'
-                              ? displayChequeInfo(receipt)
-                              : '-'
-                          }
-                        </TableCell>
-                        <TableCell>{tweleHrFormatDateString(receipt.generatedDate)}</TableCell>
-                        <TableCell>{receipt.remarks || '-'}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => onEditClick(receipt.id)}
-                              className="flex items-center gap-1"
-                            >
-                              <Edit className="h-3 w-3" />
-                              Edit
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  className="flex items-center gap-1"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                  Delete
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Receipt</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this receipt? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => onDeleteClick(receipt.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
         
