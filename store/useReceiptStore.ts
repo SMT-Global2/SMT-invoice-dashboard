@@ -90,7 +90,6 @@ export const useReceiptStore = create<ReceiptState>()(
       isDialogOpen: false,
       dialogType: 'create',
       currentReceiptItem: undefined,
-
       
       // Pagination for record table
       currentPage: 1,

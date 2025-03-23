@@ -49,9 +49,9 @@ const currencyBillsSchema = z.object({
 
 // Define the cheque schema
 const chequeSchema = z.object({
-  number: z.string().min(1, "Cheque number is required"),
-  bank: z.string().min(1, "Bank name is required"),
-  date: z.date(),
+  number: z.string().optional(),
+  bank: z.string().optional(),
+  date: z.date().optional(),
   amount: z.coerce.number().min(0, "Amount must be non-negative").optional(),
 });
 

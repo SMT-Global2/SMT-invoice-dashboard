@@ -180,10 +180,10 @@ type CurrencyBills {
 }
 
 type Cheque {
-  number String
-  bank String
-  date DateTime @default(now())
-  amount Int @default(0)
+  number String?
+  bank String?
+  date DateTime?
+  amount Int?
 }
 
 model Receipt {

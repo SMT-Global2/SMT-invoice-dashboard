@@ -7,6 +7,7 @@ import { ReceiptDialog } from './receipt-dialog';
 import { RecordTable, PaymentMethodFilter } from './record-table';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import PDFGenerator from './PDFGenerator';
 
 export default function ReceiptPage() {
   const { toast } = useToast();
@@ -111,14 +112,7 @@ export default function ReceiptPage() {
         <h1 className="text-2xl font-bold">Receipt Management</h1>
         <div className="flex flex-col md:flex-row gap-2">
 
-          <Button 
-            onClick={handleAddClick}
-            className="flex items-center gap-2 mt-2 md:mt-0"
-            size="sm"
-          >
-            <Plus className="h-4 w-4" />
-            Download PDF 
-          </Button>
+          {selectedDate && <PDFGenerator date={selectedDate} />}
 
           <Button 
             onClick={handleAddClick}

@@ -28,13 +28,13 @@ const currencyBillsSchema = z.object({
 
 // Schema for cheque
 const chequeSchema = z.object({
-  number: z.string(),
-  bank: z.string(),
-  date: z.string().transform(date => moment(date).toDate()),
-  amount: z.number().positive(),
+  number: z.string().optional().nullable(),
+  bank: z.string().optional().nullable(),
+  date: z.string().optional().transform(date => moment(date).toDate()).nullable(),
+  amount: z.number().optional().nullable().refine(val => !val || (val && val > 0), "Amount must be positive"),
 });
 
-// Schema for creating receipt
+// Schema for creating receipt()
 const createReceiptSchema = z.object({
   partyCode: z.string().min(1, "Party code is required"),
   amount: z.number().positive("Amount must be positive"),
@@ -44,13 +44,15 @@ const createReceiptSchema = z.object({
   cheque: chequeSchema.optional().nullable(),
   generatedDate: z.string().default(() => moment().format()).transform((date) => moment(date).toDate()),
 }).refine(data => {
+
   // Validate based on payment method
-  if (data.paymentMethod === "CASH" && !data.currencyBills) {
-    return false;
-  }
-  if (data.paymentMethod === "CHEQUE" && !data.cheque) {
-    return false;
-  }
+  // if (data.paymentMethod === "CASH" && !data.currencyBills) {
+  //   return false;
+  // }
+  // if (data.paymentMethod === "CHEQUE" && !data.cheque) {
+  //   return false;
+  // }
+
   return true;
 }, {
   message: "Currency bills required for CASH payment or Cheque details required for CHEQUE payment",
@@ -253,8 +255,6 @@ export async function POST(req: NextRequest) {
         currencyBills,
         cheque,
         generatedDate,
-        receiptUsername: session.user.username,
-        receiptTimestamp: moment().toDate(),
       },
       include: {
         party: true
@@ -277,9 +277,9 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    // Validate session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.username) {
+    
+    if (!session) {
       return NextResponse.json(
         { message: "Unauthorized" },
         { status: 401 }
@@ -291,40 +291,41 @@ export async function PUT(req: NextRequest) {
     
     if (!id) {
       return NextResponse.json(
-        { message: "Missing ID parameter" },
+        { message: "Receipt ID is required" },
         { status: 400 }
       );
     }
-    
-    // Validate request body
-    const body = await req.json();
-    const validatedBody = updateReceiptSchema.safeParse(body);
-    
-    if (!validatedBody.success) {
-      return NextResponse.json(
-        { message: "Validation error", errors: validatedBody.error.flatten() },
-        { status: 400 }
-      );
-    }
-    
-    const updateData = validatedBody.data;
     
     // Check if receipt exists
-    const existingItem = await prisma.receipt.findUnique({
+    const existingReceipt = await prisma.receipt.findUnique({
       where: { id }
     });
     
-    if (!existingItem) {
+    if (!existingReceipt) {
       return NextResponse.json(
         { message: "Receipt not found" },
         { status: 404 }
       );
     }
     
-    // If party code is provided, check if it exists
-    if (updateData.partyCode) {
+    const body = await req.json();
+    
+    // Validate request body
+    const validation = updateReceiptSchema.safeParse(body);
+    
+    if (!validation.success) {
+      return NextResponse.json({ 
+        message: 'Validation error', 
+        errors: validation.error.flatten() 
+      }, { status: 400 });
+    }
+    
+    const { partyCode, amount, remarks, paymentMethod, currencyBills, cheque, generatedDate } = validation.data;
+    
+    // If partyCode is provided, check if it exists
+    if (partyCode) {
       const party = await prisma.partyCode.findUnique({
-        where: { code: updateData.partyCode }
+        where: { code: partyCode }
       });
       
       if (!party) {
@@ -339,9 +340,14 @@ export async function PUT(req: NextRequest) {
     const updatedReceipt = await prisma.receipt.update({
       where: { id },
       data: {
-        ...updateData,
-        receiptUsername: session.user.username,
-        receiptTimestamp: moment().toDate(),
+        partyCode,
+        amount,
+        remarks,
+        paymentMethod,
+        currencyBills,
+        cheque,
+        generatedDate,
+        updatedAt: new Date()
       },
       include: {
         party: true
@@ -364,8 +370,8 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    // Validate session
     const session = await getServerSession(authOptions);
+    
     if (!session) {
       return NextResponse.json(
         { message: "Unauthorized" },
@@ -378,17 +384,17 @@ export async function DELETE(req: NextRequest) {
     
     if (!id) {
       return NextResponse.json(
-        { message: "Missing ID parameter" },
+        { message: "Receipt ID is required" },
         { status: 400 }
       );
     }
     
     // Check if receipt exists
-    const receipt = await prisma.receipt.findUnique({
+    const existingReceipt = await prisma.receipt.findUnique({
       where: { id }
     });
     
-    if (!receipt) {
+    if (!existingReceipt) {
       return NextResponse.json(
         { message: "Receipt not found" },
         { status: 404 }
