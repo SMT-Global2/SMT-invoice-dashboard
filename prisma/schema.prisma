@@ -58,30 +58,6 @@ model AgencyCode {
     updatedAt   DateTime  @updatedAt
 }
 
-model Inventory {
-  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
-  inventoryNumber   Int    @unique
-  generatedDate     DateTime
-
-  inventoryCheckUsername   String?
-  inventoryCheckTimestamp  DateTime?
-
-  invoiceNumber     Int
-  invoiceDate       DateTime
-  voucherNumber     Int
-
-  inventoryVoucherUsername   String?
-  inventoryVoucherTimestamp  DateTime?
-
-  image             String[]
-
-  agencyCode        String
-  agency            AgencyCode  @relation(fields: [agencyCode], references: [code] , onDelete: NoAction)
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt  
-}
-
 model Expiry {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
 
@@ -170,13 +146,67 @@ model Invoice {
   updatedAt     DateTime  @updatedAt
 }
 
+model Inventory {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  inventoryNumber   Int    @unique
+  generatedDate     DateTime
+
+  inventoryCheckUsername   String?
+  inventoryCheckTimestamp  DateTime?
+
+  invoiceNumber     Int
+  invoiceDate       DateTime
+  voucherNumber     Int
+
+  inventoryVoucherUsername   String?
+  inventoryVoucherTimestamp  DateTime?
+
+  image             String[]
+
+  agencyCode        String
+  agency            AgencyCode  @relation(fields: [agencyCode], references: [code] , onDelete: NoAction)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt  
+}
+
+
+model Statement {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+
+  fileUrl            String
+  reports            Report[]
+  uploadedUsername   String?
+  uploadedTimestamp  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Report {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+
+  title             String
+  tableData         Json
+  images            String[]
+  saved             Boolean   @default(false)
+  savedTimestamp    DateTime?
+  savedUsername     String?
+
+  statementId       String    @db.ObjectId
+  statement         Statement  @relation(fields: [statementId], references: [id] , onDelete: NoAction)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
 type CurrencyBills {
   500 Int @default(0)
   200 Int @default(0)
   100 Int @default(0)
-  50 Int @default(0)
-  20 Int @default(0)
-  10 Int @default(0)
+  50  Int @default(0)
+  20  Int @default(0)
+  10  Int @default(0)
 }
 
 type Cheque {
@@ -190,7 +220,6 @@ model Receipt {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
 
   generatedDate     DateTime
-  receiptNumber     Int @unique
   amount            Int
   remarks           String?
 
@@ -199,7 +228,9 @@ model Receipt {
 
   paymentMethod     PaymentMethod @default(NONE)
 
+  receiptNumber     Int?
   currencyBills     CurrencyBills?
+  
   cheque            Cheque?
 
   partyCode         String    
