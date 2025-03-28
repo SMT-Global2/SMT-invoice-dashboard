@@ -1,17 +1,26 @@
 'use client';
 
-export function tweleHrFormatDateString(date: Date) {
-  const formattedDate = new Date(date).toLocaleString('en-GB', {
-    day: '2-digit',
-    month: '2-digit', 
+export const getS3BucketUrl = (key: string): string => {
+  // If key is already a full URL, return it
+  if (key.startsWith('http://') || key.startsWith('https://')) {
+    return key;
+  }
+  
+  const baseUrl = process.env.NEXT_PUBLIC_S3_BASE_URL || '';
+  return `${baseUrl}/${key}`;
+};
+
+export const tweleHrFormatDateString = (date: string | Date): string => {
+  const dateObj = new Date(date);
+  return dateObj.toLocaleDateString('en-US', {
     year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
     hour12: true
   });
-  return formattedDate;
-}
+};
 
 const heic2anyPromise = import('heic2any').then((mod) => mod.default);
 
@@ -155,11 +164,6 @@ export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
   }
 }
 //https://smt-images-bucket.s3.ap-south-1.amazonaws.com/1740321810294-shreyas
-export function getS3BucketUrl(key: string) {
-  const encodedKey = encodeURIComponent(key);
-  return `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_S3_REGION}.amazonaws.com/${encodedKey}`;
-}
-
 export function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',

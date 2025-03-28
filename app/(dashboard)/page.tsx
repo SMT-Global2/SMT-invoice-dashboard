@@ -77,12 +77,12 @@ export default async function DashboardPage() {
   return (
     <div className="w-full overflow-hidden">
       <div className="space-y-8">
-        {categories.map((category) => {
+        {categories.map((category, index) => {
           const items = getItemsByCategory(category.id);
           if (items.length === 0 || category.id === 'home') return <></>;
           
           return (
-            <TileGroup key={category.id} title={category.label}>
+            <TileGroup key={index} title={category.label}>
               {items.filter((item) => item.id !== 'dashboard').map((item) => (
                 <DashboardTile key={item.id} item={item} />
               ))}

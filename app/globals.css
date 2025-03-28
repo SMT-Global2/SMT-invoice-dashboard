@@ -216,3 +216,11 @@ html body[data-scroll-locked] {
   margin-right: 0 !important;
   overflow: visible !important;
 }
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
