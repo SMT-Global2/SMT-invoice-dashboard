@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import {
   Table,
@@ -33,6 +33,18 @@ import { TakeImage } from '@/components/take-image';
 import TableSkeleton from '@/components/table-skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Capsule } from '@/components/capsule';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Pagination,
   PaginationContent,
@@ -97,13 +109,13 @@ export function InventoryVoucherTable({
   };
   
   // Helper function to display pagination pages
-  const displayedPages = (currentPage: number, totalPages: number) => {
+  const displayedPages = useMemo(() => {
     const delta = 1;
     const range = [];
     
     for (
-      let i = Math.max(0, currentPage - delta);
-      i <= Math.min(totalPages - 1, currentPage + delta);
+      let i = Math.max(0, currentPage - 1 - delta);
+      i <= Math.min(totalPages - 1, currentPage - 1 + delta);
       i++
     ) {
       range.push(i);
@@ -124,7 +136,7 @@ export function InventoryVoucherTable({
     }
 
     return range;
-  };
+  }, [currentPage, totalPages]);
 
   return (
     <Card className="w-full">
@@ -161,12 +173,12 @@ export function InventoryVoucherTable({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="w-full rounded-lg border">
+        <div className="w-full border rounded-lg">
           <div className="overflow-auto max-h-[65vh] relative">
             <Table className="w-full">
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="w-12">Sr No.</TableHead>
+                  <TableHead className="w-[60px]">Sr No.</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Agency Code</TableHead>
                   <TableHead>Agency Name</TableHead>
@@ -175,15 +187,16 @@ export function InventoryVoucherTable({
                   <TableHead>Order No.</TableHead>
                   <TableHead>Order Date</TableHead>
                   <TableHead>Images</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Voucher No.</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && inventoryItems.length === 0 ? (
-                  <TableSkeleton rows={5} cols={10} />
+                  <TableSkeleton rows={5} cols={11} />
                 ) : inventoryItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-24 text-center">
+                    <TableCell colSpan={11} className="h-24 text-center">
                       No inventory items found.
                     </TableCell>
                   </TableRow>
@@ -192,11 +205,21 @@ export function InventoryVoucherTable({
                     <TableRow key={inventory.id}>
                       <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={inventory.voucherNumber ? "default" : "outline"}
-                        >
-                          {inventory.voucherNumber ? 'Inventory Vouchered' : 'Inventory Checked'}
-                        </Badge>
+                        {inventory.voucherNumber ? (
+                          <Capsule
+                            text='Vouchered'
+                            bgColor='bg-green-100'
+                            textColor='text-green-700'
+                            showIcon='ok'
+                          />
+                        ) : (
+                          <Capsule
+                            text='Checked'
+                            bgColor='bg-amber-100'
+                            textColor='text-amber-700'
+                            showIcon='cross'
+                          />
+                        )}
                       </TableCell>
                       <TableCell>{inventory.agencyCode}</TableCell>
                       <TableCell>{inventory.agency?.companyName || inventory.agency?.shortName}</TableCell>
@@ -214,39 +237,60 @@ export function InventoryVoucherTable({
                           invoice={{ invoiceNumber: inventory.invoiceNumber }}
                         />
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {inventory.voucherNumber ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onResetVoucher(inventory.id)}
-                              className="flex items-center gap-2"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                              Reset
-                            </Button>
-                          ) : (
-                            <div className="flex gap-2">
-                              <Input
-                                type="number"
-                                placeholder="Voucher #"
-                                className="w-24"
-                                value={voucherNumbers[inventory.id] || ''}
-                                onChange={(e) => handleVoucherNumberChange(inventory.id, e.target.value)}
-                              />
+                      <TableCell>
+                        {inventory.voucherNumber ? (
+                          inventory.voucherNumber
+                        ) : (
+                          <Input
+                            type="number"
+                            placeholder="Enter voucher..."
+                            className="w-32"
+                            value={voucherNumbers[inventory.id] || ''}
+                            onChange={(e) => handleVoucherNumberChange(inventory.id, e.target.value)}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleSaveClick(inventory.id)}
+                            disabled={!voucherNumbers[inventory.id] || inventory.image.length === 0 || !!inventory.voucherNumber}
+                            className="flex items-center gap-1"
+                          >
+                            <Save className="h-3 w-3" />
+                            Save
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleSaveClick(inventory.id)}
-                                disabled={!voucherNumbers[inventory.id] || inventory.image.length === 0}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-1"
+                                disabled={!inventory.voucherNumber}
                               >
-                                <Save className="h-4 w-4" />
-                                Save
+                                <RotateCcw className="h-3 w-3" />
+                                Reset
                               </Button>
-                            </div>
-                          )}
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action will reset the voucher number. This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => onResetVoucher(inventory.id)}
+                                >
+                                  Continue
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -257,7 +301,7 @@ export function InventoryVoucherTable({
           </div>
         </div>
         
-        {totalPages > 1 && (
+        {
           <div className="mt-4 flex justify-center">
             <Pagination>
               <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
@@ -268,7 +312,7 @@ export function InventoryVoucherTable({
                   />
                 </PaginationItem>
 
-                {displayedPages(currentPage - 1, totalPages).map((pageIndex, i) => (
+                {displayedPages.map((pageIndex, i) => (
                   <PaginationItem key={i}>
                     {pageIndex === -1 ? (
                       <span className="px-4 py-2">...</span>
@@ -301,17 +345,17 @@ export function InventoryVoucherTable({
                       <SelectValue placeholder="Per page" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
                       <SelectItem value="10">10 / page</SelectItem>
                       <SelectItem value="20">20 / page</SelectItem>
                       <SelectItem value="50">50 / page</SelectItem>
-                      <SelectItem value="100">100 / page</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </PaginationContent>
             </Pagination>
           </div>
-        )}
+        }
       </CardContent>
     </Card>
   );

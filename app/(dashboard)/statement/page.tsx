@@ -27,7 +27,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useStatements } from '@/store/useStatement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Party, Statement, parseOutstandingReport } from '@/lib/statement-service';
+import { Statement, Report, parseOutstandingReport } from '@/lib/statement-service';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -57,7 +57,7 @@ interface HandlersProps {
   savedParties: Record<string, SavedPartyInfo>;
   captureStatementImage: (partyCode: string, reportId: string) => void;
   savePartyImage: (partyCode: string, reportId: string) => void;
-  downloadPartyPDF: (party: Party, statement: Statement) => void;
+  downloadPartyPDF: (party: Report, statement: Statement) => void;
   isLoading: boolean;
 }
 
@@ -72,19 +72,19 @@ interface EmptyStateProps {
 }
 
 interface PartyRowProps {
-  party: Party;
+  party: Report;
   statement: Statement;
   handlers: HandlersProps;
 }
 
 interface PartyActionsProps {
-  party: Party;
+  party: Report;
   statement: Statement;
   handlers: HandlersProps;
 }
 
 interface PartyDetailsProps {
-  party: Party;
+  party: Report;
 }
 
 interface PartyEntry {
@@ -361,7 +361,7 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({ party }) => (
           </TableRow>
         </TableHeader>
         <TableBody>
-          {party.entries.map((entry, entryIndex) => (
+          {party.tableData.map((entry, entryIndex) => (
             <TableRow key={entryIndex} className={entryIndex % 2 === 0 ? "" : "bg-muted/30"}>
               <TableCell>{entry.dc}</TableCell>
               <TableCell>{entry.voucherDate}</TableCell>
@@ -818,9 +818,9 @@ export default function StatementsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {filteredData.find(s => s.id === statement.id)?.parties.length ? (
+                      {filteredData.find(s => s.id === statement.id)?.reports.length ? (
                         <div className="space-y-4">
-                          {filteredData.find(s => s.id === statement.id)?.parties.map((party: Party) => (
+                          {filteredData.find(s => s.id === statement.id)?.reports.map((party: Report) => (
                             <PartyRow 
                               key={party.partyCode}
                               party={party} 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Statement, Party, statementService } from '@/lib/statement-service';
+import { Statement, Report, statementService } from '@/lib/statement-service';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import axios from 'axios';
@@ -17,12 +17,12 @@ interface StatementState {
   clearStatements: () => void;
   togglePartyExpand: (statementId: string, partyCode: string) => void;
   isPartyExpanded: (statementId: string, partyCode: string) => boolean;
-  downloadPartyPDF: (party: Party, statement: Statement) => Promise<void>;
+  downloadPartyPDF: (party: Report, statement: Statement) => Promise<void>;
   captureStatementImage: (partyCode: string, reportId: string) => void;
   savePartyImage: (partyCode: string, reportId: string) => Promise<void>;
   hasPartyImage: (partyCode: string) => boolean;
   isPartySaved: (partyCode: string) => boolean;
-  searchParties: (parties: Party[], searchTerm: string) => Party[];
+  searchParties: (parties: Report[], searchTerm: string) => Report[];
   updateStatementName: (statementId: string, newName: string) => void;
 }
 
@@ -53,15 +53,15 @@ export const useStatements = create<StatementState>((set, get) => ({
             id: dbStatement.id,
             name: dbStatement.fileUrl.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'Unknown',
             reportDate: format(new Date(dbStatement.createdAt), 'dd/MM/yyyy'),
-            parties: []
+            reports: []
           };
           
           // Convert reports to parties
           if (dbStatement.reports && dbStatement.reports.length > 0) {
             dbStatement.reports.forEach((report: any) => {
               if (report.tableData) {
-                const partyData = report.tableData as Party;
-                statement.parties.push(partyData);
+                const partyData = report.tableData as Report;
+                statement.reports.push(partyData);
                 
                 // If report is saved, update savedParties state
                 if (report.saved && report.savedTimestamp) {
@@ -150,7 +150,7 @@ export const useStatements = create<StatementState>((set, get) => ({
     return (get().expandedParties[statementId] || []).includes(partyCode);
   },
   
-  downloadPartyPDF: async (party: Party, statement: Statement) => {
+  downloadPartyPDF: async (party: Report, statement: Statement) => {
     try {
       // For Zustand store, we'll use a dynamic import of the PDF generation function
       const { generatePDF } = await import('@/lib/pdf-generator');
@@ -305,7 +305,7 @@ export const useStatements = create<StatementState>((set, get) => ({
     return !!get().savedParties[partyCode];
   },
   
-  searchParties: (parties: Party[], searchTerm: string) => {
+  searchParties: (parties: Report[], searchTerm: string) => {
     if (!searchTerm.trim()) {
       return parties;
     }

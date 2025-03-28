@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import {
   Table,
@@ -34,6 +34,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Edit, Trash2, CalendarIcon, Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -82,30 +83,14 @@ export function InventoryCheckTable({
   onEditClick,
   onDeleteClick,
 }: InventoryCheckTableProps) {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [inventoryToDelete, setInventoryToDelete] = useState<string | null>(null);
-
-  const handleDeleteClick = (id: string) => {
-    setInventoryToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (inventoryToDelete) {
-      onDeleteClick(inventoryToDelete);
-      setIsDeleteDialogOpen(false);
-      setInventoryToDelete(null);
-    }
-  };
-  
   // Helper function to display pagination pages
-  const displayedPages = (currentPage: number, totalPages: number) => {
+  const displayedPages = useMemo(() => {
     const delta = 1;
     const range = [];
     
     for (
-      let i = Math.max(0, currentPage - delta);
-      i <= Math.min(totalPages - 1, currentPage + delta);
+      let i = Math.max(0, currentPage - 1 - delta);
+      i <= Math.min(totalPages - 1, currentPage - 1 + delta);
       i++
     ) {
       range.push(i);
@@ -126,7 +111,7 @@ export function InventoryCheckTable({
     }
 
     return range;
-  };
+  }, [currentPage, totalPages]);
 
   return (
     <Card className="w-full">
@@ -163,12 +148,12 @@ export function InventoryCheckTable({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="w-full rounded-lg border">
+        <div className="w-full border rounded-lg">
           <div className="overflow-auto max-h-[65vh] relative">
             <Table className="w-full">
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="w-12">Sr No.</TableHead>
+                  <TableHead className="w-[60px]">Sr No.</TableHead>
                   <TableHead>Generated Date</TableHead>
                   <TableHead>Agency Code</TableHead>
                   <TableHead>Agency Name</TableHead>
@@ -202,19 +187,40 @@ export function InventoryCheckTable({
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
-                            variant="ghost"
-                            size="icon"
+                            variant="outline"
+                            size="sm"
                             onClick={() => onEditClick(inventory.id)}
+                            className="flex items-center gap-1"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3" />
+                            Edit
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteClick(inventory.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="flex items-center gap-1"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Inventory Item</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this inventory item? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDeleteClick(inventory.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -225,7 +231,7 @@ export function InventoryCheckTable({
           </div>
         </div>
         
-        {totalPages > 1 && (
+        {
           <div className="mt-4 flex justify-center">
             <Pagination>
               <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
@@ -236,7 +242,7 @@ export function InventoryCheckTable({
                   />
                 </PaginationItem>
 
-                {displayedPages(currentPage - 1, totalPages).map((pageIndex, i) => (
+                {displayedPages.map((pageIndex, i) => (
                   <PaginationItem key={i}>
                     {pageIndex === -1 ? (
                       <span className="px-4 py-2">...</span>
@@ -269,35 +275,18 @@ export function InventoryCheckTable({
                       <SelectValue placeholder="Per page" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
                       <SelectItem value="10">10 / page</SelectItem>
                       <SelectItem value="20">20 / page</SelectItem>
                       <SelectItem value="50">50 / page</SelectItem>
-                      <SelectItem value="100">100 / page</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </PaginationContent>
             </Pagination>
           </div>
-        )}
+        }
       </CardContent>
-      
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the inventory item.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   );
 } 
