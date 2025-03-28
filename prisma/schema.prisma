@@ -148,23 +148,25 @@ model Invoice {
 
 model Inventory {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
-  inventoryNumber   Int    @unique
   generatedDate     DateTime
 
+  //Need for creating Inventory
+  agencyCode        String
+  agency            AgencyCode  @relation(fields: [agencyCode], references: [code] , onDelete: NoAction)
+  invoiceNumber     Int
+  invoiceDate       DateTime
+  orderNumber       Int
+  orderDate         DateTime
   inventoryCheckUsername   String?
   inventoryCheckTimestamp  DateTime?
 
-  invoiceNumber     Int
-  invoiceDate       DateTime
-  voucherNumber     Int
-
+  
+  //Will be rows used input in 2nd table
+  voucherNumber     Int?
   inventoryVoucherUsername   String?
   inventoryVoucherTimestamp  DateTime?
-
   image             String[]
 
-  agencyCode        String
-  agency            AgencyCode  @relation(fields: [agencyCode], references: [code] , onDelete: NoAction)
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt  

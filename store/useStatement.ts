@@ -1,22 +1,25 @@
 import { create } from 'zustand';
 import { Statement, Party, statementService } from '@/lib/statement-service';
 import { toast } from '@/components/ui/use-toast';
+import { format } from 'date-fns';
+import axios from 'axios';
+import { convertImage, compressImage } from '@/lib/helper';
 
 interface StatementState {
   statements: Statement[];
   isLoading: boolean;
   expandedParties: Record<string, string[]>;
   capturedImages: Record<string, string>;
-  savedParties: Record<string, { timestamp: string, location: string | null }>;
+  savedParties: Record<string, { timestamp: string, location: string | null, coordinates: { lat: number, lng: number } | null }>;
   
   // Actions
-  loadStatements: (file: File) => Promise<void>;
+  fetchStatements: (date?: Date) => Promise<void>;
   clearStatements: () => void;
   togglePartyExpand: (statementId: string, partyCode: string) => void;
   isPartyExpanded: (statementId: string, partyCode: string) => boolean;
   downloadPartyPDF: (party: Party, statement: Statement) => Promise<void>;
-  captureStatementImage: (partyCode: string) => void;
-  savePartyImage: (partyCode: string) => void;
+  captureStatementImage: (partyCode: string, reportId: string) => void;
+  savePartyImage: (partyCode: string, reportId: string) => Promise<void>;
   hasPartyImage: (partyCode: string) => boolean;
   isPartySaved: (partyCode: string) => boolean;
   searchParties: (parties: Party[], searchTerm: string) => Party[];
@@ -30,30 +33,79 @@ export const useStatements = create<StatementState>((set, get) => ({
   capturedImages: {},
   savedParties: {},
   
-  loadStatements: async (file: File) => {
+  fetchStatements: async (date?: Date) => {
     set({ isLoading: true });
     try {
-      const loadedStatements = await statementService.loadStatements(file);
+      // Build query parameter for date if provided
+      let url = '/api/statement';
+      if (date) {
+        url += `?date=${format(date, 'yyyy-MM-dd')}`;
+      }
       
-      // Add new statements to existing ones instead of replacing
-      set((state) => ({ 
-        statements: [...state.statements, ...loadedStatements],
-        isLoading: false
-      }));
+      const response = await axios.get(url);
       
-      toast({
-        title: "Statements Loaded",
-        description: `Successfully loaded ${file.name}`,
-      });
+      if (response.data && response.data.statements) {
+        const dbStatements = response.data.statements;
+        
+        // Convert database statements to our application format
+        const appStatements: Statement[] = dbStatements.map((dbStatement: any) => {
+          const statement: Statement = {
+            id: dbStatement.id,
+            name: dbStatement.fileUrl.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'Unknown',
+            reportDate: format(new Date(dbStatement.createdAt), 'dd/MM/yyyy'),
+            parties: []
+          };
+          
+          // Convert reports to parties
+          if (dbStatement.reports && dbStatement.reports.length > 0) {
+            dbStatement.reports.forEach((report: any) => {
+              if (report.tableData) {
+                const partyData = report.tableData as Party;
+                statement.parties.push(partyData);
+                
+                // If report is saved, update savedParties state
+                if (report.saved && report.savedTimestamp) {
+                  set((state) => ({
+                    savedParties: {
+                      ...state.savedParties,
+                      [partyData.partyCode]: { 
+                        timestamp: report.savedTimestamp,
+                        location: null,
+                        coordinates: null
+                      }
+                    }
+                  }));
+                }
+                
+                // If report has images, update capturedImages state
+                if (report.images && report.images.length > 0) {
+                  set((state) => ({
+                    capturedImages: {
+                      ...state.capturedImages,
+                      [partyData.partyCode]: report.images[0]
+                    }
+                  }));
+                }
+              }
+            });
+          }
+          
+          return statement;
+        });
+        
+        set({ 
+          statements: appStatements,
+          isLoading: false
+        });
+      }
     } catch (error) {
-      console.error('Error loading statements:', error);
+      console.error('Error fetching statements:', error);
       set({ isLoading: false });
       toast({
-        title: "Error Loading Statement",
-        description: `Failed to load ${file.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        title: "Error Loading Statements",
+        description: error instanceof Error ? error.message : "Failed to load statements",
         variant: "destructive",
       });
-      throw error;
     }
   },
   
@@ -66,7 +118,7 @@ export const useStatements = create<StatementState>((set, get) => ({
     });
     toast({
       title: "Statements Cleared",
-      description: "All statements have been removed",
+      description: "All statements have been removed from the view",
     });
   },
   
@@ -101,7 +153,6 @@ export const useStatements = create<StatementState>((set, get) => ({
   downloadPartyPDF: async (party: Party, statement: Statement) => {
     try {
       // For Zustand store, we'll use a dynamic import of the PDF generation function
-      // This avoids TypeScript errors when dealing with React components
       const { generatePDF } = await import('@/lib/pdf-generator');
       await generatePDF(party, statement);
       
@@ -119,7 +170,7 @@ export const useStatements = create<StatementState>((set, get) => ({
     }
   },
   
-  captureStatementImage: (partyCode: string) => {
+  captureStatementImage: (partyCode: string, reportId: string) => {
     // In a real app, this would open the camera
     // For this implementation, we'll simulate by opening a file input
     const input = document.createElement('input');
@@ -127,33 +178,56 @@ export const useStatements = create<StatementState>((set, get) => ({
     input.accept = 'image/*';
     input.capture = 'environment'; // This will open the camera on supported mobile devices
     
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string;
-        set((state) => ({
-          capturedImages: {
-            ...state.capturedImages,
-            [partyCode]: imageUrl
-          }
-        }));
+      try {
+        set({ isLoading: true });
         
+        // Convert and compress the image before uploading
+        const changedFile = await convertImage(file);
+        const compressedFile = await compressImage(changedFile);
+        
+        // Create FormData for upload
+        const formData = new FormData();
+        formData.append('file', compressedFile);
+        formData.append('reportId', reportId);
+        
+        // Upload to backend
+        const response = await axios.post('/api/statement/report', formData);
+        
+        if (response.data && response.data.imageUrl) {
+          set((state) => ({
+            capturedImages: {
+              ...state.capturedImages,
+              [partyCode]: response.data.imageUrl
+            },
+            isLoading: false
+          }));
+          
+          toast({
+            title: "Image Captured",
+            description: `Image captured for ${partyCode}. Please save it to finalize.`,
+          });
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        set({ isLoading: false });
         toast({
-          title: "Image Captured",
-          description: `Image captured for ${partyCode}. Please save it to add location data.`,
+          title: "Error",
+          description: "Failed to upload image.",
+          variant: "destructive",
         });
-      };
-      
-      reader.readAsDataURL(file);
+      } finally {
+        input.value = ''; // Clear the input
+      }
     };
     
     input.click();
   },
   
-  savePartyImage: (partyCode: string) => {
+  savePartyImage: async (partyCode: string, reportId: string) => {
     const state = get();
     if (!state.capturedImages[partyCode]) {
       toast({
@@ -164,52 +238,61 @@ export const useStatements = create<StatementState>((set, get) => ({
       return;
     }
     
-    const timestamp = new Date().toLocaleString();
+    set({ isLoading: true });
     
-    // Try to get location if supported
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = `Lat: ${position.coords.latitude.toFixed(4)}, Long: ${position.coords.longitude.toFixed(4)}`;
-          set((state) => ({
-            savedParties: {
-              ...state.savedParties,
-              [partyCode]: { timestamp, location }
-            }
-          }));
-          
-          toast({
-            title: "Party Saved",
-            description: `Party ${partyCode} saved with image and location data.`,
-          });
-        },
-        () => {
-          // Error getting location
-          set((state) => ({
-            savedParties: {
-              ...state.savedParties,
-              [partyCode]: { timestamp, location: null }
-            }
-          }));
-          
-          toast({
-            title: "Party Saved",
-            description: `Party ${partyCode} saved with image. Location access denied.`,
-          });
-        }
-      );
-    } else {
-      // Geolocation not supported
-      set((state) => ({
-        savedParties: {
-          ...state.savedParties,
-          [partyCode]: { timestamp, location: null }
-        }
-      }));
+    try {
+      // Save the report as finalized in the database
+      const response = await axios.patch('/api/statement/report', {
+        reportId,
+        saved: true
+      });
       
+      if (response.data && response.data.report) {
+        const timestamp = new Date().toISOString();
+        let coordinates = null;
+        
+        // Try to get location if supported
+        if (navigator.geolocation) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject);
+            });
+            
+            coordinates = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+          } catch (err) {
+            console.error('Error getting location:', err);
+          }
+        }
+        
+        set((state) => ({
+          savedParties: {
+            ...state.savedParties,
+            [partyCode]: { 
+              timestamp, 
+              location: coordinates ? `Lat: ${coordinates.lat.toFixed(4)}, Long: ${coordinates.lng.toFixed(4)}` : null,
+              coordinates
+            }
+          },
+          isLoading: false
+        }));
+        
+        toast({
+          title: "Party Saved",
+          description: coordinates 
+            ? `Party ${partyCode} saved with image and location data.`
+            : `Party ${partyCode} saved with image. Location data unavailable.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error saving party:', error);
+      set({ isLoading: false });
       toast({
-        title: "Party Saved",
-        description: `Party ${partyCode} saved with image. Location not available.`,
+        title: "Error",
+        description: "Failed to save party data.",
+        variant: "destructive",
       });
     }
   },
