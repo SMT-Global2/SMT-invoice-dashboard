@@ -13,7 +13,7 @@ export type FinancialEntry = {
   discountNarration: string;
 };
 
-export type Party = {
+export type Report = {
   partyCode: string;
   partyName: string;
   contactInfo?: string;
@@ -31,7 +31,7 @@ export type Statement = {
   id: string;
   name: string;
   reportDate: string;
-  parties: Party[];
+  reports: Report[];
 };
 
 /**
@@ -51,7 +51,7 @@ export const statementService = {
             // Parse the text file
             const statement = parseOutstandingReport(result, file.name);
             
-            if (!statement.parties.length) {
+            if (!statement.reports.length) {
               throw new Error('No valid statement data found in the file');
             }
             
@@ -121,7 +121,7 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
     id: uuidv4(),
     name: fileName ? fileName.replace(/\.[^/.]+$/, '') : 'Outstanding Report',
     reportDate: '',
-    parties: [],
+    reports: [],
   };
   
   // Get report date from the first section
@@ -211,7 +211,7 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
           }
           
           // Initialize party object
-          const party: Party = {
+          const report: Report = {
             partyCode,
             partyName,
             creditDays,
@@ -263,7 +263,7 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
                 // Get any remaining text as discount narration
                 const discountNarration = totalParts.slice(balanceIdx + 1).join(' ');
                 
-                party.total = {
+                report.total = {
                   debits,
                   partAdjustment,
                   balance,
@@ -281,7 +281,7 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
                 // Get any remaining text as discount narration
                 const discountNarration = totalParts.slice(Math.max(debitIdx, partAdjIdx) + 1).join(' ');
                 
-                party.total = {
+                report.total = {
                   debits,
                   partAdjustment,
                   balance,
@@ -381,7 +381,7 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
                   const discountNarration = parts.slice(idx).join(' ');
                   
                   // Add entry to party
-                  party.entries.push({
+                  report.entries.push({
                     dc,
                     voucherDate,
                     voucherNumber,
@@ -401,10 +401,10 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
           }
           
           // Add party to statement if it has entries or total
-          if (party.entries.length > 0) {
+          if (report.entries.length > 0) {
             // Ensure party has total property correctly set
-            ensurePartyTotal(party);
-            statement.parties.push(party);
+            ensurePartyTotal(report);
+            statement.reports.push(report);
           }
         }
       }
@@ -441,7 +441,7 @@ function parseableNumber(value: string): boolean {
 }
 
 
-export function generatePDF(data: Statement | Party): void {
+export function generatePDF(data: Statement | Report): void {
   try {
     // In a real implementation, we would generate a PDF file here
     // For now, we'll just show an alert
@@ -454,7 +454,7 @@ export function generatePDF(data: Statement | Party): void {
     const a = document.createElement('a');
     a.href = url;
     
-    if ('parties' in data) {
+    if ('reports' in data) {
       a.download = `${data.name.replace(/\s+/g, '_')}.json`;
     } else {
       a.download = `${data.partyCode}_${data.partyName.replace(/\s+/g, '_')}.json`;
@@ -471,9 +471,9 @@ export function generatePDF(data: Statement | Party): void {
 }
 
 // Add this function to ensure party entries have the total field
-function ensurePartyTotal(party: Party) {
-  if (!party.total) {
-    party.total = {
+function ensurePartyTotal(report: Report) {
+  if (!report.total) {
+    report.total = {
       debits: 0,
       partAdjustment: 0,
       balance: 0,
@@ -482,22 +482,22 @@ function ensurePartyTotal(party: Party) {
   }
   
   // Calculate total from entries if not already set
-  if (party.entries.length > 0) {
-    const debits = party.entries.reduce((sum, entry) => sum + entry.debits, 0);
-    const partAdjustment = party.entries.reduce((sum, entry) => sum + entry.partAdjustment, 0);
-    const balance = party.entries.reduce((sum, entry) => sum + entry.balance, 0);
+  if (report.entries.length > 0) {
+    const debits = report.entries.reduce((sum, entry) => sum + entry.debits, 0);
+    const partAdjustment = report.entries.reduce((sum, entry) => sum + entry.partAdjustment, 0);
+    const balance = report.entries.reduce((sum, entry) => sum + entry.balance, 0);
     
     // Calculate the total discount narration by summing up numeric values
-    const discountNarrationTotal = party.entries.reduce((sum, entry) => {
+    const discountNarrationTotal = report.entries.reduce((sum, entry) => {
       const narrationValue = parseFloat(entry.discountNarration);
       return !isNaN(narrationValue) ? sum + narrationValue : sum;
     }, 0);
 
-    party.total.debits = debits;
-    party.total.partAdjustment = partAdjustment;
-    party.total.balance = balance;
-    party.total.discountNarration = discountNarrationTotal.toFixed(2);
+    report.total.debits = debits;
+    report.total.partAdjustment = partAdjustment;
+    report.total.balance = balance;
+    report.total.discountNarration = discountNarrationTotal.toFixed(2);
   }
   
-  return party;
+  return report;
 } 

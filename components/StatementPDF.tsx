@@ -1,6 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import { Party, Statement } from '@/lib/statement-service';
+import { Report, Statement } from '@/lib/statement-service';
 import moment from 'moment';
 
 // Define styles
@@ -334,11 +334,11 @@ const styles = StyleSheet.create({
 });
 
 type StatementPDFProps = {
-  party: Party;
+  report: Report;
   statement: Statement;
 };
 
-const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
+const StatementPDF: React.FC<StatementPDFProps> = ({ report, statement }) => {
   // Format currency for display
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -348,9 +348,9 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
   };
 
   // Get party code without any dash prefix
-  const displayPartyCode = party.partyCode.startsWith('-') 
-    ? party.partyCode.substring(1).trim() 
-    : party.partyCode;
+  const displayPartyCode = report.partyCode.startsWith('-') 
+    ? report.partyCode.substring(1).trim() 
+    : report.partyCode;
 
   // Calculate the max entries per page (accounting for header, party info, summary)
   // This helps ensure rows don't split across pages
@@ -359,7 +359,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
   // Split entries into pages
   const getPageEntries = () => {
     let pages = [];
-    let remaining = [...party.entries];
+    let remaining = [...report.entries];
     
     while (remaining.length > 0) {
       pages.push(remaining.slice(0, entriesPerPage));
@@ -390,10 +390,10 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
               </View>
               
               <View style={styles.partyInfo}>
-                <Text style={styles.partyName}>{displayPartyCode} {party.partyName}</Text>
+                <Text style={styles.partyName}>{displayPartyCode} {report.partyName}</Text>
                 <View style={styles.partyDetails}>
-                  <Text>{party.contactInfo && `Contact: ${party.contactInfo}`}</Text>
-                  <Text>{party.creditDays && `Credit Days: ${party.creditDays}`}</Text>
+                  <Text>{report.contactInfo && `Contact: ${report.contactInfo}`}</Text>
+                  <Text>{report.creditDays && `Credit Days: ${report.creditDays}`}</Text>
                 </View>
               </View>
             </>
@@ -475,7 +475,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
               ))}
               
               {/* Table Footer - Totals (only on last page) */}
-              {pageIndex === pageEntries.length - 1 && party.total && (
+              {pageIndex === pageEntries.length - 1 && report.total && (
                 <View style={styles.tableFooterRow}>
                   <View style={styles.tableColDC}>
                     <Text style={styles.footerCell}></Text>
@@ -487,15 +487,15 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
                     <Text style={styles.footerCell}>Total</Text>
                   </View>
                   <View style={styles.tableColAmount}>
-                    <Text style={styles.footerCellRight}>{formatCurrency(party.total.debits)}</Text>
+                    <Text style={styles.footerCellRight}>{formatCurrency(report.total.debits)}</Text>
                   </View>
                   <View style={styles.tableColAmount}>
                     <Text style={styles.footerCellRight}>
-                      {party.total.partAdjustment === 0 ? '-' : formatCurrency(party.total.partAdjustment)}
+                      {report.total.partAdjustment === 0 ? '-' : formatCurrency(report.total.partAdjustment)}
                     </Text>
                   </View>
                   <View style={styles.tableColAmount}>
-                    <Text style={styles.footerCellRight}>{formatCurrency(party.total.balance)}</Text>
+                    <Text style={styles.footerCellRight}>{formatCurrency(report.total.balance)}</Text>
                   </View>
                   <View style={styles.tableColAmount}>
                     <Text style={styles.footerCell}></Text>
@@ -504,7 +504,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
                     <Text style={styles.footerCell}></Text>
                   </View>
                   <View style={styles.tableColNarration}>
-                    <Text style={styles.footerCellLeft}>{party.total.discountNarration}</Text>
+                    <Text style={styles.footerCellLeft}>{report.total.discountNarration}</Text>
                   </View>
                 </View>
               )}
@@ -512,23 +512,23 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ party, statement }) => {
           </View>
           
           {/* Summary Section with enhanced styling */}
-          {pageIndex === pageEntries.length - 1 && party.total && (
+          {pageIndex === pageEntries.length - 1 && report.total && (
             <>
               <View style={styles.totalSection}>
                 <Text style={styles.totalSectionTitle}>Summary</Text>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Debits</Text>
-                  <Text style={styles.totalValue}>₹ {formatCurrency(party.total.debits)}</Text>
+                  <Text style={styles.totalValue}>₹ {formatCurrency(report.total.debits)}</Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Adjustments</Text>
                   <Text style={styles.totalValue}>
-                    ₹ {party.total.partAdjustment === 0 ? '0.00' : formatCurrency(party.total.partAdjustment)}
+                    ₹ {report.total.partAdjustment === 0 ? '0.00' : formatCurrency(report.total.partAdjustment)}
                   </Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Outstanding Balance</Text>
-                  <Text style={styles.totalValue}>₹ {formatCurrency(party.total.balance)}</Text>
+                  <Text style={styles.totalValue}>₹ {formatCurrency(report.total.balance)}</Text>
                 </View>
               </View>
 
