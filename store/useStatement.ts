@@ -49,7 +49,6 @@ interface StatementState {
   fetchStatements: (date?: Date) => Promise<void>;
   togglePartyExpand: (statementId: string, partyCode: string) => void;
   isPartyExpanded: (statementId: string, partyCode: string) => boolean;
-  downloadPartyPDF: (party: Report, statement: Statement) => Promise<void>;
   captureStatementImage: (partyCode: string, reportId: string) => void;
   savePartyImage: (partyCode: string, reportId: string, images: string[]) => Promise<void>;
   updatePartyImage: (partyCode: string, imageUrl: string) => void;
@@ -95,7 +94,10 @@ export const useStatements = create<StatementState>((set, get) => ({
             dbStatement.reports.forEach((report: any) => {
               if (report.tableData) {
                 const partyData = report.tableData as Report;
-                statement.reports.push(partyData);
+                statement.reports.push({
+                  ...partyData,
+                  id: report.id
+                });
                 
                 // If report is saved, update savedParties state
                 if (report.saved && report.savedTimestamp) {
@@ -169,26 +171,6 @@ export const useStatements = create<StatementState>((set, get) => ({
   
   isPartyExpanded: (statementId: string, partyCode: string) => {
     return (get().expandedParties[statementId] || []).includes(partyCode);
-  },
-  
-  downloadPartyPDF: async (party: Report, statement: Statement) => {
-    try {
-      // For Zustand store, we'll use a dynamic import of the PDF generation function
-      const { generatePDF } = await import('@/lib/pdf-generator');
-      await generatePDF(party, statement);
-      
-      toast({
-        title: "PDF Generated",
-        description: "Statement PDF has been downloaded.",
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF.",
-        variant: "destructive",
-      });
-    }
   },
   
   captureStatementImage: (partyCode: string, reportId: string) => {

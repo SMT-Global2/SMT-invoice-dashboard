@@ -8,6 +8,7 @@ import React from 'react';
 // This function creates a Document wrapper around our StatementPDF component
 const createPDFDocument = (report: Report, statement: Statement) => {
   // Create a Document element which is what the pdf() function expects
+  console.log("PDF Document" , {report, statement})
   return React.createElement(
     Document,
     {},
@@ -17,8 +18,11 @@ const createPDFDocument = (report: Report, statement: Statement) => {
 
 export async function generatePDF(report: Report, statement: Statement) {
   try {
+    console.log("PDF" , {report, statement})
     // Generate PDF blob using our wrapper function
     const blob = await pdf(createPDFDocument(report, statement)).toBlob();
+
+    console.log("PDF Blob" , blob)
     
     // Create a URL for the blob
     const url = URL.createObjectURL(blob);

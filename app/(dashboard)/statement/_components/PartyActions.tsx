@@ -1,16 +1,19 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Save, FileDown, Clock, MapPin, RefreshCcw } from 'lucide-react';
 import { format } from 'date-fns';
-import { ShowImage } from '@/components/show-image';
 import { TakeImage } from '@/components/take-image';
-import { Report, Statement } from '@/lib/statement-service';
+import { Statement } from '@/lib/statement-service';
 import { convertImage } from '@/lib/helper';
 import { compressImage } from '@/lib/helper';
 import { uploadFileToS3 } from '@/lib/helper';
 import { useToast } from '@/components/ui/use-toast';
 import { useStatements, PartyActionsProps } from '@/store/useStatement';
+import { generatePDF } from '@/lib/pdf-generator';
+import { Report } from '@/lib/statement-service';
 
 const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
   const { 
@@ -18,7 +21,6 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
     hasPartyImage, 
     savedParties,
     savePartyImage,
-    downloadPartyPDF,
     isLoading,
     resetParty,
     capturedImages,
@@ -30,15 +32,17 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
   const [uploadingImage, setUploadingImage] = useState<number | string | null>(null);
   const [lastInteractedPartyCode, setLastInteractedPartyCode] = useState<string | null>(null);
 
-  const findReportIdForParty = (stmt: Statement, partyCode: string): string => {
-    return `${stmt.id}_${partyCode}`;
-  };
-
   const handleSaveWithMetadata = (partyCode: string, stmt: Statement): void => {
-    const reportId = findReportIdForParty(stmt, partyCode);
-    if (reportId) {
-      const images = capturedImages[partyCode] ? [capturedImages[partyCode]] : [];
-      savePartyImage(partyCode, reportId, images);
+    const images = capturedImages[partyCode] ? [capturedImages[partyCode]] : [];
+    const partyId = stmt.reports.find(report => report.partyCode === partyCode)?.id;
+    if(partyId) {
+      savePartyImage(partyCode, partyId, images);
+    } else {
+      toast({
+        title: 'Error',
+        description: 'Party not found',
+        duration: 2000,
+      });
     }
   };
 
@@ -89,6 +93,25 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
     } finally {
       setUploadingImage(null);
       event.target.value = '';
+    }
+  };
+
+  const handleDownloadPDF = async (party: Report, statement: Statement) => {
+    try {
+      // For Zustand store, we'll use a dynamic import of the PDF generation function
+      await generatePDF(party, statement);
+      
+      toast({
+        title: "PDF Generated",
+        description: "Statement PDF has been downloaded.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF.",
+        variant: "destructive",
+      });
     }
   };
  
@@ -169,10 +192,7 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
       <Button 
         variant="outline" 
         size="sm"
-        onClick={(e) => {
-          e.stopPropagation();
-          downloadPartyPDF(party, statement);
-        }}
+        onClick={() => handleDownloadPDF(party, statement)}
         disabled={isLoading || !isPartySaved(party.partyCode)}
         className={isPartySaved(party.partyCode) ? "bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 border-blue-200 dark:border-blue-800" : ""}
       >

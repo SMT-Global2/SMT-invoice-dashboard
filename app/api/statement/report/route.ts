@@ -20,6 +20,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Report ID is required" }, { status: 400 });
     }
     
+    console.log({reportId, saved})
+
     // Update report
     const report = await prisma.report.update({
       where: {
@@ -35,8 +37,8 @@ export async function PATCH(req: Request) {
     });
     
     return NextResponse.json({ success: true, report });
-  } catch (error) {
-    console.error("Error updating report:", error);
+  } catch (error : any) {
+    console.error("Error updating report:", error?.message);
     return NextResponse.json({ error: "Failed to update report" }, { status: 500 });
   }
 }

@@ -340,6 +340,7 @@ type StatementPDFProps = {
 
 const StatementPDF: React.FC<StatementPDFProps> = ({ report, statement }) => {
   // Format currency for display
+  console.log("StatementPDF" , {report, statement})
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       minimumFractionDigits: 2,

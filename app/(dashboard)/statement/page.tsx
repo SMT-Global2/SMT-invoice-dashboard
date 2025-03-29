@@ -79,17 +79,9 @@ export default function StatementsPage() {
   const {
     statements,
     isLoading,
-    togglePartyExpand,
-    isPartyExpanded,
-    downloadPartyPDF,
-    capturedImages,
-    hasPartyImage,
     isPartySaved,
-    captureStatementImage,
-    savePartyImage,
     updateStatementName,
     fetchStatements,
-    savedParties
   } = useStatements();
 
   const [searchTerm, setSearchTerm] = useState<string>('');

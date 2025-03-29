@@ -14,6 +14,7 @@ export type FinancialEntry = {
 };
 
 export type Report = {
+  id?: string;
   partyCode: string;
   partyName: string;
   contactInfo?: string;
