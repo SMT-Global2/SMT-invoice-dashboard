@@ -1,15 +1,5 @@
 'use client';
 
-export const getS3BucketUrl = (key: string): string => {
-  // If key is already a full URL, return it
-  if (key.startsWith('http://') || key.startsWith('https://')) {
-    return key;
-  }
-  
-  const baseUrl = process.env.NEXT_PUBLIC_S3_BASE_URL || '';
-  return `${baseUrl}/${key}`;
-};
-
 export const tweleHrFormatDateString = (date: string | Date): string => {
   const dateObj = new Date(date);
   return dateObj.toLocaleDateString('en-US', {
@@ -170,4 +160,9 @@ export function formatCurrency(amount: number) {
     currency: 'INR',
     maximumFractionDigits: 0
   }).format(amount);
+}
+
+//https://smt-images-bucket.s3.ap-south-1.amazonaws.com/1740321810294-shreyas
+export function getS3BucketUrl(key: string) {
+  return `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_S3_REGION}.amazonaws.com/${encodeURIComponent(key)}`;
 }

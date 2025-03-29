@@ -39,6 +39,8 @@ export function ShowImage({ invoice , deliveryMemo  , images, text }: ShowImageP
   const [currentIndex, setCurrentIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  console.log({images})
+
   useEffect(() => {
     const processImages = async () => {
       if (!images || images.length === 0) {
@@ -266,12 +268,12 @@ export function ShowImage({ invoice , deliveryMemo  , images, text }: ShowImageP
                         draggable={false}
                       />
                     ) : (
-                      <img 
-                        src={getS3BucketUrl(image)} 
-                        alt={`Bill Image ${index + 1}`} 
-                        className="rounded-lg object-contain max-h-[80vh]"
-                        draggable={false}
-                      />
+                        <img 
+                          src={getS3BucketUrl(image)} 
+                          alt={`Bill Image ${index + 1}`} 
+                          className="rounded-lg object-contain max-h-[80vh]"
+                          draggable={false}
+                        />
                     )}
                   </div>
                 </div>

@@ -27,7 +27,6 @@ export function TakeImage({
     takeType : TakeType
 }) {
     const [cameraAvailable, setCameraAvailable] = useState(false);
-
     useEffect(() => {
         const checkCameraAvailability = async () => {
             try {
