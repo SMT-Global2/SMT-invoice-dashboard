@@ -71,45 +71,6 @@ export const statementService = {
       reader.readAsText(file);
     });
   },
-  
-  // Load sample data for testing
-  loadSampleData: (): Promise<Statement[]> => {
-    return new Promise((resolve) => {
-      // Sample data representing an outstanding report
-      const sampleText = `SANJIVAN MEDICO TRADERS,CHANDRAPUR
-Outstanding report as on 05/03/2025
-
---------------------------------------------------------------------------------------------------------------------------
-DC  Vou.Date     VoucherNo       Debits    Part Adj.      Balance  Balance C/f Days    Disc. Narration                    
---------------------------------------------------------------------------------------------------------------------------
-A255 A TO Z MEDICAL STORES,NANDORI - (7038053526 7038053526) (Days : 35)
-
-I  28/01/2025 * INV   79697       824.00          -         824.00       824.00   36    22.76
-I  05/02/2025 * INV   81747     1,472.00          -       1,472.00     2,296.00   28    40.65
-I  13/02/2025 * INV   83801     2,101.00          -       2,101.00     4,397.00   20    58.02
-
-Total                          4,397.00         0.00     4,397.00                     121.43
-
---------------------------------------------------------------------------------------------------------------------------
-DC  Vou.Date     VoucherNo       Debits    Part Adj.      Balance  Balance C/f Days    Disc. Narration                    
---------------------------------------------------------------------------------------------------------------------------
-WR02 ANAND MEDICAL & GEN. STORES,WARORA - (07176-282180 9850300417) (Days : 35)
-
-I  05/02/2025 * INV   81881     3,362.00     2,823.00       539.00       539.00   28    92.84
-I  05/02/2025 * INV   81911       574.00          -         574.00     1,113.00   28    15.86
-I  10/02/2025 * INV   82996     3,755.00          -       3,755.00     4,868.00   23    103.91
-I  14/02/2025 * INV   84206     1,645.00          -       1,645.00     6,513.00   19    45.42
-I  19/02/2025 * INV   85498       499.00          -         499.00     7,012.00   14    13.09
-I  24/02/2025 * INV   86736     5,608.00          -       5,608.00    12,620.00    9    164.94
-I  28/02/2025 * INV   87819       760.00          -         760.00    13,380.00    5    20.98
-I  03/03/2025 * INV   88571       690.00          -         690.00    14,070.00    2    20.50
-
-Total                         16,893.00     2,823.00    14,070.00                     477.54`;
-
-      const statement = parseOutstandingReport(sampleText, 'Sample-Outstanding-Report');
-      resolve([statement]);
-    });
-  }
 };
 
 /**
@@ -123,7 +84,7 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
     reportDate: '',
     reports: [],
   };
-  
+
   // Get report date from the first section
   const reportDateMatch = reportContent.match(/Outstanding report as on (\d{2}\/\d{2}\/\d{4})/i);
   if (reportDateMatch) {
@@ -163,10 +124,8 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
           
           if (partyMatch) {
             partyCode = partyMatch[1];
-            // Remove the dash prefix if present
-            if (partyCode.startsWith('-')) {
-              partyCode = partyCode.substring(1).trim();
-            }
+            partyCode = partyCode.replace(/[\x00-\x1F]/g, '').trim();
+
             partyName = partyMatch[2].trim();
             contactInfo = partyMatch[3].trim();
             creditDays = partyMatch[4];
@@ -179,10 +138,12 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
               
               if (codeParts) {
                 partyCode = codeParts[1];
-                // Remove the dash prefix if present
-                if (partyCode.startsWith('-')) {
-                  partyCode = partyCode.substring(1).trim();
-                }
+
+
+              // Remove any hex control characters from party code and name
+              partyCode = partyCode.replace(/[\x00-\x1F]/g, '').trim();
+
+
                 partyName = codeParts[2];
               } else {
                 partyName = firstPart;
@@ -209,6 +170,8 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
               partyName = partyLine;
             }
           }
+
+
           
           // Initialize party object
           const report: Report = {
@@ -224,6 +187,8 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
               discountNarration: ''
             }
           };
+
+          console.log(report);
           
           // Process transaction entries
           for (let j = 1; j < lines.length; j++) {

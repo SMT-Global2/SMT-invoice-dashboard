@@ -124,7 +124,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   <Card className="shadow-sm">
     <CardContent className="flex flex-col items-center justify-center p-8 text-center">
       <Icon className="h-12 w-12 text-muted-foreground mb-4" />
-      <p className="text-muted-foreground">{message}</p>
+      <div className="text-muted-foreground">{message}</div>
       
       {showUpload && (
         <div className="mt-4">
