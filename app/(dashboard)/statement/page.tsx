@@ -343,6 +343,7 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement, handlers 
   );
 };
 
+
 const PartyDetails: React.FC<PartyDetailsProps> = ({ party }) => (
   <div className="p-4">
     <div className="overflow-x-auto">
@@ -361,7 +362,7 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({ party }) => (
           </TableRow>
         </TableHeader>
         <TableBody>
-          {party.tableData.map((entry, entryIndex) => (
+          {party.entries.map((entry, entryIndex) => (
             <TableRow key={entryIndex} className={entryIndex % 2 === 0 ? "" : "bg-muted/30"}>
               <TableCell>{entry.dc}</TableCell>
               <TableCell>{entry.voucherDate}</TableCell>
@@ -428,10 +429,8 @@ export default function StatementsPage() {
   const [isEditingName, setIsEditingName] = useState<string | null>(null);
   const [newName, setNewName] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('0');
-  const [filteredData, setFilteredData] = useState<(Statement & { uploadDate: string })[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showOnlySaved, setShowOnlySaved] = useState<boolean>(false);
-  const [filteredStatements, setFilteredStatements] = useState<(Statement & { uploadDate: string })[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
   // Handle statement name edit
@@ -469,8 +468,8 @@ export default function StatementsPage() {
 
   // Calculate saved count
   const calculateSavedCount = (statement: Statement): string => {
-    const totalParties = statement.parties.length;
-    const savedCount = statement.parties.filter(party => isPartySaved(party.partyCode)).length;
+    const totalParties = statement.reports.length;
+    const savedCount = statement.reports.filter(party => isPartySaved(party.partyCode)).length;
     return `${savedCount}/${totalParties}`;
   };
 
@@ -492,7 +491,7 @@ export default function StatementsPage() {
       const content = await readFileContent(file);
       const parsedStatement = parseOutstandingReport(content, file.name);
       
-      if (!parsedStatement.parties.length) {
+      if (!parsedStatement.reports.length) {
         throw new Error('No valid statement data found in the file');
       }
       
@@ -500,7 +499,7 @@ export default function StatementsPage() {
       const fileUrl = await uploadToS3(file);
       
       // Step 3: Prepare report data for each party
-      const reports = parsedStatement.parties.map(party => ({
+      const reports = parsedStatement.reports.map(party => ({
         title: `${party.partyCode} - ${party.partyName}`,
         tableData: party,
         saved: false,
@@ -519,7 +518,7 @@ export default function StatementsPage() {
       if (response.data && response.data.success) {
         toast({
           title: "Statement Uploaded",
-          description: `Successfully processed and saved statement with ${parsedStatement.parties.length} parties`,
+          description: `Successfully processed and saved statement with ${parsedStatement.reports.length} parties`,
         });
         
         // Refresh statements for the selected date
@@ -667,6 +666,8 @@ export default function StatementsPage() {
     </div>
   );
 
+  console.log({statements})
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -742,12 +743,12 @@ export default function StatementsPage() {
 
       {statements.length > 0 ? (
         <>
-          {filteredStatements.length > 0 ? (
+          {statements.length > 0 ? (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="relative overflow-hidden mb-4">
                 <ScrollArea className="w-full pb-4">
                   <TabsList className="inline-flex w-full justify-start py-2 px-0 bg-transparent">
-                    {filteredStatements.map((statement) => (
+                    {statements.map((statement) => (
                       <TabsTrigger 
                         key={statement.id} 
                         value={statement.id}
@@ -767,7 +768,7 @@ export default function StatementsPage() {
                 </ScrollArea>
               </div>
 
-              {filteredStatements.map((statement) => (
+              {statements.map((statement) => (
                 <TabsContent key={statement.id} value={statement.id} className="space-y-4">
                   <Card className="shadow-sm">
                     <CardHeader className="pb-2">
@@ -818,9 +819,9 @@ export default function StatementsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {filteredData.find(s => s.id === statement.id)?.reports.length ? (
+                      {statements.find(s => s.id === statement.id)?.reports.length ? (
                         <div className="space-y-4">
-                          {filteredData.find(s => s.id === statement.id)?.reports.map((party: Report) => (
+                          {statements.find(s => s.id === statement.id)?.reports.map((party: Report) => (
                             <PartyRow 
                               key={party.partyCode}
                               party={party} 
