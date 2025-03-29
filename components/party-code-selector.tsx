@@ -80,7 +80,7 @@ export function PartyCodeSelector({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder="Party Code"
             value={searchTerm}
