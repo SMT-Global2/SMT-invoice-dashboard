@@ -25,8 +25,6 @@ import {
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { AgencyCodeSelector } from '@/components/agency-code-selector';
 import { AgencyCode } from '@/components/agency-code-selector';
 import { InventoryData } from '@/store/useInventoryStore';
@@ -39,6 +37,8 @@ const formSchema = z.object({
   invoiceDate: z.date({ required_error: 'Invoice date is required' }),
   orderNumber: z.coerce.number({ required_error: 'Order number is required' }),
   orderDate: z.date({ required_error: 'Order date is required' }),
+  shortName: z.string().optional(),
+  companyName: z.string().optional(),
 });
 
 interface InventoryDialogProps {
@@ -69,6 +69,8 @@ export function InventoryDialog({
       invoiceDate: new Date(),
       orderNumber: 0,
       orderDate: new Date(),
+      shortName: '',
+      companyName: '',
     },
   });
 
@@ -83,6 +85,8 @@ export function InventoryDialog({
           invoiceDate: new Date(inventoryItem.invoiceDate),
           orderNumber: inventoryItem.orderNumber,
           orderDate: new Date(inventoryItem.orderDate),
+          shortName: inventoryItem.agency?.shortName || '',
+          companyName: inventoryItem.agency?.companyName || '',
         });
 
         if (inventoryItem.agency) {
@@ -101,6 +105,8 @@ export function InventoryDialog({
           invoiceDate: new Date(),
           orderNumber: 0,
           orderDate: new Date(),
+          shortName: '',
+          companyName: '',
         });
         setSelectedAgency(null);
       }
@@ -113,7 +119,10 @@ export function InventoryDialog({
       
       const id = dialogType === 'create' ? 'create' : (inventoryItem?.id || '');
       
-      await onSave(id, data);
+      // Remove fields that are not needed for saving
+      const { shortName, companyName, ...saveData } = data;
+      
+      await onSave(id, saveData);
       
       toast({
         title: 'Success',
@@ -138,6 +147,8 @@ export function InventoryDialog({
   const handleAgencyChange = (agency: AgencyCode) => {
     setSelectedAgency(agency);
     form.setValue('agencyCode', agency.code);
+    form.setValue('shortName', agency.shortName || '');
+    form.setValue('companyName', agency.companyName || '');
   };
 
   return (
@@ -185,6 +196,46 @@ export function InventoryDialog({
                       />
                     </FormControl>
                     <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="shortName"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">Short Name</FormLabel>
+                  <div className="col-span-3">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Short name"
+                        readOnly
+                        className="w-full bg-muted"
+                      />
+                    </FormControl>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="companyName"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">Company Name</FormLabel>
+                  <div className="col-span-3">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Company name"
+                        readOnly
+                        className="w-full bg-muted"
+                      />
+                    </FormControl>
                   </div>
                 </FormItem>
               )}

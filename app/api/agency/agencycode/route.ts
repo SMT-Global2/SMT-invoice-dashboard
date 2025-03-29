@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
     const agencies = await prisma.agencyCode.findMany({
       where: {
         OR: [
-          { code: { contains: search, mode: 'insensitive' } },
-          { companyName: { contains: search, mode: 'insensitive' } },
-          { shortName: { contains: search, mode: 'insensitive' } }
+          { code : { contains: search, mode: 'insensitive' } },
+          { companyName : { contains: search, mode: 'insensitive' } },
+          { shortName : { contains: search, mode: 'insensitive' } }
         ]
       },
       take: 10,
@@ -30,6 +30,8 @@ export async function GET(req: NextRequest) {
         code: 'asc'
       }
     });
+
+    console.log(agencies);
     
     return NextResponse.json({
       data: agencies
