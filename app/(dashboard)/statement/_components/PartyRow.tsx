@@ -1,15 +1,16 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { PartyRowProps } from '../_types';
+import { Report, Statement } from '@/lib/statement-service';
 import PartyActions from './PartyActions';
 import PartyDetails from './PartyDetails';
+import { useStatements, PartyRowProps } from '@/store/useStatement';
 
-const PartyRow: React.FC<PartyRowProps> = ({ party, statement, handlers }) => {
+const PartyRow: React.FC<PartyRowProps> = ({ party, statement }) => {
   const { 
     togglePartyExpand, 
     isPartyExpanded, 
-  } = handlers;
+  } = useStatements();
 
   return (
     <Card className="shadow-sm overflow-hidden border-l-4 border-l-primary/20 hover:border-l-primary transition-colors">
@@ -38,7 +39,6 @@ const PartyRow: React.FC<PartyRowProps> = ({ party, statement, handlers }) => {
           <PartyActions 
             party={party} 
             statement={statement} 
-            handlers={handlers} 
           />
         </div>
       </div>

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, FileUp } from 'lucide-react';
-import { EmptyStateProps } from '../_types';
+import { Loader2, FileUp, LucideIcon } from 'lucide-react';
+import { useStatements, EmptyStateProps } from '@/store/useStatement';
 
 const EmptyState: React.FC<EmptyStateProps> = ({ 
   icon: Icon, 

@@ -82,6 +82,14 @@ export function TakeImage({
                                 )
                             )
                         }
+                        {
+                            !invoice && !deliveryMemo && (
+                                <>
+                                    <Upload className='w-5 h-5'/> 
+                                    {/* Upload Image  */}
+                                </>
+                            )
+                        }
                     </Button>
                     <Input
                         type="file"

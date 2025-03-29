@@ -4,13 +4,46 @@ import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import axios from 'axios';
 import { convertImage, compressImage } from '@/lib/helper';
+import { LucideIcon } from 'lucide-react';
 
+// Component types
+export interface SavedPartyInfo {
+  timestamp: string;
+  location?: string | null;
+  coordinates?: { lat: number; lng: number } | null;
+}
+
+export interface EmptyStateProps {
+  icon: LucideIcon;
+  message: string;
+  buttonText?: string;
+  buttonAction?: () => void;
+  showUpload?: boolean;
+  handleFileUpload?: (file: File) => Promise<void>;
+  isUploading?: boolean;
+}
+
+export interface PartyRowProps {
+  party: Report;
+  statement: Statement;
+}
+
+export interface PartyActionsProps {
+  party: Report;
+  statement: Statement;
+}
+
+export interface PartyDetailsProps {
+  party: Report;
+}
+
+// Store interface
 interface StatementState {
   statements: Statement[];
   isLoading: boolean;
   expandedParties: Record<string, string[]>;
   capturedImages: Record<string, string>;
-  savedParties: Record<string, { timestamp: string, location: string | null, coordinates: { lat: number, lng: number } | null }>;
+  savedParties: Record<string, SavedPartyInfo>;
   
   // Actions
   fetchStatements: (date?: Date) => Promise<void>;
@@ -18,11 +51,13 @@ interface StatementState {
   isPartyExpanded: (statementId: string, partyCode: string) => boolean;
   downloadPartyPDF: (party: Report, statement: Statement) => Promise<void>;
   captureStatementImage: (partyCode: string, reportId: string) => void;
-  savePartyImage: (partyCode: string, reportId: string) => Promise<void>;
+  savePartyImage: (partyCode: string, reportId: string, images: string[]) => Promise<void>;
+  updatePartyImage: (partyCode: string, imageUrl: string) => void;
   hasPartyImage: (partyCode: string) => boolean;
   isPartySaved: (partyCode: string) => boolean;
   searchParties: (parties: Report[], searchTerm: string) => Report[];
   updateStatementName: (statementId: string, newName: string) => void;
+  resetParty: (partyCode: string) => void;
 }
 
 export const useStatements = create<StatementState>((set, get) => ({
@@ -213,12 +248,12 @@ export const useStatements = create<StatementState>((set, get) => ({
     input.click();
   },
   
-  savePartyImage: async (partyCode: string, reportId: string) => {
+  savePartyImage: async (partyCode: string, reportId: string, images: string[]) => {
     const state = get();
-    if (!state.capturedImages[partyCode]) {
+    if (images.length === 0) {
       toast({
-        title: "No Image Found",
-        description: "Please capture an image first.",
+        title: "No Images Found",
+        description: "Please capture images first.",
         variant: "destructive",
       });
       return;
@@ -230,7 +265,8 @@ export const useStatements = create<StatementState>((set, get) => ({
       // Save the report as finalized in the database
       const response = await axios.patch('/api/statement/report', {
         reportId,
-        saved: true
+        saved: true,
+        images
       });
       
       if (response.data && response.data.report) {
@@ -283,6 +319,15 @@ export const useStatements = create<StatementState>((set, get) => ({
     }
   },
   
+  updatePartyImage: (partyCode: string, imageUrl: string) => {
+    set((state) => ({
+      capturedImages: {
+        ...state.capturedImages,
+        [partyCode]: imageUrl
+      }
+    }));
+  },
+  
   hasPartyImage: (partyCode: string) => {
     return !!get().capturedImages[partyCode];
   },
@@ -315,6 +360,28 @@ export const useStatements = create<StatementState>((set, get) => ({
     toast({
       title: "Statement name updated",
       description: `Statement name has been changed to "${newName}"`,
+    });
+  },
+  
+  resetParty: (partyCode: string) => {
+    set((state) => {
+      // Create new objects without the specified party
+      const newCapturedImages = { ...state.capturedImages };
+      const newSavedParties = { ...state.savedParties };
+      
+      // Delete the specific party entries
+      delete newCapturedImages[partyCode];
+      delete newSavedParties[partyCode];
+      
+      return {
+        capturedImages: newCapturedImages,
+        savedParties: newSavedParties
+      };
+    });
+    
+    toast({
+      title: "Reset Complete",
+      description: `Party ${partyCode} has been reset.`,
     });
   }
 }));

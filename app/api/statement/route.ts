@@ -96,4 +96,54 @@ export async function POST(req: Request) {
     console.error('Error creating statement:', error);
     return NextResponse.json({ error: 'Failed to create statement' }, { status: 500 });
   }
+}
+
+// Handle DELETE request to delete a statement
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get the statement ID from query parameters
+    const searchParams = new URL(req.url).searchParams;
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Statement ID is required' }, { status: 400 });
+    }
+
+    // First delete related reports to handle the cascading relationship
+    await prisma.report.deleteMany({
+      where: {
+        statementId: id
+      }
+    });
+
+    // Then delete the statement
+    const deletedStatement = await prisma.statement.delete({
+      where: {
+        id: id
+      }
+    });
+    
+    if (!deletedStatement) {
+      return NextResponse.json({ error: 'Statement not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Statement deleted successfully' 
+    });
+  } catch (error: any) {
+    console.error('Error deleting statement:', error);
+    
+    // Handle case where statement doesn't exist
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Statement not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ error: 'Failed to delete statement' }, { status: 500 });
+  }
 } 

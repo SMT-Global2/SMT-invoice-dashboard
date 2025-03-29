@@ -1,6 +1,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PartyDetailsProps } from '../_types';
+import { Report } from '@/lib/statement-service';
+import { PartyDetailsProps } from '@/store/useStatement';
 
 const PartyDetails: React.FC<PartyDetailsProps> = ({ party }) => (
   <div className="p-4">
