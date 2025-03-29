@@ -88,6 +88,13 @@ export function ExpiryDialog({
   // Handle image upload
   const handleImageUpload = (type: 'bill' | 'goods') => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
+      if(!expiryItem?.voucherNumber) {
+        toast({
+          title: 'Error',
+          description: 'Please enter voucher number first',
+          variant: 'destructive'
+        });
+      }
       const file = event.target.files?.[0];
       if (!file) return;
   
@@ -95,7 +102,8 @@ export function ExpiryDialog({
   
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile, `${type}_${Date.now()}`);
+      const prefixKeyId = `expiry/voucher_number#${expiryItem?.voucherNumber}#${type}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
   
       if (type === 'bill') {
         const currentImages = form.getValues("billImages");

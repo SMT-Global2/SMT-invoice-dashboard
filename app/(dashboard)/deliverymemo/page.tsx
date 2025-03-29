@@ -101,7 +101,8 @@ export default function DeliveryMemoPage() {
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile, dmNumber.toString());
+      const prefixKeyId = `delivery_memo/dm_number#${dmNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
 
       // Update the image in the store
       updateDeliveryMemoImage(dmNumber, uploadedImage.key);
@@ -536,8 +537,8 @@ export default function DeliveryMemoPage() {
                           <TableCell>{row.city}</TableCell>
                           <TableCell>
                             <TakeImage
-                              deliveryMemo={row as any}
-                              uploadingImage={uploadingImage}
+                              imageKey={row.dmNumber}
+                              isUploading={uploadingImage === row.dmNumber}
                               handleImageUpload={handleImageUpload}
                               isDisabled={row.goodsCheckedUsername !== null || uploadingImage === row.dmNumber}
                               showImages={row.images || []}

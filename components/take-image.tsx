@@ -17,11 +17,11 @@ export function TakeImage({
     showImages,
     takeType = 'BOTH'
 } : {
-    imageKey: number;
+    imageKey: number | string;
     handleImageUpload: any;
     isDisabled: boolean;
     isUploading: boolean;
-    showImages: any[];
+    showImages: string[];
     takeType : TakeType
 }) {
     const [cameraAvailable, setCameraAvailable] = useState(false);

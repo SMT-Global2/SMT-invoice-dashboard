@@ -35,12 +35,6 @@ export async function GET(request: NextRequest) {
         gte: moment().startOf('day').toDate(),
         lte: moment().endOf('day').toDate(),
       },
-      party: {
-        customerName: {
-          contains: search,
-          mode: 'insensitive'
-        }
-      }
     };
     
     // Add search filter if provided
@@ -57,6 +51,12 @@ export async function GET(request: NextRequest) {
         regionalCode: {
           in: regionalCodes
         }
+      };
+    }
+
+    if (search) {
+      where.invoiceNumber = {
+        equals: isNaN(parseInt(search)) ? undefined : parseInt(search),
       };
     }
     

@@ -230,11 +230,11 @@ export function InventoryVoucherTable({
                       <TableCell>
                         <TakeImage
                           handleImageUpload={handleImageUpload}
-                          uploadingImage={uploadingImage}
+                          imageKey={inventory.invoiceNumber}
+                          isUploading={uploadingImage === inventory.invoiceNumber}
                           isDisabled={!!inventory.voucherNumber}
                           showImages={inventory.image}
                           takeType="BOTH"
-                          invoice={{ invoiceNumber: inventory.invoiceNumber }}
                         />
                       </TableCell>
                       <TableCell>

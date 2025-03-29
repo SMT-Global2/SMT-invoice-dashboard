@@ -35,8 +35,6 @@ export function ShowImage({ images, text }: ShowImageProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  console.log({images})
-
   useEffect(() => {
     const processImages = async () => {
       if (!images || images.length === 0) {
@@ -173,7 +171,6 @@ export function ShowImage({ images, text }: ShowImageProps) {
       <DialogTrigger asChild>
         <Button size="sm" className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
-          {/* <span>View {images.length} {images.length === 1 ? 'Image' : 'Images'}</span> */}
           <span>{text ? text : 'View'} {images.length} {images.length === 1 ? '' : ''}</span>
         </Button>
       </DialogTrigger>
@@ -184,7 +181,7 @@ export function ShowImage({ images, text }: ShowImageProps) {
         onMouseLeave={handleMouseUp}
       >
         <DialogTitle className="text-lg font-semibold m-2">
-            View Images
+            {images[currentIndex]}
         </DialogTitle>
         <Carousel   
           className="w-full relative"
@@ -197,32 +194,31 @@ export function ShowImage({ images, text }: ShowImageProps) {
           <CarouselContent>
             {images.map((image, index) => (
               <CarouselItem key={index}>
-                <p>
-                  {image}
-                </p>
-                <div 
-                  ref={containerRef}
-                  className="flex items-center justify-center p-4 cursor-move"
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  style={{ 
-                    overflow: 'hidden',
-                    touchAction: 'none',
-                    cursor: isDragging ? 'grabbing' : (zoom > 1 ? 'grab' : 'default')
-                  }}
-                >
+                <div className="flex flex-col w-full">
                   <div 
+                    ref={containerRef}
+                    className="flex items-center justify-center p-4 cursor-move"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
                     style={{ 
-                      transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-                      transition: isDragging ? 'none' : 'transform 0.2s',
+                      overflow: 'hidden',
+                      touchAction: 'none',
+                      cursor: isDragging ? 'grabbing' : (zoom > 1 ? 'grab' : 'default')
                     }}
                   >
-                    <img 
-                      src={getS3BucketUrl(image)} 
-                      alt={`Bill Image ${index + 1}`} 
-                      className="rounded-lg object-contain max-h-[80vh]"
-                      draggable={false}
-                    />
+                    <div 
+                      style={{ 
+                        transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+                        transition: isDragging ? 'none' : 'transform 0.2s',
+                      }}
+                    >
+                      <img 
+                        src={getS3BucketUrl(image)} 
+                        alt={`Bill Image ${index + 1}`} 
+                        className="rounded-lg object-contain max-h-[80vh]"
+                        draggable={false}
+                      />
+                    </div>
                   </div>
                 </div>
               </CarouselItem>

@@ -178,26 +178,20 @@ export default function InventoryPage() {
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile, invoiceNumber.toString());
+      const prefixKeyId = `inventory/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
 
-      // Find the inventory item by invoice number
+
       const inventoryItem = voucherItems.find(item => item.invoiceNumber === invoiceNumber);
-      
-      if (inventoryItem) {
-        // Update item with new image
-        await updateInventoryItem(inventoryItem.id, {
-          image: [...inventoryItem.image, uploadedImage.key]
-        });
-        
-        // Update local state
+      if(inventoryItem) {
         updateInventoryItemImage(inventoryItem.id, uploadedImage.key);
-        
         toast({
           title: "Success",
           description: "Image uploaded successfully",
           duration: 2000,
         });
       }
+
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({

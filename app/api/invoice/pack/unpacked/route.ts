@@ -19,12 +19,6 @@ export async function GET(request: Request) {
     // Build where clause
     const where: any = {
       packageStatus: PackageStatus.NOT_PACKED,
-      party: {
-        customerName: {
-          contains: search,
-          mode: 'insensitive'
-        }
-      }
     };
 
     // Add regional code filter if provided
@@ -34,6 +28,12 @@ export async function GET(request: Request) {
         regionalCode: {
           in: regionalCodes
         }
+      };
+    }
+
+    if (search) {
+      where.invoiceNumber = {
+        equals: isNaN(parseInt(search)) ? undefined : parseInt(search),
       };
     }
 

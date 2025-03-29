@@ -87,10 +87,10 @@ export default function InvoicePage() {
       console.log(file)
 
       setUploadingImage(invoiceNumber);
-      const prefixKeyId = `invoice/${moment(selectedDate).format('YYYY-MM-DD')}/${invoiceNumber}_${new Date().toISOString()}.${file.name.split('.').pop()}`;
-
+      
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
+      const prefixKeyId = `invoice/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
       const uploadedImage = await uploadFileToS3(compressedFile , prefixKeyId);
 
       updateInvoiceImage(invoiceNumber , uploadedImage.key);

@@ -43,6 +43,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
+  import moment from 'moment';
   
   export default function BillingPage() {
     const { toast } = useToast();
@@ -79,10 +80,12 @@ import {
         if (!file) return;
   
         setUploadingImage(invoiceNumber);
-  
+
+        
         const changedFile = await convertImage(file);
         const compressedFile = await compressImage(changedFile);
-        const uploadedImage = await uploadFileToS3(compressedFile , invoiceNumber.toString());
+        const prefixKeyId = `billing/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+        const uploadedImage = await uploadFileToS3(compressedFile , prefixKeyId);
   
         updateBillInvoiceImage(invoiceNumber, uploadedImage.key);
   
@@ -226,7 +229,7 @@ import {
                               handleImageUpload={handleImageUpload}
                               isUploading={uploadingImage === invoice.invoiceNumber}
                               isDisabled={uploadingImage === invoice.invoiceNumber || invoice.billedStatus === BilledStatus.BILLED}
-                              showImages={invoice.image}
+                              showImages={[...invoice.image, ...invoice.billImage]}
                               takeType='BOTH'
                             />
                           </TableCell>

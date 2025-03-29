@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { compressImage, convertImage, uploadFileToS3 } from '@/lib/helper';
-
+import moment from 'moment';
 export function InTransitTable() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const { toast } = useToast();
@@ -117,7 +117,8 @@ export function InTransitTable() {
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile, invoiceNumber.toString());
+      const prefixKeyId = `delivery/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
 
       updateDeliveryInvoiceImage(invoiceNumber, uploadedImage.key);
 
@@ -285,9 +286,9 @@ export function InTransitTable() {
                     <TableCell>{invoice.regionalCode}</TableCell>
                     <TableCell>
                       <TakeImage
-                        invoice={invoice}
-                        uploadingImage={uploadingImage}
+                        imageKey={invoice.invoiceNumber}
                         handleImageUpload={handleImageUpload}
+                        isUploading={uploadingImage === invoice.invoiceNumber}
                         isDisabled={uploadingImage === invoice.invoiceNumber}
                         showImages={[...invoice.image]}
                         takeType='CAMERA'

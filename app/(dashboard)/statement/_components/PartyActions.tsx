@@ -27,8 +27,8 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
 
   const { toast } = useToast();
 
-  const [uploadingImage, setUploadingImage] = useState<number | null>(null);
-  const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
+  const [uploadingImage, setUploadingImage] = useState<number | string | null>(null);
+  const [lastInteractedPartyCode, setLastInteractedPartyCode] = useState<string | null>(null);
 
   const findReportIdForParty = (stmt: Statement, partyCode: string): string => {
     return `${stmt.id}_${partyCode}`;
@@ -57,17 +57,18 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
     }
   };
 
-  const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (partyCode : string) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      setLastInteractedInvoice(invoiceNumber);
+      setLastInteractedPartyCode(partyCode);
       const file = event.target.files?.[0];
       if (!file) return;
 
-      setUploadingImage(invoiceNumber);
+      setUploadingImage(partyCode);
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile, invoiceNumber.toString());
+      const prefixKeyId = `statement/party_code#${partyCode}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
 
       updatePartyImage(party.partyCode, uploadedImage.key);
 
@@ -141,8 +142,9 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
         return (
           <>
             <TakeImage
-              handleImageUpload={() => handleImageUpload(Math.random())}
-              uploadingImage={isLoading ? party.partyCode : null}
+              handleImageUpload={handleImageUpload}
+              imageKey={party.partyCode}
+              isUploading={uploadingImage === party.partyCode}
               isDisabled={isLoading}
               showImages={capturedImages[party.partyCode] ? [capturedImages[party.partyCode]] : []}
               takeType="UPLOAD"

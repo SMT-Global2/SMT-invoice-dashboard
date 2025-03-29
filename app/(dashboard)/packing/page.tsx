@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import moment from 'moment';
 
 export default function PackingPage() {
   const { toast } = useToast();
@@ -122,7 +123,11 @@ export default function PackingPage() {
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile , invoiceNumber.toString());
+      //find invoice generated date
+
+      const invoiceGeneratedDate = unpackedInvoices.find(invoice => invoice.invoiceNumber === invoiceNumber)?.generatedDate;
+      const prefixKeyId = `packing/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile , prefixKeyId);
 
       updatePackInvoiceImage(invoiceNumber, uploadedImage.key);
 
@@ -284,9 +289,9 @@ export default function PackingPage() {
                           <TableCell>{invoice.regionalCode}</TableCell>
                           <TableCell>
                             <TakeImage
-                              invoice={invoice}
-                              uploadingImage={uploadingImage}
+                              imageKey={invoice.invoiceNumber}
                               handleImageUpload={handleImageUpload}
+                              isUploading={uploadingImage === invoice.invoiceNumber}
                               isDisabled={uploadingImage === invoice.invoiceNumber}
                               showImages={[...invoice.image, ...invoice.packImage]}
                               takeType='BOTH'
@@ -467,7 +472,7 @@ export default function PackingPage() {
                           <TableCell>{invoice.city}</TableCell>
                           <TableCell>{invoice.regionalCode}</TableCell>
                           <TableCell>
-                            <ShowImage invoice={invoice} images={[...invoice.image, ...invoice.packImage]} />  
+                            <ShowImage images={[...invoice.image, ...invoice.packImage]} />  
                           </TableCell>
                           <TableCell>
                             <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
