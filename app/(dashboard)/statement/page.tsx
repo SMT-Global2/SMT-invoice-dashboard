@@ -362,8 +362,8 @@ const PartyDetails: React.FC<PartyDetailsProps> = ({ party }) => (
           </TableRow>
         </TableHeader>
         <TableBody>
-          {party.entries.map((entry, entryIndex) => (
-            <TableRow key={entryIndex} className={entryIndex % 2 === 0 ? "" : "bg-muted/30"}>
+          {party.entries.map((entry, index) => (
+            <TableRow key={index} className={index % 2 === 0 ? "" : "bg-muted/30"}>
               <TableCell>{entry.dc}</TableCell>
               <TableCell>{entry.voucherDate}</TableCell>
               <TableCell>{entry.voucherNumber ? `${entry.dc} ${entry.voucherNumber}` : '*'}</TableCell>
@@ -748,9 +748,9 @@ export default function StatementsPage() {
               <div className="relative overflow-hidden mb-4">
                 <ScrollArea className="w-full pb-4">
                   <TabsList className="inline-flex w-full justify-start py-2 px-0 bg-transparent">
-                    {statements.map((statement) => (
+                    {statements.map((statement , index) => (
                       <TabsTrigger 
-                        key={statement.id} 
+                        key={index} 
                         value={statement.id}
                         className="whitespace-nowrap px-4 sm:px-6 py-3 text-sm sm:text-base font-medium flex-shrink-0 rounded-md data-[state=active]:shadow-md mx-1"
                       >
@@ -768,8 +768,8 @@ export default function StatementsPage() {
                 </ScrollArea>
               </div>
 
-              {statements.map((statement) => (
-                <TabsContent key={statement.id} value={statement.id} className="space-y-4">
+              {statements.map((statement , index) => (
+                <TabsContent key={index} value={statement.id} className="space-y-4">
                   <Card className="shadow-sm">
                     <CardHeader className="pb-2">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
@@ -807,7 +807,7 @@ export default function StatementsPage() {
                           </div>
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-1" />
-                            <span>{statement.uploadDate}</span>
+                            <span>{statement.reportDate}</span>
                           </div>
                         </div>
                       </div>
@@ -821,9 +821,9 @@ export default function StatementsPage() {
                     <CardContent>
                       {statements.find(s => s.id === statement.id)?.reports.length ? (
                         <div className="space-y-4">
-                          {statements.find(s => s.id === statement.id)?.reports.map((party: Report) => (
+                          {statements.find(s => s.id === statement.id)?.reports.map((party: Report , index: number) => (
                             <PartyRow 
-                              key={party.partyCode}
+                              key={index}
                               party={party} 
                               statement={statement} 
                               handlers={handlers}
