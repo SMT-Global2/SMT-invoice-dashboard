@@ -58,7 +58,6 @@ export default function StatementsPage() {
     isPartySaved,
     captureStatementImage,
     savePartyImage,
-    clearStatements,
     updateStatementName,
     fetchStatements,
     savedParties
@@ -227,30 +226,11 @@ export default function StatementsPage() {
     isLoading,
   };
 
-  if (isLoading && !isUploading) {
-    return (
-      <div className="container mx-auto p-4 space-y-6">
-        <Skeleton className="h-8 w-60 mb-6" />
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <Skeleton className="h-10 w-full md:w-3/4" />
-          <Skeleton className="h-10 w-full md:w-1/4" />
-        </div>
-        <Skeleton className="h-[400px] w-full rounded-lg" />
-      </div>
-    );
-  }
-
   // Generate empty state messages based on conditions
   const getNoStatementsMessage = (): string => {
     return selectedDate
       ? `No statements found for ${formatDateSafe(selectedDate)}`
       : 'No statements available';
-  };
-
-  const getNoMatchMessage = (): string => {
-    return selectedDate
-      ? `No statements found for ${formatDateSafe(selectedDate)}`
-      : 'No statements match your criteria';
   };
 
   // Add file upload button in header
@@ -364,126 +344,117 @@ export default function StatementsPage() {
         )}
       </div>
 
-      {statements.length > 0 ? (
-        <>
-          {statements.length > 0 ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="relative overflow-hidden mb-4">
-                <ScrollArea className="w-full pb-4">
-                  <TabsList className="inline-flex w-full justify-start py-2 px-0 bg-transparent">
-                    {statements.map((statement , index) => (
-                      <TabsTrigger 
-                        key={index} 
-                        value={statement.id}
-                        className="whitespace-nowrap px-4 sm:px-6 py-3 text-sm sm:text-base font-medium flex-shrink-0 rounded-md data-[state=active]:shadow-md mx-1"
-                      >
-                        <div className="flex flex-col items-center">
-                          <span className="truncate w-full text-center" title={statement.name}>
-                            {statement.name}
-                          </span>
-                          <Badge variant={calculateSavedCount(statement).startsWith('0') ? "outline" : "default"} className="mt-1">
-                            {calculateSavedCount(statement)}
-                          </Badge>
-                        </div>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </ScrollArea>
-              </div>
-
-              {statements.map((statement , index) => (
-                <TabsContent key={index} value={statement.id} className="space-y-4">
-                  <Card className="shadow-sm">
-                    <CardHeader className="pb-2">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                        {isEditingName === statement.id ? (
-                          <div className="flex items-center space-x-2">
-                            <Input 
-                              value={newName} 
-                              onChange={(e) => setNewName(e.target.value)}
-                              className="max-w-xs"
-                            />
-                            <Button size="sm" onClick={() => saveStatementName(statement.id)}>
-                              <Save className="h-4 w-4 mr-1" />
-                              Save
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <h2 className="text-xl font-semibold truncate max-w-md" title={statement.name}>
-                              {statement.name}
-                            </h2>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => startEditingName(statement.id, statement.name)}
-                              className="ml-2"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                          <div className="flex items-center">
-                            <FileText className="h-4 w-4 mr-1" />
-                            <span>{formatDate(statement.reportDate)}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            <span>{statement.reportDate}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <CardDescription>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Info className="h-4 w-4" />
-                          <span>Click on a party to expand details</span>
-                        </div>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {statement.reports.length ? (
-                        <div className="space-y-4">
-                          {statement.reports.map((party, idx) => (
-                            <PartyRow 
-                              key={idx}
-                              party={party} 
-                              statement={statement} 
-                              handlers={handlers}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <EmptyState
-                          icon={FileText}
-                          message="No parties match your search criteria"
-                          buttonText={searchTerm ? "Clear search" : undefined}
-                          buttonAction={searchTerm ? () => setSearchTerm('') : undefined}
-                        />
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              ))}
-            </Tabs>
-          ) : (
-            <EmptyState
-              icon={Calendar}
-              message={getNoMatchMessage()}
-              buttonText={undefined}
-              buttonAction={undefined}
-            />
-          )}
-        </>
-      ) : (
+      {/* Show empty state if no statements */}
+      {statements.length === 0 && !isLoading && (
         <EmptyState
           icon={Calendar}
           message={getNoStatementsMessage()}
           showUpload={true}
           handleFileUpload={processAndUploadFile}
-          isUploading={isUploading}
-        />
+            isUploading={isUploading}
+          />
       )}
+
+      {/* Main content with statements */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="relative overflow-hidden mb-4">
+          <ScrollArea className="w-full pb-4">
+            <TabsList className="inline-flex w-full justify-start py-2 px-0 bg-transparent">
+              {statements.map((statement, index) => (
+                <TabsTrigger 
+                  key={index} 
+                  value={statement.id}
+                  className="whitespace-nowrap px-4 sm:px-6 py-3 text-sm sm:text-base font-medium flex-shrink-0 rounded-md data-[state=active]:shadow-md mx-1"
+                >
+                  <div className="flex flex-col items-center">
+                    <span className="truncate w-full text-center" title={statement.name}>
+                      {statement.name}
+                    </span>
+                    <Badge variant={calculateSavedCount(statement).startsWith('0') ? "outline" : "default"} className="mt-1">
+                      {calculateSavedCount(statement)}
+                    </Badge>
+                  </div>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </ScrollArea>
+        </div>
+
+        {statements.map((statement, index) => (
+          <TabsContent key={index} value={statement.id} className="space-y-4">
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  {isEditingName === statement.id ? (
+                    <div className="flex items-center space-x-2">
+                      <Input 
+                        value={newName} 
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="max-w-xs"
+                      />
+                      <Button size="sm" onClick={() => saveStatementName(statement.id)}>
+                        <Save className="h-4 w-4 mr-1" />
+                        Save
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <h2 className="text-xl font-semibold truncate max-w-md" title={statement.name}>
+                        {statement.name}
+                      </h2>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => startEditingName(statement.id, statement.name)}
+                        className="ml-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 mr-1" />
+                      <span>{formatDate(statement.reportDate)}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      <span>{statement.reportDate}</span>
+                    </div>
+                  </div>
+                </div>
+                <CardDescription>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Info className="h-4 w-4" />
+                    <span>Click on a party to expand details</span>
+                  </div>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {statement.reports.length > 0 ? (
+                  <div className="space-y-4">
+                    {statement.reports.map((party, idx) => (
+                      <PartyRow 
+                        key={idx}
+                        party={party} 
+                        statement={statement} 
+                        handlers={handlers}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={FileText}
+                    message="No parties match your search criteria"
+                    buttonText={searchTerm ? "Clear search" : undefined}
+                    buttonAction={searchTerm ? () => setSearchTerm('') : undefined}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 } 

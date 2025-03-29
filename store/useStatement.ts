@@ -14,7 +14,6 @@ interface StatementState {
   
   // Actions
   fetchStatements: (date?: Date) => Promise<void>;
-  clearStatements: () => void;
   togglePartyExpand: (statementId: string, partyCode: string) => void;
   isPartyExpanded: (statementId: string, partyCode: string) => boolean;
   downloadPartyPDF: (party: Report, statement: Statement) => Promise<void>;
@@ -107,19 +106,6 @@ export const useStatements = create<StatementState>((set, get) => ({
         variant: "destructive",
       });
     }
-  },
-  
-  clearStatements: () => {
-    set({ 
-      statements: [],
-      expandedParties: {},
-      capturedImages: {},
-      savedParties: {} 
-    });
-    toast({
-      title: "Statements Cleared",
-      description: "All statements have been removed from the view",
-    });
   },
   
   togglePartyExpand: (statementId: string, partyCode: string) => {
