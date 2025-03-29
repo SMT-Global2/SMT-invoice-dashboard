@@ -115,7 +115,7 @@ export async function getPresignedUrl(fileName: string , contentType: string , p
   const response = await fetch('/api/s3/presignedUrl', {
     method: 'POST',
     body: JSON.stringify({ 
-        fileName: (prefixKeyId ? `invoice#${prefixKeyId}#${fileNameWithoutType}` : fileNameWithoutType) + new Date().toISOString() + '.' + fileType,
+        fileName: prefixKeyId,
         contentType: contentType,
         // customKey : prefixKeyId + fileName
       }),
@@ -153,6 +153,7 @@ export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
     key: key
   }
 }
+
 //https://smt-images-bucket.s3.ap-south-1.amazonaws.com/1740321810294-shreyas
 export function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', {

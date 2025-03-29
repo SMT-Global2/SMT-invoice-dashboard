@@ -222,9 +222,9 @@ import {
                           <TableCell>{invoice.city || '-'}</TableCell>
                           <TableCell>
                             <TakeImage
-                              invoice={invoice}
-                              uploadingImage={uploadingImage}
+                              imageKey={invoice.invoiceNumber}
                               handleImageUpload={handleImageUpload}
+                              isUploading={uploadingImage === invoice.invoiceNumber}
                               isDisabled={uploadingImage === invoice.invoiceNumber || invoice.billedStatus === BilledStatus.BILLED}
                               showImages={invoice.image}
                               takeType='BOTH'

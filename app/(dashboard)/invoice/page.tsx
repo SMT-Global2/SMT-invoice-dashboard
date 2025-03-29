@@ -77,17 +77,21 @@ export default function InvoicePage() {
     handleInvoices();
   }, [handleInvoices, selectedDate]);
 
+  //prefixKeyId ? `invoice#${prefixKeyId}#${fileNameWithoutType}` : fileNameWithoutType) + new Date().toISOString() + '.' + fileType,
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setLastInteractedInvoice(invoiceNumber);
       const file = event.target.files?.[0];
       if (!file) return;
 
+      console.log(file)
+
       setUploadingImage(invoiceNumber);
+      const prefixKeyId = `invoice/${moment(selectedDate).format('YYYY-MM-DD')}/${invoiceNumber}_${new Date().toISOString()}.${file.name.split('.').pop()}`;
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile , invoiceNumber.toString());
+      const uploadedImage = await uploadFileToS3(compressedFile , prefixKeyId);
 
       updateInvoiceImage(invoiceNumber , uploadedImage.key);
 
@@ -301,9 +305,9 @@ export default function InvoicePage() {
                           <TableCell>{row.city}</TableCell>
                           <TableCell>
                           <TakeImage
-                              invoice={row}
-                              uploadingImage={uploadingImage}
+                              imageKey={row.invoiceNumber}
                               handleImageUpload={handleImageUpload}
+                              isUploading={uploadingImage === row.invoiceNumber}
                               isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
                               showImages={[...row.image]}
                               takeType='BOTH'
