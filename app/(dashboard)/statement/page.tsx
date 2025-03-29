@@ -87,30 +87,6 @@ interface PartyDetailsProps {
   party: Report;
 }
 
-interface PartyEntry {
-  dc: string;
-  voucherDate: string;
-  voucherNumber?: string;
-  debits: number;
-  partAdjustment: number;
-  balance: number;
-  balanceCarryForward: number;
-  days: number;
-  discountNarration: string;
-}
-
-// Mock S3 upload function - in reality, this would use AWS SDK or similar
-const uploadToS3 = async (file: File): Promise<string> => {
-  // This is a mock function - in a real app, you would use AWS SDK
-  console.log('Uploading file to S3:', file.name);
-  
-  // Simulate a delay for uploading
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Return a mock S3 URL
-  return `https://your-s3-bucket.s3.amazonaws.com/${file.name}`;
-};
-
 // Reusable components
 const EmptyState: React.FC<EmptyStateProps> = ({ 
   icon: Icon, 
@@ -495,9 +471,6 @@ export default function StatementsPage() {
         throw new Error('No valid statement data found in the file');
       }
       
-      // Step 2: Upload the file to S3
-      const fileUrl = await uploadToS3(file);
-      
       // Step 3: Prepare report data for each party
       const reports = parsedStatement.reports.map(party => ({
         title: `${party.partyCode} - ${party.partyName}`,
@@ -509,7 +482,7 @@ export default function StatementsPage() {
       // Step 4: Send data to backend
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       const response = await axios.post('/api/statement', {
-        fileUrl,
+        fileUrl: 'NOT_SAVING_IN_S3_FOR_NOW',
         reports,
         date: formattedDate
       });
@@ -620,17 +593,6 @@ export default function StatementsPage() {
   // Add file upload button in header
   const renderHeaderActions = () => (
     <div className="flex items-center gap-2">
-      {statements.length > 0 && (
-        <Button 
-          onClick={clearStatements} 
-          disabled={isLoading || isUploading}
-          variant="outline"
-          className="text-destructive hover:bg-destructive/10"
-        >
-          <X className="h-4 w-4 mr-2" />
-          Clear
-        </Button>
-      )}
       <Button
         onClick={() => document.getElementById('header-file-upload')?.click()}
         disabled={isLoading || isUploading}
