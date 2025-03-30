@@ -12,8 +12,9 @@ import { compressImage } from '@/lib/helper';
 import { uploadFileToS3 } from '@/lib/helper';
 import { useToast } from '@/components/ui/use-toast';
 import { useStatements, PartyActionsProps } from '@/store/useStatement';
-import { generatePDF } from '@/lib/pdf-generator';
 import { Report } from '@/lib/statement-service';
+import StatementPDF from './StatementPDF';
+import { pdf } from '@react-pdf/renderer';
 
 const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
   const { 
@@ -96,10 +97,24 @@ const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {
     }
   };
 
-  const handleDownloadPDF = async (party: Report, statement: Statement) => {
+  const handleDownloadPDF = async (report : Report, statement: Statement) => {
     try {
-      // For Zustand store, we'll use a dynamic import of the PDF generation function
-      await generatePDF(party, statement);
+      // Generate PDF blob using our wrapper function
+      const blob = await pdf(<StatementPDF report={report} statement={statement} />).toBlob();
+  
+      // Create a URL for the blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create a link element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${statement.name}_${report.partyCode}_${report.partyName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
       
       toast({
         title: "PDF Generated",

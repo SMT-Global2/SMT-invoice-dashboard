@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { Report, Statement } from '@/lib/statement-service';
