@@ -147,7 +147,6 @@ export const useAgencyStore = create<AgencyStore>((set, get) => ({
 
     } catch (error : any) {
       set({ error: 'Failed to delete agency', isLoading: false })
-      console.log({error})
       toast({
         variant: "destructive",
         title: "Error",

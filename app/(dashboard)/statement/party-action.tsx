@@ -13,7 +13,7 @@ import { uploadFileToS3 } from '@/lib/helper';
 import { useToast } from '@/components/ui/use-toast';
 import { useStatements, PartyActionsProps } from '@/store/useStatement';
 import { Report } from '@/lib/statement-service';
-import StatementPDF from './StatementPDF';
+import StatementPDF from './statement-pdf';
 import { pdf } from '@react-pdf/renderer';
 
 const PartyActions: React.FC<PartyActionsProps> = ({ party, statement }) => {

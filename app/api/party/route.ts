@@ -225,10 +225,7 @@ export async function DELETE(request: Request) {
       }
     })
 
-    console.log("HERE" , {invoicesWithPartyCode})
-
     if(invoicesWithPartyCode > 0) {
-      console.log({invoicesWithPartyCode})
       return Response.json({
         success: false,
         message: 'Party code is in use by some invoices'

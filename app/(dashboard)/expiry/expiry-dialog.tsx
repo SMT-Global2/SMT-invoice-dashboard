@@ -147,7 +147,6 @@ export function ExpiryDialog({
         generatedDate: expiryItem?.generatedDate ? new Date(expiryItem?.generatedDate) : new Date()
       };
 
-      console.log(data)
       // Call the appropriate API based on dialog type
       if (dialogType === 'edit' && expiryItem) {
         await onSave(expiryItem.id, data);

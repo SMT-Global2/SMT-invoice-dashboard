@@ -117,8 +117,6 @@ export const useInvoiceStore = create<InvoiceState>()(
           //   currentNo = Math.min(currentNo , ...todayInvoices.map((item: any) => item.invoiceNumber));
           // }
 
-          console.log('Current No:', currentNo);  
-
           const finalInvoices: InvoiceData[] = [];
 
           let maximumInvoiceNumber = invoiceEndNo ? invoiceEndNo : invoiceStartNo + HANDLE_LIMIT;
@@ -126,12 +124,6 @@ export const useInvoiceStore = create<InvoiceState>()(
           if(moment(date).isSame(moment() , 'day')) {
             maximumInvoiceNumber = Math.max(maximumInvoiceNumber , invoiceStartNo + HANDLE_LIMIT)
           }
-
-          console.log({
-            maximumInvoiceNumber,
-            invoiceEndNo,
-            invoiceStartNo
-          })
 
           for (let i = invoiceStartNo; i <= maximumInvoiceNumber; i++) {
             const existingInvoice = todayInvoices.find(

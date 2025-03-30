@@ -73,7 +73,6 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
 export default async function DashboardPage() {
   // Get all categories from our data
   const categories = getCategories();
-  console.log(categories);
   return (
     <div className="w-full overflow-hidden">
       <div className="space-y-8">

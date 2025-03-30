@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
-import ReceiptPDF from '@/components/ReceiptPDF';
+import ReceiptPDF from 'app/(dashboard)/receipt/receipt-pdf';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { DownloadIcon, Loader } from 'lucide-react';

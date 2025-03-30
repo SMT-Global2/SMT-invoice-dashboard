@@ -15,8 +15,6 @@ export async function GET(request: Request) {
       return Response.json({error: 'Invalid password'}, {status: 400})
     }
 
-    console.log("Running seed for added regional party code")
-
     const data = [];
     for (const item of partyCodeSeedUpdated) {
       const result = await prisma.partyCode.upsert({

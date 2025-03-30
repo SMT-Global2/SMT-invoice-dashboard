@@ -7,7 +7,7 @@ import { ReceiptDialog } from './receipt-dialog';
 import { RecordTable, PaymentMethodFilter } from './record-table';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import PDFGenerator from './PDFGenerator';
+import PDFGenerator from './pdf-generator';
 
 export default function ReceiptPage() {
   const { toast } = useToast();
@@ -94,7 +94,6 @@ export default function ReceiptPage() {
       try {
         const freshReceipt = await useReceiptStore.getState().fetchReceiptItemById(id);
         if (freshReceipt) {
-          console.log('FETCHED FRESH RECEIPT FOR EDIT:', freshReceipt);
           // Update with fresh data
           setCurrentReceiptItem(freshReceipt);
         }
@@ -141,6 +140,7 @@ export default function ReceiptPage() {
       return updateReceiptItem(id, data);
     }
   };
+
 
   return (
     <div className="mx-auto py-6 space-y-6">

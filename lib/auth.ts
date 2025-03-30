@@ -73,8 +73,6 @@ export const authOptions: AuthOptions = {
             type : user.type
           };
         }
-
-        console.log('Wtf');
         return null;
       },
     }),

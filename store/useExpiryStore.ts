@@ -128,8 +128,6 @@ export const useExpiryStore = create<ExpiryState>()(
           if (date) {
             url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
           }
-          
-          console.log(url.toString());
 
           const response = await fetch(url.toString());
           
@@ -280,8 +278,6 @@ export const useExpiryStore = create<ExpiryState>()(
       deleteExpiryItem: async (id) => {
         try {
           set({ isLoading: true, error: null });
-          
-          console.log('Deleting expiry item with ID:', id);
           
           const url = new URL('/api/expiry', window.location.origin);
           url.searchParams.set('id', id);

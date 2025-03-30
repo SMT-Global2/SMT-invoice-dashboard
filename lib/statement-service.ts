@@ -188,8 +188,6 @@ export const parseOutstandingReport = (reportContent: string, fileName?: string)
               discountNarration: ''
             }
           };
-
-          console.log(report);
           
           // Process transaction entries
           for (let j = 1; j < lines.length; j++) {

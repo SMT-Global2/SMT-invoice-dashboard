@@ -62,7 +62,6 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    console.log(error);
     console.error('Error fetching unpacked invoices:', error);
     return NextResponse.json(
       { error: 'Failed to fetch unpacked invoices' },

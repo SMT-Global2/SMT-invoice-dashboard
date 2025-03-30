@@ -153,7 +153,6 @@ export const useInventoryStore = create<InventoryState>()(
       fetchVoucherItems: async ({ page, limit, search, date }) => {
         try {
           set({ isLoading: true, error: null });
-          console.log('fetchVoucherItems')
           
           const url = new URL('/api/inventory', window.location.origin);
           url.searchParams.set('page', page.toString());
@@ -314,7 +313,6 @@ export const useInventoryStore = create<InventoryState>()(
         const index = items.findIndex(item => item.id === id);
         if (index !== -1) {
           items[index].image.push(image);
-          console.log({items})
           set({ voucherItems: items });
         }
       },

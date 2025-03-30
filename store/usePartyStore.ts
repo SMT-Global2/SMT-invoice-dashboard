@@ -170,7 +170,6 @@ export const usePartyStore = create<PartyStore>((set, get) => ({
 
     } catch (error : any) {
       set({ error: 'Failed to delete party', isLoading: false })
-      console.log({error})
       toast({
         variant: "destructive",
         title: "Error",

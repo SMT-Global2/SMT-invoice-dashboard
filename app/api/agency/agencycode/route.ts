@@ -31,8 +31,6 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    console.log(agencies);
-    
     return NextResponse.json({
       data: agencies
     });

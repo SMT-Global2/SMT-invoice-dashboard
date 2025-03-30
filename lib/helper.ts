@@ -44,7 +44,6 @@ export async function convertImage(file: File): Promise<File> {
       throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
     }
   }
-  console.log("HERE" , {file})
   return file;
 }
 
@@ -109,7 +108,6 @@ export async function compressImage(file: File): Promise<File> {
 }
 
 export async function getPresignedUrl(fileName: string , contentType: string , prefixKeyId : string = '') {
-  console.log('Getting presigned url...');
   const fileType = fileName.split('.').pop()?.toLowerCase();
   const fileNameWithoutType = fileName.split('.').slice(0, -1).join('.');
   const response = await fetch('/api/s3/presignedUrl', {
@@ -129,12 +127,6 @@ export async function getPresignedUrl(fileName: string , contentType: string , p
 }
 
 export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
-  console.log('File details:', {
-    name: file.name,
-    type: file.type,
-    size: file.size,
-    extension: file.name.split('.').pop()?.toLowerCase()
-  });
   const {
     presignedUrl,
     key

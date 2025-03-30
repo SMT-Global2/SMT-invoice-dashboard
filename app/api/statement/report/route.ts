@@ -19,8 +19,6 @@ export async function PATCH(req: Request) {
     if (!reportId) {
       return NextResponse.json({ error: "Report ID is required" }, { status: 400 });
     }
-    
-    console.log({reportId, saved})
 
     // Update report
     const report = await prisma.report.update({

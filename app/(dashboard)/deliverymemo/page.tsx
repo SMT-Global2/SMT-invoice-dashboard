@@ -45,7 +45,7 @@ import {
 import moment from 'moment';
 import { Capsule } from '@/components/capsule';
 import TableSkeleton from '@/components/table-skeleton';
-import { TableEmpty } from '@/components/TableEmpty';
+import { TableEmpty } from '@/components/take-empty';
 import { Spinner } from '@/components/icons';
 import { TakeImage } from '@/components/take-image';
 import { Input } from "@/components/ui/input";

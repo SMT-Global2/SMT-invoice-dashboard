@@ -313,8 +313,6 @@ export async function DELETE(req: NextRequest) {
       );
     }
     
-    console.log('Received ID in API:', id);
-    
     // Check if expiry item exists
     const existingItem = await prisma.expiry.findUnique({
       where: { id }

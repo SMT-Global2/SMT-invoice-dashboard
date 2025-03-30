@@ -60,8 +60,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Import the extracted components
-import PartyRow from './_components/PartyRow';
-import EmptyState from './_components/EmptyState';
+import PartyRow from './party-row';
+import EmptyState from './empty-state';
 
 // CSS keyframes for shimmer animation
 const shimmerAnimation = `

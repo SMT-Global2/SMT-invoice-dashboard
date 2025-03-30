@@ -2,8 +2,8 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Report, Statement } from '@/lib/statement-service';
-import PartyActions from './PartyActions';
-import PartyDetails from './PartyDetails';
+import PartyActions from './party-action';
+import PartyDetails from './party-details';
 import { useStatements, PartyRowProps } from '@/store/useStatement';
 
 const PartyRow: React.FC<PartyRowProps> = ({ party, statement }) => {

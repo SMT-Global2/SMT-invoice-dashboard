@@ -306,9 +306,6 @@ export function ReceiptDialog({
       if (receiptItem && dialogType === 'edit') {
         const paymentMethod = receiptItem.paymentMethod;
         
-        console.log('EDIT RECEIPT:', receiptItem);
-        console.log('CURRENCY BILLS IN RECEIPT:', receiptItem.currencyBills);
-        
         // Set appropriate values based on payment method
         let currencyBills = null;
         let cheque = null;
@@ -324,7 +321,6 @@ export function ReceiptDialog({
             '10': receiptItem.currencyBills?.['10'] || 0,
           };
           
-          console.log('PROCESSED CURRENCY BILLS FOR FORM:', currencyBills);
         } else if (paymentMethod === 'CHEQUE') {
           cheque = receiptItem.cheque ? {
             ...receiptItem.cheque,
@@ -348,8 +344,7 @@ export function ReceiptDialog({
           currencyBills,
           cheque
         });
-        
-        console.log('FORM VALUES AFTER RESET:', form.getValues());
+
       } else {
         // For create mode, reset to empty form
         form.reset({
