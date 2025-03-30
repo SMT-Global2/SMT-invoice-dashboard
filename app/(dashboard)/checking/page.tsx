@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
@@ -44,17 +44,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from '@/lib/utils';
+import { DatePicker } from '@/components/ui/date-picker';
+import moment from 'moment';
 
 export default function CheckingPage() {
   const { toast } = useToast();
-  const { 
+  const {
     uncheckedInvoices,
     checkedInvoices,
     fetchUncheckedInvoices,
     fetchCheckedInvoices,
     checkInvoice,
     isLoading,
-    
+
+    // Date
+    uncheckedSelectedDate,
+    checkedSelectedDate,
+    setUncheckedSelectedDate,
+    setCheckedSelectedDate,
+
     // Pagination
     uncheckedCurrentPage,
     uncheckedTotalPages,
@@ -64,7 +73,7 @@ export default function CheckingPage() {
     setUncheckedCurrentPage,
     setCheckedCurrentPage,
     setItemsPerPage,
-    
+
     // Search
     uncheckedSearchTerm,
     checkedSearchTerm,
@@ -72,13 +81,17 @@ export default function CheckingPage() {
     setCheckedSearchTerm
   } = useCheckingInvoiceStore();
 
+
+
   useEffect(() => {
     fetchUncheckedInvoices();
     fetchCheckedInvoices();
   }, [fetchUncheckedInvoices, fetchCheckedInvoices]);
+  const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
 
   const handleCheckInvoice = async (invoiceNumber: number) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       await checkInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -100,7 +113,7 @@ export default function CheckingPage() {
   const displayedPages = (currentPage: number, totalPages: number) => {
     const delta = 1;
     const range = [];
-    
+
     for (
       let i = Math.max(0, currentPage - delta);
       i <= Math.min(totalPages - 1, currentPage + delta);
@@ -137,20 +150,31 @@ export default function CheckingPage() {
         <TabsContent value="unchecked">
           <Card>
             <CardHeader>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <CardTitle>Unchecked Invoices</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-                  <div className="w-full">
-                    <Input
-                      type="text"
-                      placeholder="Search invoice number..."
-                      value={uncheckedSearchTerm}
-                      onChange={(e) => setUncheckedSearchTerm(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <CardTitle>Unchecked Invoices</CardTitle>
+              <div className="flex flex-col w-full md:w-auto gap-2">
+                
+                <div className="flex flex-col gap-2 lg:hidden">
+                  <Input
+                    type="text"
+                    placeholder="Search invoice number..."
+                    value={uncheckedSearchTerm}
+                    onChange={(e) => setUncheckedSearchTerm(e.target.value)}
+                    className="w-full"
+                  />
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <DatePicker date={uncheckedSelectedDate} setDate={setUncheckedSelectedDate} />
+                  <Button
+                    variant={'outline'}
+                    disabled={!uncheckedSelectedDate || moment(uncheckedSelectedDate).isSame(moment(), 'day')}
+                    onClick={() => setUncheckedSelectedDate(undefined)}
+                  >Clear Date</Button>
+                </div>
+
               </div>
+            </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
@@ -176,7 +200,12 @@ export default function CheckingPage() {
                       </TableRow>
                     ) : (
                       uncheckedInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}>
+                        <TableRow key={invoice.invoiceNumber}
+                          className={cn(
+                            "border-gray-400",
+                            lastInteractedInvoice === invoice.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
+                          )}
+                        >
                           <TableCell>{(uncheckedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
@@ -184,7 +213,7 @@ export default function CheckingPage() {
                           <TableCell>{invoice.medicalName}</TableCell>
                           <TableCell>{invoice.city}</TableCell>
                           <TableCell>
-                            <ShowImage images={invoice.image} />  
+                            <ShowImage images={invoice.image} />
                           </TableCell>
                           <TableCell>
                             <Button
@@ -201,7 +230,7 @@ export default function CheckingPage() {
                   </TableBody>
                 </Table>
               </div>
-              
+
               {/* Pagination Controls */}
               <div className="mt-4 flex justify-center">
                 <Pagination>
@@ -263,22 +292,35 @@ export default function CheckingPage() {
         <TabsContent value="checked">
           <Card>
             <CardHeader>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <CardTitle>Checked Invoices</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-                  <div className="w-full">
-                    <Input
-                      type="text"
-                      placeholder="Search invoice number..."
-                      value={checkedSearchTerm}
-                      onChange={(e) => setCheckedSearchTerm(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <CardTitle>Checked Invoices</CardTitle>
+              <div className="flex flex-col w-full md:w-auto gap-2">
+                
+                <div className="flex flex-col gap-2 lg:hidden">
+                  <Input
+                    type="text"
+                    placeholder="Search invoice number..."
+                    value={checkedSearchTerm}
+                    onChange={(e) => setCheckedSearchTerm(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <DatePicker date={checkedSelectedDate} setDate={setCheckedSelectedDate} />
+                  <Button
+                    variant={'outline'}
+                    disabled={!checkedSelectedDate || moment(checkedSelectedDate).isSame(moment(), 'day')}
+                    onClick={() => setCheckedSelectedDate(undefined)}
+                  >Clear Date</Button>
                 </div>
               </div>
+            </div>
             </CardHeader>
             <CardContent>
+
+
+              
               <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 <Table>
                   <TableHeader>
@@ -313,12 +355,12 @@ export default function CheckingPage() {
                           <TableCell>{invoice.medicalName}</TableCell>
                           <TableCell>{invoice.city}</TableCell>
                           <TableCell>
-                            <ShowImage images={invoice.image} />  
+                            <ShowImage images={invoice.image} />
                           </TableCell>
                           <TableCell>
                             <Capsule
-                              text="Checked" 
-                              showIcon="ok" 
+                              text="Checked"
+                              showIcon="ok"
                             />
                           </TableCell>
                           <TableCell>{tweleHrFormatDateString(invoice.checkTimestamp!)}</TableCell>
@@ -328,7 +370,7 @@ export default function CheckingPage() {
                   </TableBody>
                 </Table>
               </div>
-              
+
               {/* Pagination Controls */}
               <div className="mt-4 flex justify-center">
                 <Pagination>

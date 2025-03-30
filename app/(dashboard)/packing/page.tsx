@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import { DatePicker } from '@/components/ui/date-picker';
 import moment from 'moment';
 
 export default function PackingPage() {
@@ -76,6 +77,12 @@ export default function PackingPage() {
     packedSearchTerm,
     setUnpackedSearchTerm,
     setPackedSearchTerm,
+
+    // Date
+    unpackedSelectedDate,
+    setUnpackedSelectedDate,
+    packedSelectedDate,
+    setPackedSelectedDate,
 
     // Regional code filters
     unpackedSelectedRegionalCodes,
@@ -193,9 +200,9 @@ export default function PackingPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Unpacked Invoices</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2">
-                  {/* Mobile Layout: Stacked */}
-                  <div className="flex flex-col gap-2 lg:hidden">
+                
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
+                  <div className="flex flex-col gap-2">
                     <Input
                       type="text"
                       placeholder="Search invoice number..."
@@ -203,36 +210,18 @@ export default function PackingPage() {
                       onChange={(e) => setUnpackedSearchTerm(e.target.value)}
                       className="w-full"
                     />
-                    <div className="flex items-center gap-2">
-                      <RegionalCodeFilter
-                        selectedRegionalCodes={unpackedSelectedRegionalCodes}
-                        availableRegionalCodes={availableRegionalCodes}
-                        setSelectedRegionalCodes={setUnpackedSelectedRegionalCodes}
-                        label="Regions"
-                      />
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          clearAllFilters();
-                        }}
-                        className="flex items-center gap-1 ml-auto"
-                        size="sm"
-                      >
-                        <FilterX className="h-4 w-4" />
-                        <span>Clear All</span>
-                      </Button>
-                    </div>
                   </div>
-                  
-                  {/* Desktop Layout: Row */}
-                  <div className="hidden lg:flex items-center gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Search invoice number..."
-                      value={unpackedSearchTerm}
-                      onChange={(e) => setUnpackedSearchTerm(e.target.value)}
-                      className="w-[200px]"
-                    />
+
+                  <div className="flex flex-row gap-2">
+                    <DatePicker date={unpackedSelectedDate} setDate={setUnpackedSelectedDate} />
+                    {/* <Button
+                      variant={'outline'}
+                      disabled={!unpackedSelectedDate || moment(unpackedSelectedDate).isSame(moment(), 'day')}
+                      onClick={() => setUnpackedSelectedDate(undefined)}
+                    >Clear Date</Button> */}
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <RegionalCodeFilter
                       selectedRegionalCodes={unpackedSelectedRegionalCodes}
                       availableRegionalCodes={availableRegionalCodes}
@@ -244,7 +233,7 @@ export default function PackingPage() {
                       onClick={() => {
                         clearAllFilters();
                       }}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 ml-auto"
                       size="sm"
                     >
                       <FilterX className="h-4 w-4" />
@@ -252,6 +241,7 @@ export default function PackingPage() {
                     </Button>
                   </div>
                 </div>
+
               </div>
             </CardHeader>
             <CardContent>
@@ -376,9 +366,9 @@ export default function PackingPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Packed Invoices</CardTitle>
-                <div className="flex flex-col w-full md:w-auto gap-2">
-                  {/* Mobile Layout: Stacked */}
-                  <div className="flex flex-col gap-2 lg:hidden">
+                
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
+                  <div className="flex flex-col gap-2">
                     <Input
                       type="text"
                       placeholder="Search invoice number..."
@@ -386,36 +376,18 @@ export default function PackingPage() {
                       onChange={(e) => setPackedSearchTerm(e.target.value)}
                       className="w-full"
                     />
-                    <div className="flex items-center gap-2">
-                      <RegionalCodeFilter
-                        selectedRegionalCodes={packedSelectedRegionalCodes}
-                        availableRegionalCodes={availableRegionalCodes}
-                        setSelectedRegionalCodes={setPackedSelectedRegionalCodes}
-                        label="Regions"
-                      />
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          clearAllFilters();
-                        }}
-                        className="flex items-center gap-1 ml-auto"
-                        size="sm"
-                      >
-                        <FilterX className="h-4 w-4" />
-                        <span>Clear All</span>
-                      </Button>
-                    </div>
                   </div>
-                  
-                  {/* Desktop Layout: Row */}
-                  <div className="hidden lg:flex items-center gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Search invoice number..."
-                      value={packedSearchTerm}
-                      onChange={(e) => setPackedSearchTerm(e.target.value)}
-                      className="w-[200px]"
-                    />
+
+                  <div className="flex flex-row gap-2">
+                    <DatePicker date={packedSelectedDate} setDate={setPackedSelectedDate} />
+                    {/* <Button
+                      variant={'outline'}
+                      disabled={!packedSelectedDate || moment(packedSelectedDate).isSame(moment(), 'day')}
+                      onClick={() => setPackedSelectedDate(undefined)}
+                    >Clear Date</Button> */}
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <RegionalCodeFilter
                       selectedRegionalCodes={packedSelectedRegionalCodes}
                       availableRegionalCodes={availableRegionalCodes}
@@ -427,7 +399,7 @@ export default function PackingPage() {
                       onClick={() => {
                         clearAllFilters();
                       }}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 ml-auto"
                       size="sm"
                     >
                       <FilterX className="h-4 w-4" />
@@ -435,6 +407,7 @@ export default function PackingPage() {
                     </Button>
                   </div>
                 </div>
+
               </div>
             </CardHeader>
             <CardContent>

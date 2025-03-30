@@ -105,6 +105,7 @@ model Invoice {
   invoiceNumber     Int    @unique
   generatedDate     DateTime
 
+  paymodeMode       PaymodeMode
   partyCode         String    
   party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
 
@@ -258,6 +259,10 @@ model DayStartDeliveryMemo {
   invoiceEndNo   Int?
 }
 
+enum PaymodeMode {
+  CASH
+  CREDIT
+}
 
 enum PaymentMethod {
   NONE

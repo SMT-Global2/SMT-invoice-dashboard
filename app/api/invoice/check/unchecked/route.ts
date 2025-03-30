@@ -24,12 +24,17 @@ export async function GET(request: NextRequest) {
     
     // Search parameter
     const search = searchParams.get('search') || '';
+    const date = searchParams.get('date') || '';
     
     // Build where clause
     const where: any = {
       isOtc: false,
-      invoiceTimestamp: {
-        not: null
+      invoiceTimestamp: date ? {
+        not: null,
+        gte: moment(date).startOf('day').toDate(),
+        lte: moment(date).endOf('day').toDate(),
+      } : {
+        not: null,
       },
       checkStatus: CheckStatus.NOT_CHECKED
     };

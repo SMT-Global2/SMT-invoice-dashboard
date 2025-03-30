@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
@@ -46,11 +45,11 @@ import moment from 'moment';
 import { Capsule } from '@/components/capsule';
 import TableSkeleton from '@/components/table-skeleton';
 import { TableEmpty } from '@/components/table-empty';
-import { Spinner } from '@/components/icons';
 import { TakeImage } from '@/components/take-image';
 import { Input } from "@/components/ui/input";
-import { debounce } from 'lodash';
 import { PartyCodeSelector, PartyCode } from '@/components/party-code-selector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PaymodeMode } from '@prisma/client';
 
 export default function InvoicePage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -212,6 +211,7 @@ export default function InvoicePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="w-full sm:max-w-[300px]">
                 <Input
@@ -243,6 +243,7 @@ export default function InvoicePage() {
                     <TableHead>Party Code</TableHead>
                     <TableHead>Medical Name</TableHead>
                     <TableHead>City</TableHead>
+                    <TableHead>Paymode</TableHead>
                     <TableHead>Image</TableHead>
                     <TableHead>Actions</TableHead>
                     <TableHead>Generated Time</TableHead>
@@ -262,7 +263,7 @@ export default function InvoicePage() {
                         <TableRow key={row.invoiceNumber}
                           className={cn(
                             "border-gray-400",
-                            lastInteractedInvoice === row.invoiceNumber && "border-[2px] border-yellow-300"
+                            lastInteractedInvoice === row.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
                           )}
                         >
                           <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
@@ -301,15 +302,46 @@ export default function InvoicePage() {
                           </TableCell>
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
+                          
                           <TableCell>
-                          <TakeImage
-                              imageKey={row.invoiceNumber}
-                              handleImageUpload={handleImageUpload}
-                              isUploading={uploadingImage === row.invoiceNumber}
-                              isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
-                              showImages={[...row.image]}
-                              takeType='BOTH'
-                            />
+                            <Select
+                              disabled={row.isDisabled || row.invoiceTimestamp !== null}
+                              value={row.paymodeMode || ""}
+                              onValueChange={(value) => {
+                                try {
+                                  const newData = [...invoices];
+                                  const index = newData.findIndex(item => item.invoiceNumber === row.invoiceNumber);
+                                  if (index !== -1) {
+                                    newData[index] = {
+                                      ...newData[index],
+                                      paymodeMode: value as PaymodeMode
+                                    };
+                                    setInvoices(newData);
+                                  }
+                                } catch (error) {
+                                  console.error("Error updating payment mode:", error);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Payment mode" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={PaymodeMode.CASH}>Cash</SelectItem>
+                                <SelectItem value={PaymodeMode.CREDIT}>Credit</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          
+                          <TableCell>
+                            <TakeImage
+                                imageKey={row.invoiceNumber}
+                                handleImageUpload={handleImageUpload}
+                                isUploading={uploadingImage === row.invoiceNumber}
+                                isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                                showImages={[...row.image]}
+                                takeType='BOTH'
+                              />
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

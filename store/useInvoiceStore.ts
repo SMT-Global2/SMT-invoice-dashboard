@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import moment from 'moment'
+import { PaymodeMode } from '@prisma/client'
 
 export interface InvoiceData {
   invoiceNumber: number
@@ -9,6 +10,7 @@ export interface InvoiceData {
   isOtc: boolean
   city: string
   image: string[]
+  paymodeMode : PaymodeMode | null
   generatedDate: Date | null
   invoiceTimestamp: Date | null
   isDisabled: boolean   
@@ -145,6 +147,7 @@ export const useInvoiceStore = create<InvoiceState>()(
                 partyCode: '',
                 medicalName: '-',
                 isOtc: false,
+                paymodeMode: null,
                 city: '-',
                 image: [],
                 invoiceTimestamp : null,
@@ -160,6 +163,7 @@ export const useInvoiceStore = create<InvoiceState>()(
                 partyCode: '',
                 medicalName: '-',
                 isOtc: false,
+                paymodeMode: null,
                 city: '-',
                 image: [],
                 invoiceTimestamp : null,
@@ -201,6 +205,7 @@ export const useInvoiceStore = create<InvoiceState>()(
             partyCode : invoice.partyCode,
             image: invoice.image,
             isOtc: isOtc || false,
+            paymodeMode: invoice.paymodeMode,
             invoiceTimestamp : moment().toDate(),
           };
 

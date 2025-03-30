@@ -35,6 +35,12 @@ interface PackingInvoiceState {
   unpackedSearchTerm: string
   packedSearchTerm: string
 
+  // Date
+  unpackedSelectedDate: Date | undefined
+  packedSelectedDate: Date | undefined
+  setUnpackedSelectedDate: (date: Date | undefined) => void
+  setPackedSelectedDate: (date: Date | undefined) => void
+
   // Regional code filters
   unpackedSelectedRegionalCodes: string[]
   packedSelectedRegionalCodes: string[]
@@ -127,6 +133,16 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
         get().fetchPackedInvoices();
       },
 
+      setUnpackedSelectedDate: (date) => {
+        set({ unpackedSelectedDate: date });
+        get().fetchUnpackedInvoices();
+      },
+
+      setPackedSelectedDate: (date) => {
+        set({ packedSelectedDate: date });
+        get().fetchPackedInvoices();
+      },
+      
       fetchAvailableRegionalCodes: async () => {
         try {
           const response = await fetch('/api/party/regionalCodes');
@@ -146,6 +162,8 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
           packedSearchTerm: '',
           unpackedSelectedRegionalCodes: [],
           packedSelectedRegionalCodes: [],
+          unpackedSelectedDate: undefined,
+          packedSelectedDate: undefined,
           unpackedCurrentPage: 1,
           packedCurrentPage: 1
         });

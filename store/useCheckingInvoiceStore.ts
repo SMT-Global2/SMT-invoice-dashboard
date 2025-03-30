@@ -31,6 +31,13 @@ interface CheckingInvoiceState {
   // Search terms
   uncheckedSearchTerm: string
   checkedSearchTerm: string
+
+  // Date
+  uncheckedSelectedDate: Date | undefined
+  checkedSelectedDate: Date | undefined
+  
+  setUncheckedSelectedDate: (date: Date | undefined) => void
+  setCheckedSelectedDate: (date: Date | undefined) => void
   
   // Actions
   fetchUncheckedInvoices: () => Promise<void>
@@ -95,12 +102,28 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
         set({ checkedSearchTerm: term, checkedCurrentPage: 1 });
         get().fetchCheckedInvoices();
       },
+
+      setUncheckedSelectedDate: (date) => {
+        if (moment(date).isAfter(moment(), 'day')) {
+          return;
+        }
+        set({ uncheckedSelectedDate: date });
+        get().fetchUncheckedInvoices();
+      },
+
+      setCheckedSelectedDate: (date) => {
+        if (moment(date).isAfter(moment(), 'day')) {
+          return;
+        }
+        set({ checkedSelectedDate: date });
+        get().fetchCheckedInvoices();
+      },
       
       fetchUncheckedInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
           
-          const { uncheckedCurrentPage, itemsPerPage, uncheckedSearchTerm } = get();
+          const { uncheckedCurrentPage, itemsPerPage, uncheckedSearchTerm , uncheckedSelectedDate } = get();
           
           const url = new URL('/api/invoice/check/unchecked', window.location.origin);
           url.searchParams.set('page', uncheckedCurrentPage.toString());
@@ -108,6 +131,10 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
           
           if (uncheckedSearchTerm) {
             url.searchParams.set('search', uncheckedSearchTerm);
+          }
+
+          if (uncheckedSelectedDate) {
+            url.searchParams.set('date', moment(uncheckedSelectedDate).format('YYYY-MM-DD'));
           }
           
           const response = await fetch(url.toString());
@@ -131,7 +158,7 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const { checkedCurrentPage, itemsPerPage, checkedSearchTerm } = get();
+          const { checkedCurrentPage, itemsPerPage, checkedSearchTerm , checkedSelectedDate } = get();
           
           const url = new URL('/api/invoice/check/checked', window.location.origin);
           url.searchParams.set('page', checkedCurrentPage.toString());
@@ -139,6 +166,10 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
           
           if (checkedSearchTerm) {
             url.searchParams.set('search', checkedSearchTerm);
+          }
+
+          if (checkedSelectedDate) {
+            url.searchParams.set('date', moment(checkedSelectedDate).format('YYYY-MM-DD'));
           }
           
           const response = await fetch(url.toString());

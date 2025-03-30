@@ -55,7 +55,7 @@ export function RegionalCodeFilter({
         <Button 
           variant="outline" 
           size="sm" 
-          className="h-9 flex items-center gap-1 min-w-[100px] justify-center"
+          className="h-9 flex items-center gap-1 min-w-[100px] w-full justify-center"
         >
           <Earth className="h-3.5 w-3.5" />
           <span>{label}</span>
