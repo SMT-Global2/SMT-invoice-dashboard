@@ -50,6 +50,7 @@ import {
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { DatePicker } from '@/components/ui/date-picker';
 import moment from 'moment';
+import { cn } from '@/lib/utils';
 
 export default function PackingPage() {
   const { toast } = useToast();
@@ -95,6 +96,7 @@ export default function PackingPage() {
   } = usePackingInvoiceStore();
 
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
+  const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
 
   useEffect(() => {
     fetchUnpackedInvoices();
@@ -104,6 +106,7 @@ export default function PackingPage() {
 
   const handlePackInvoice = async (invoiceNumber: number) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       await packInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -123,6 +126,7 @@ export default function PackingPage() {
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       const file = event.target.files?.[0];
       if (!file) return;
 
@@ -269,7 +273,12 @@ export default function PackingPage() {
                       </TableRow>
                     ) : (
                       unpackedInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}>
+                        <TableRow key={invoice.invoiceNumber}
+                          className={cn(
+                            "border-gray-400",
+                            lastInteractedInvoice === invoice.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
+                          )}
+                        >
                           <TableCell>{(unpackedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>

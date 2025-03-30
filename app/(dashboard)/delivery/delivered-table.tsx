@@ -66,11 +66,7 @@ export function DeliveredTable() {
     itemsPerPage,
     setItemsPerPage
   } = useDeliveryInvoiceStore();
-
-  const handleDeliveredDateChange = (date: Date | undefined) => {
-    setDeliveredSelectedDate(date);
-  };
-
+  
   // Helper function to display pagination pages
   const displayedPages = (currentPage: number, totalPages: number) => {
     const delta = 1;
@@ -164,6 +160,7 @@ export function DeliveredTable() {
                 <TableHead>Regional Code</TableHead>
                 <TableHead>Pickup Time</TableHead>
                 <TableHead>Delivery Time</TableHead>
+                <TableHead>Payment Mode</TableHead>
                 <TableHead>Image</TableHead>
                 <TableHead>Location</TableHead>
               </TableRow>
@@ -187,6 +184,7 @@ export function DeliveredTable() {
                     <TableCell>{invoice.regionalCode}</TableCell>
                     <TableCell>{tweleHrFormatDateString(invoice.pickupTimestamp!)}</TableCell>
                     <TableCell>{tweleHrFormatDateString(invoice.deliveredTimestamp!)}</TableCell>
+                    <TableCell>{invoice.paymodeMode}</TableCell>
                     <TableCell>
                       <ShowImage images={invoice.image} />
                     </TableCell>

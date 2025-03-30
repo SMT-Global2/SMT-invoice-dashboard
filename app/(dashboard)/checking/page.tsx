@@ -47,6 +47,7 @@ import {
 import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/ui/date-picker';
 import moment from 'moment';
+import { PaymodeMode } from '@prisma/client';
 
 export default function CheckingPage() {
   const { toast } = useToast();
@@ -57,6 +58,9 @@ export default function CheckingPage() {
     fetchCheckedInvoices,
     checkInvoice,
     isLoading,
+
+    setUncheckedInvoices,
+    setCheckedInvoices,
 
     // Date
     uncheckedSelectedDate,
@@ -87,11 +91,9 @@ export default function CheckingPage() {
     fetchUncheckedInvoices();
     fetchCheckedInvoices();
   }, [fetchUncheckedInvoices, fetchCheckedInvoices]);
-  const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
 
   const handleCheckInvoice = async (invoiceNumber: number) => {
     try {
-      setLastInteractedInvoice(invoiceNumber);
       await checkInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -187,6 +189,7 @@ export default function CheckingPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Payment Mode</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
@@ -200,18 +203,41 @@ export default function CheckingPage() {
                       </TableRow>
                     ) : (
                       uncheckedInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}
-                          className={cn(
-                            "border-gray-400",
-                            lastInteractedInvoice === invoice.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
-                          )}
-                        >
+                        <TableRow key={invoice.invoiceNumber}>
                           <TableCell>{(uncheckedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.partyCode}</TableCell>
                           <TableCell>{invoice.medicalName}</TableCell>
                           <TableCell>{invoice.city}</TableCell>
+                          <TableCell>
+                            <Select
+                              value={invoice.paymodeMode || ""}
+                              onValueChange={(value) => {
+                                try {
+                                  const newData = [...uncheckedInvoices];
+                                  const index = newData.findIndex(item => item.invoiceNumber === invoice.invoiceNumber);
+                                  if (index !== -1) {
+                                    newData[index] = {
+                                      ...newData[index],
+                                      paymodeMode: value as PaymodeMode
+                                    };
+                                    setUncheckedInvoices(newData);
+                                  }
+                                } catch (error) {
+                                  console.error("Error updating payment mode:", error);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Payment mode" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={PaymodeMode.CASH}>Cash</SelectItem>
+                                <SelectItem value={PaymodeMode.CREDIT}>Credit</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                           <TableCell>
                             <ShowImage images={invoice.image} />
                           </TableCell>

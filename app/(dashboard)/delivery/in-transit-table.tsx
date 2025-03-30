@@ -41,6 +41,8 @@ import {
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { compressImage, convertImage, uploadFileToS3 } from '@/lib/helper';
 import moment from 'moment';
+import { cn } from '@/lib/utils';
+
 export function InTransitTable() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const { toast } = useToast();
@@ -72,8 +74,11 @@ export function InTransitTable() {
     setItemsPerPage
   } = useDeliveryInvoiceStore();
 
+  const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
+
   const handleDeliver = async (invoiceNumber: number) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       // Get current location using browser's Geolocation API
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -110,6 +115,7 @@ export function InTransitTable() {
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       const file = event.target.files?.[0];
       if (!file) return;
 
@@ -236,6 +242,7 @@ export function InTransitTable() {
                 <TableHead>Medical Name</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>Regional Code</TableHead>
+                <TableHead>Payment Mode</TableHead>
                 <TableHead>Image</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
@@ -249,7 +256,12 @@ export function InTransitTable() {
                 </TableRow>
               ) : (
                 inTransitInvoices?.map((invoice, index) => (
-                  <TableRow key={invoice.invoiceNumber}>
+                  <TableRow key={invoice.invoiceNumber}
+                    className={cn(
+                      "border-gray-400",
+                      lastInteractedInvoice === invoice.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
+                    )}
+                  >
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                     <TableCell>{invoice.invoiceNumber}</TableCell>
@@ -257,6 +269,7 @@ export function InTransitTable() {
                     <TableCell>{invoice.medicalName}</TableCell>
                     <TableCell>{invoice.city}</TableCell>
                     <TableCell>{invoice.regionalCode}</TableCell>
+                    <TableCell>{invoice.paymodeMode}</TableCell>
                     <TableCell>
                       <TakeImage
                         imageKey={invoice.invoiceNumber}

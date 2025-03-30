@@ -44,7 +44,8 @@ import {
     SelectValue,
   } from "@/components/ui/select";
   import moment from 'moment';
-  
+  import { cn } from '@/lib/utils';
+
   export default function BillingPage() {
     const { toast } = useToast();
     const { 
@@ -69,6 +70,7 @@ import {
     } = useBillingInvoiceStore();
   
     const [uploadingImage, setUploadingImage] = useState<number | null>(null);
+    const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
   
     useEffect(() => {
       fetchBillInvoices();
@@ -76,6 +78,7 @@ import {
   
     const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
       try {
+        setLastInteractedInvoice(invoiceNumber);
         const file = event.target.files?.[0];
         if (!file) return;
   
@@ -110,6 +113,7 @@ import {
 
     const handleBillInvoice = async (invoiceNumber: number) => {
       try {
+        setLastInteractedInvoice(invoiceNumber);
         await billInvoice(invoiceNumber);
         toast({
           title: 'Success',
@@ -216,7 +220,12 @@ import {
                       </TableRow>
                     ) : (
                       billInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}>
+                        <TableRow key={invoice.invoiceNumber}
+                          className={cn(
+                            "border-gray-400",
+                            lastInteractedInvoice === invoice.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
+                          )}
+                        >
                           <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>

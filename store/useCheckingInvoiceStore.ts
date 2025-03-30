@@ -35,6 +35,10 @@ interface CheckingInvoiceState {
   // Date
   uncheckedSelectedDate: Date | undefined
   checkedSelectedDate: Date | undefined
+
+  // Actions
+  setUncheckedInvoices: (invoices: CheckInvoiceData[]) => void
+  setCheckedInvoices: (invoices: CheckInvoiceData[]) => void
   
   setUncheckedSelectedDate: (date: Date | undefined) => void
   setCheckedSelectedDate: (date: Date | undefined) => void
@@ -72,6 +76,15 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
       // Search
       uncheckedSearchTerm: '',
       checkedSearchTerm: '',
+      
+      // Actions
+      setUncheckedInvoices: (invoices) => {
+        set({ uncheckedInvoices: invoices });
+      },
+      
+      setCheckedInvoices: (invoices) => {
+        set({ checkedInvoices: invoices });
+      },
       
       setUncheckedCurrentPage: (page) => {
         set({ uncheckedCurrentPage: page });
@@ -145,6 +158,7 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              paymodeMode: undefined,
             })),
             uncheckedTotalPages: totalPages,
             isLoading: false 
@@ -199,7 +213,7 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
             throw new Error('Invoice not found');
           }
 
-          const response = await fetch('/api/invoice/check?invoiceNumber=' + invoiceNumber, {
+          const response = await fetch('/api/invoice/check?invoiceNumber=' + invoiceNumber + '&paymodeMode=' + invoice.paymodeMode, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

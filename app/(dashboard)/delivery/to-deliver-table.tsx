@@ -182,6 +182,7 @@ export function ToDeliverTable() {
                 <TableHead>Medical Name</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>Regional Code</TableHead>
+                <TableHead>Payment Mode</TableHead>
                 <TableHead>Image</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
@@ -203,6 +204,7 @@ export function ToDeliverTable() {
                     <TableCell>{invoice.medicalName}</TableCell>
                     <TableCell>{invoice.city}</TableCell>
                     <TableCell>{invoice.regionalCode}</TableCell>
+                    <TableCell>{invoice.paymodeMode}</TableCell>
                     <TableCell>
                       <ShowImage images={invoice.image} />
                     </TableCell>
