@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import { useRef } from 'react';
 
 export function ToDeliverTable() {
   const { toast } = useToast();
@@ -68,6 +69,7 @@ export function ToDeliverTable() {
     itemsPerPage,
     setItemsPerPage
   } = useDeliveryInvoiceStore();
+  const printRef = useRef<HTMLDivElement>(null);
 
   const handlePickup = async (invoiceNumber: number) => {
     try {
@@ -87,8 +89,277 @@ export function ToDeliverTable() {
     }
   }
 
-  const handleToDeliverDateChange = (date: Date | undefined) => {
-    setToDeliverSelectedDate(date);
+  const handlePrintInvoices = () => {
+    // Define a reliable print function 
+    const printContent = () => {
+      // Create a hidden iframe for printing to isolate styles
+      const printFrame = document.createElement('iframe');
+      printFrame.style.position = 'absolute';
+      printFrame.style.top = '-9999px';
+      printFrame.style.left = '-9999px';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      document.body.appendChild(printFrame);
+      
+      // Format current date
+      const currentDate = new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      
+      // Format filters for display
+      const filterParts = [];
+      if (toDeliverSelectedDate) {
+        filterParts.push(`<span class="filter-item">Date: ${toDeliverSelectedDate.toLocaleDateString()}</span>`);
+      }
+      if (toDeliverSearchTerm) {
+        filterParts.push(`<span class="filter-item">Search: ${toDeliverSearchTerm}</span>`);
+      }
+      if (toDeliverSelectedRegionalCodes.length > 0) {
+        filterParts.push(`<span class="filter-item">Regions: ${toDeliverSelectedRegionalCodes.join(', ')}</span>`);
+      }
+      
+      const filterDisplay = filterParts.length > 0 
+        ? filterParts.join(' ')
+        : '<span class="filter-item filter-none">No filters applied</span>';
+      
+      // Get the document in the iframe
+      const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
+      
+      if (frameDoc) {
+        frameDoc.open();
+        frameDoc.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Packages to be Delivered - ${currentDate}</title>
+            <style>
+              @page {
+                size: A4 portrait;
+                margin: 1cm;
+              }
+              body {
+                font-family: Arial, Helvetica, sans-serif;
+                margin: 0;
+                padding: 0;
+                color: #333;
+                background: white;
+              }
+              .print-container {
+                max-width: 100%;
+                margin: 0 auto;
+                padding: 0;
+              }
+              .header {
+                padding-bottom: 8px;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #2563eb;
+              }
+              .title-section {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+              }
+              .title {
+                font-size: 22px;
+                font-weight: bold;
+                color: #2563eb;
+                margin: 0 0 5px 0;
+              }
+              .company {
+                font-size: 14px;
+                font-weight: normal;
+                margin: 0;
+              }
+              .date {
+                font-size: 12px;
+                color: #666;
+                margin: 4px 0;
+              }
+              .logo {
+                text-align: right;
+                font-size: 24px;
+                font-weight: bold;
+                color: #2563eb;
+                letter-spacing: 1px;
+              }
+              .filters {
+                margin: 12px 0;
+                font-size: 12px;
+              }
+              .filter-item {
+                display: inline-block;
+                padding: 3px 8px;
+                margin-right: 8px;
+                background-color: #f3f4f6;
+                border-radius: 4px;
+                border-left: 3px solid #2563eb;
+              }
+              .filter-none {
+                border-left-color: #9ca3af;
+              }
+              .table-container {
+                width: 100%;
+                margin: 0 auto;
+                page-break-inside: avoid;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 10px;
+                margin-bottom: 20px;
+              }
+              th {
+                background-color: #2563eb;
+                color: white;
+                font-weight: bold;
+                text-align: left;
+                padding: 8px;
+                border: 1px solid #ddd;
+              }
+              td {
+                padding: 6px 8px;
+                border: 1px solid #ddd;
+                text-align: left;
+              }
+              tr:nth-child(even) {
+                background-color: #f8fafc;
+              }
+              .summary {
+                margin-top: 20px;
+                text-align: right;
+                font-size: 12px;
+                font-weight: bold;
+              }
+              .summary-box {
+                display: inline-block;
+                padding: 8px 16px;
+                background-color: #f3f4f6;
+                border-radius: 4px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              }
+              .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #ddd;
+                display: flex;
+                justify-content: space-between;
+                font-size: 10px;
+                color: #666;
+              }
+              .signature-line {
+                margin-top: 50px;
+                border-top: 1px solid #ddd;
+                width: 200px;
+                padding-top: 5px;
+                text-align: center;
+                font-size: 10px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="print-container">
+              <div class="header">
+                <div class="title-section">
+                  <div>
+                    <h1 class="title">Packages to be Delivered</h1>
+                    <p class="company">Medical Distribution System</p>
+                    <p class="date">Generated on: ${currentDate}</p>
+                  </div>
+                  <div class="logo">SMT</div>
+                </div>
+                <div class="filters">
+                  ${filterDisplay}
+                </div>
+              </div>
+              
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Sr. No.</th>
+                      <th>Date</th>
+                      <th>Invoice No.</th>
+                      <th>Party Code</th>
+                      <th>Medical Name</th>
+                      <th>City</th>
+                      <th>Regional Code</th>
+                      <th>Payment Mode</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${toDeliverInvoices.map((invoice, index) => `
+                      <tr>
+                        <td>${index + 1}</td>
+                        <td>${new Date(invoice.generatedDate!).toLocaleDateString()}</td>
+                        <td>${invoice.invoiceNumber}</td>
+                        <td>${invoice.partyCode}</td>
+                        <td>${invoice.medicalName}</td>
+                        <td>${invoice.city}</td>
+                        <td>${invoice.regionalCode}</td>
+                        <td>${invoice.paymodeMode}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="summary">
+                <div class="summary-box">
+                  Total Invoices: ${toDeliverInvoices.length}
+                </div>
+              </div>
+              
+              <div class="footer">
+                <div>This is a computer-generated document. No signature required.</div>
+                <div>Page 1 of 1</div>
+              </div>
+              
+              <div class="signature-line">
+                Authorized Signature
+              </div>
+            </div>
+          </body>
+          </html>
+        `);
+        frameDoc.close();
+        
+        // Wait a moment for styles to apply then print
+        setTimeout(() => {
+          try {
+            printFrame.contentWindow?.focus();
+            printFrame.contentWindow?.print();
+            
+            // Clean up after printing or on error
+            printFrame.onload = () => {
+              // This executes after printing or if user cancels
+              setTimeout(() => {
+                document.body.removeChild(printFrame);
+              }, 100);
+            };
+          } catch (error) {
+            document.body.removeChild(printFrame);
+            toast({
+              variant: 'destructive',
+              title: 'Print Error',
+              description: 'Something went wrong with printing. Please try again.',
+            });
+          }
+        }, 300);
+      }
+    };
+    
+    // Execute the print function
+    try {
+      printContent();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Print Failed',
+        description: 'Unable to prepare document for printing.',
+      });
+    }
   };
 
   // Helper function to display pagination pages
@@ -168,7 +439,7 @@ export function ToDeliverTable() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" className='w-full gap-2'>
+              <Button variant="outline" className='w-full gap-2' onClick={handlePrintInvoices}>
                 <Printer className="h-4 w-4" />
                 <span>Print</span>
               </Button>

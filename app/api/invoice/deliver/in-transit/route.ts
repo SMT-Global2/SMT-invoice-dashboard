@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         const selectedDate = moment(dateParam);
         dateFilter = {
             pickupTimestamp: {
+                not: null,
                 gte: selectedDate.startOf('day').toDate(),
                 lte: selectedDate.endOf('day').toDate(),
             }
@@ -71,7 +72,6 @@ export async function GET(request: NextRequest) {
         prisma.invoice.count({
             where: {
                 isOtc: false,
-                pickupTimestamp: { not: null },
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,
@@ -81,7 +81,6 @@ export async function GET(request: NextRequest) {
         prisma.invoice.findMany({
             where: {
                 isOtc: false,
-                pickupTimestamp: { not: null },
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,

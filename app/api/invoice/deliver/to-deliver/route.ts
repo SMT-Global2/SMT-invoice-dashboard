@@ -23,13 +23,13 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
-    
     // Create date filter based on the provided date parameter
     let dateFilter = {};
     if (dateParam) {
         const selectedDate = moment(dateParam);
         dateFilter = {
             packageTimestamp: {
+                not: null,
                 gte: selectedDate.startOf('day').toDate(),
                 lte: selectedDate.endOf('day').toDate(),
             }
@@ -67,14 +67,31 @@ export async function GET(request: NextRequest) {
         }
     }
 
+    console.log({
+        where: {
+            isOtc: false,
+            ...dateFilter,
+            ...(searchTerm ? searchFilter : {}),
+            ...regionalCodesFilter,
+            packageStatus: PackageStatus.PACKED,
+            deliveryStatus: DeliveryStatus.NOT_DELIVERED
+        },
+        include: {
+            party: true,
+        },
+        orderBy: {
+            packageTimestamp: 'asc'
+        },
+        skip,
+        take: limit
+    })
     const [totalCount, data] = await Promise.all([
         prisma.invoice.count({
             where: {
                 isOtc: false,
-                ...dateFilter,
+                ...dateFilter, 
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,
-                packageTimestamp: { not: null },
                 packageStatus: PackageStatus.PACKED,
                 deliveryStatus: DeliveryStatus.NOT_DELIVERED
             }
@@ -85,7 +102,6 @@ export async function GET(request: NextRequest) {
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,
-                packageTimestamp: { not: null },
                 packageStatus: PackageStatus.PACKED,
                 deliveryStatus: DeliveryStatus.NOT_DELIVERED
             },

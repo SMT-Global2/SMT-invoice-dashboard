@@ -264,10 +264,12 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
       },
 
       // API calls
-      fetchToDeliverInvoices: async (date = get().toDeliverSelectedDate) => {
+      fetchToDeliverInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
           const url = new URL('/api/invoice/deliver/to-deliver', window.location.origin);
+          const date = get().toDeliverSelectedDate;
+          
           if (date) {
             url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
           }
@@ -307,10 +309,12 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
         }
       },
 
-      fetchInTransitInvoices: async (date = get().inTransitSelectedDate) => {
+      fetchInTransitInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
           const url = new URL('/api/invoice/deliver/in-transit', window.location.origin);
+          const date = get().inTransitSelectedDate;
+          
           if (date) {
             url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
           }
@@ -350,10 +354,11 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
         }
       },
 
-      fetchDeliveredInvoices: async (date = get().deliveredSelectedDate) => {
+      fetchDeliveredInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
           const url = new URL('/api/invoice/deliver/delivered', window.location.origin);
+          const date = get().deliveredSelectedDate;
           if (date) {
             url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
           }
