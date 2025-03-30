@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useUsersStore , User, UserSchema } from "@/store/useUsersStore"
+import { Department } from "@prisma/client"
 
 export function EmployeeDialog() {
   const { selectedUser, setSelectedUser, createUser, updateUser } = useUsersStore()
@@ -249,9 +250,10 @@ export function EmployeeDialog() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="INVOICE_MANAGEMENT">Invoice Management</SelectItem>
-                        <SelectItem value="RECEIPT_MANAGEMENT">Receipt Management</SelectItem>
-                        <SelectItem value="ALL_ROUNDER">All-Rounder</SelectItem>
+                        <SelectItem value={Department.INVOICE_MANAGEMENT}>Invoice Management</SelectItem>
+                        <SelectItem value={Department.RECEIPT_MANAGEMENT}>Receipt Management</SelectItem>
+                        <SelectItem value={Department.PURCHASE_MANAGEMENT}>Purchase Management</SelectItem>
+                        <SelectItem value={Department.ALL_ROUNDER}>All-Rounder</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage className="text-xs" />

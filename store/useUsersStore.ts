@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { z } from 'zod'
 import { toast } from '@/components/ui/use-toast'
+import { Department } from '@prisma/client'
 
 // Zod schema for User validation
 export const UserSchema = z.object({
@@ -13,14 +14,14 @@ export const UserSchema = z.object({
   phoneNumber: z.string().min(1, "Phone number is required"),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
-  department: z.enum(["RECEIPT_MANAGEMENT", "INVOICE_MANAGEMENT", "ALL_ROUNDER"]),
+  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT , Department.PURCHASE_MANAGEMENT]),
   type: z.enum(["USER", "ADMIN"]),
 })
 
 export type User = z.infer<typeof UserSchema>
 
 interface UserStore {
-  users: User[]
+  users: User[] 
   isLoading: boolean
   error: string | null
   selectedUser: User | null

@@ -37,7 +37,7 @@ const UserSchema = z.object({
   phoneNumber: z.string().min(1),
   type: z.enum(['ADMIN', 'USER']),
   password: z.string().min(1),
-  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]),
+  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT , Department.PURCHASE_MANAGEMENT]),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
 });
@@ -101,7 +101,7 @@ const UserUpdateSchema = z.object({
   phoneNumber: z.string().min(1),
   type: z.enum(['ADMIN', 'USER']),
   password: z.string().optional().or(z.literal("")),
-  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]),
+  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT , Department.PURCHASE_MANAGEMENT]),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
 });
