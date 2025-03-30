@@ -12,7 +12,7 @@ import {
   Calendar
 } from 'lucide-react';
 
-import { UserType } from '@prisma/client';
+import { Department, UserType } from '@prisma/client';
 
 // Define the structure for each dashboard item
 export interface DashboardItem {
@@ -22,7 +22,7 @@ export interface DashboardItem {
   icon: LucideIcon;
   description: string;
   category: DashboardCategory;
-  roles?: UserType[];
+  roles?: (UserType | Department)[];
   searchTerms?: string[]; // Additional search terms to improve findability
 }
 
@@ -68,6 +68,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: FileText,
     description: 'Create and Generate Invoices',
     category: 'invoice-management',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT],
     searchTerms: ['invoice', 'create', 'generate', 'bill', 'billing']
   },
   {
@@ -77,6 +78,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: CheckCircle,
     description: 'Review and Verify Generated Invoices',
     category: 'invoice-management',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT],
     searchTerms: ['checking', 'verify', 'review', 'validation', 'check']
   },
   {
@@ -86,6 +88,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: Package,
     description: 'Prepare and Pack Verified Invoices',
     category: 'invoice-management',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT],
     searchTerms: ['packing', 'prepare', 'pack', 'package', 'box']
   },
   {
@@ -95,6 +98,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: Truck,
     description: 'Pick Up, Ship, and Deliver Orders',
     category: 'invoice-management',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT],
     searchTerms: ['delivery', 'shipping', 'transport', 'logistics', 'send']
   },
   {
@@ -104,6 +108,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: Newspaper,
     description: 'Billing Management',
     category: 'invoice-management',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT],
     searchTerms: ['billing', 'payment', 'invoice management', 'financial']
   },
 
@@ -115,6 +120,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: FileText,
     description: 'Receipt Management',
     category: 'receipt-management',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.RECEIPT_MANAGEMENT],
   },
 
   //other-services
@@ -125,6 +131,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: Package,
     description: 'Inventory Management',
     category: 'other-services',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.PURCHASE_MANAGEMENT],
   },
   {
     id: 'delivery-memo',
@@ -133,6 +140,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: Truck,
     description: 'Delivery Memo Management',
     category: 'other-services',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT],
   },
   {
     id: 'expiry',
@@ -141,6 +149,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: Calendar,
     description: 'Expiry Management',
     category: 'other-services',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT],
   },
   {
     id: 'statement',
@@ -149,6 +158,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: FileText,
     description: 'Statement Management',
     category: 'other-services',
+    roles: ['ADMIN' , Department.ALL_ROUNDER , Department.RECEIPT_MANAGEMENT , Department.INVOICE_MANAGEMENT],
   },
 
   // Management Group
@@ -159,8 +169,8 @@ export const dashboardItems: DashboardItem[] = [
     icon: User,
     description: 'Manage Employee Profiles',
     category: 'management',
+    searchTerms: ['employee', 'staff', 'personnel', 'team', 'users'],
     roles: ['ADMIN'],
-    searchTerms: ['employee', 'staff', 'personnel', 'team', 'users']
   },
   {
     id: 'agency',
@@ -169,6 +179,7 @@ export const dashboardItems: DashboardItem[] = [
     icon: Building,
     description: 'Agency Management',
     category: 'management',
+    roles: ['ADMIN', Department.PURCHASE_MANAGEMENT],
   },
   {
     id: 'party',
@@ -177,10 +188,11 @@ export const dashboardItems: DashboardItem[] = [
     icon: Building,
     description: 'Maintain and organize client data',
     category: 'management',
+    searchTerms: ['party', 'client', 'customer', 'organization', 'business'],
     roles: ['ADMIN'],
-    searchTerms: ['party', 'client', 'customer', 'organization', 'business']
   }
 ];
+
 
 // Helper functions to get items by category
 export const getItemsByCategory = (category: DashboardCategory): DashboardItem[] => {

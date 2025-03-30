@@ -1,12 +1,12 @@
 "use client"
 
 import { useSession } from 'next-auth/react'
-import { UserType } from '@prisma/client'
+import { Department, UserType } from '@prisma/client'
 import { ReactNode } from 'react'
 
 interface RoleGuardProps {
   children: ReactNode
-  allowedRoles: UserType[]
+  allowedRoles: (UserType | Department)[]
   fallback?: ReactNode
 }
 
@@ -16,8 +16,14 @@ export function RoleGuard({
   fallback = null,
 }: RoleGuardProps) {
   const { data: session } = useSession()
+  if(allowedRoles.length === 0) {
+    return <>{children}</>
+  }
   // If there's no session or user's role is not allowed, show fallback
-  if (!session?.user || !allowedRoles.includes(session.user.type)) {
+  console.log(session?.user , allowedRoles)
+  // const userRoles = [session?.user?.type , session?.user?.department]
+  const userRoles : (UserType | Department)[] = [Department.INVOICE_MANAGEMENT]
+  if (!session?.user || !allowedRoles.some(role => userRoles.includes(role))) {
     return <>{fallback}</>
   }
 

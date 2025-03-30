@@ -101,8 +101,8 @@ export default function DashboardLayout({
                           const ItemIcon = item.icon;
                           return (
                             <SidebarMenuItem key={item.id}>
-                              {item.roles ? (
-                                <RoleGuard allowedRoles={item.roles}>
+                              {
+                                <RoleGuard allowedRoles={item.roles || []}>
                                   <Link href={item.href} passHref legacyBehavior>
                                     <SidebarMenuButton tooltip={item.title}>
                                       <ItemIcon className="h-5 w-5" />
@@ -110,14 +110,7 @@ export default function DashboardLayout({
                                     </SidebarMenuButton>
                                   </Link>
                                 </RoleGuard>
-                              ) : (
-                                <Link href={item.href} passHref legacyBehavior>
-                                  <SidebarMenuButton tooltip={item.title}>
-                                    <ItemIcon className="h-5 w-5" />
-                                    <span>{item.title}</span>
-                                  </SidebarMenuButton>
-                                </Link>
-                              )}
+                              }
                             </SidebarMenuItem>
                           );
                         })}
@@ -125,6 +118,8 @@ export default function DashboardLayout({
                     </SidebarGroupContent>
                   </SidebarGroup>
                 ))}
+
+                
               </SidebarContent>
               <SidebarFooter className="border-t">
                 <UserProfile />

@@ -4,12 +4,13 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { AuthOptions } from 'next-auth';
-import { UserType } from '@prisma/client';
+import { Department, UserType } from '@prisma/client';
 
 declare module 'next-auth' {
   interface User {
     username: string;
     type : UserType;
+    department : Department;
   }
   
   interface Session {
@@ -17,6 +18,7 @@ declare module 'next-auth' {
       id: string;
       username: string;
       type : UserType;
+      department : Department;
     }
   }
 }
@@ -25,7 +27,8 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     username: string;
-    type : UserType
+    type : UserType;
+    department : Department;
   }
 }
 
@@ -70,7 +73,8 @@ export const authOptions: AuthOptions = {
           return {
             id: user.id,
             username: user.username,
-            type : user.type
+            type : user.type,
+            department : user.department
           };
         }
         return null;
@@ -83,6 +87,7 @@ export const authOptions: AuthOptions = {
         token.id = user.id;
         token.username = user.username;
         token.type = user.type;
+        token.department = user.department;
       }
       return token;
     },
@@ -107,6 +112,7 @@ export const authOptions: AuthOptions = {
         session.user.id = token.id;
         session.user.username = token.username;
         session.user.type = token.type;
+        session.user.department = token.department;
       }
       return session;
     },
