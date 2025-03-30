@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
-import { FilterX } from 'lucide-react';
+import { FilterX, Printer } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import {
@@ -164,6 +164,13 @@ export function ToDeliverTable() {
               >
                 <FilterX className="h-4 w-4" />
                 <span>Clear All</span>
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className='w-full gap-2'>
+                <Printer className="h-4 w-4" />
+                <span>Print</span>
               </Button>
             </div>
           </div>
