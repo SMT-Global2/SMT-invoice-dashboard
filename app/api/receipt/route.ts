@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
       }
     });
     
-    const receiptNumber = latestReceipt ? latestReceipt.receiptNumber + 1 : 1;
+    const receiptNumber = (latestReceipt && latestReceipt.receiptNumber) ? latestReceipt.receiptNumber + 1 : 1;
     
     // Create receipt
     const receiptItem = await prisma.receipt.create({

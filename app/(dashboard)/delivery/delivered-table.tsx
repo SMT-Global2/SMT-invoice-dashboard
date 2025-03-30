@@ -215,7 +215,7 @@ export function DeliveredTable() {
                     <TableCell>{tweleHrFormatDateString(invoice.pickupTimestamp!)}</TableCell>
                     <TableCell>{tweleHrFormatDateString(invoice.deliveredTimestamp!)}</TableCell>
                     <TableCell>
-                      <ShowImage invoice={invoice} images={invoice.image} />
+                      <ShowImage images={invoice.image} />
                     </TableCell>
                     <TableCell>
                       {invoice.deliveredLocationLink ? (

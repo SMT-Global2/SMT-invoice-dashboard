@@ -231,7 +231,7 @@ export function ToDeliverTable() {
                     <TableCell>{invoice.city}</TableCell>
                     <TableCell>{invoice.regionalCode}</TableCell>
                     <TableCell>
-                      <ShowImage invoice={invoice} images={invoice.image} />
+                      <ShowImage images={invoice.image} />
                     </TableCell>
                     <TableCell>
                       <Button

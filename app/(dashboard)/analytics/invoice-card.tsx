@@ -40,7 +40,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                 <p><span className="text-muted-foreground">Delayed:</span> {moment(invoice.generatedDate).isSame(moment(invoice.invoiceTimestamp), 'day') ? "No" : "Yes"}</p>
                 {invoice.image && invoice.image.length > 0 && (
                   <div className="pt-2">
-                    <ShowImage invoice={{ invoiceNumber : invoice.invoiceNumber} as InvoiceData} images={invoice.image} text="View Invoice Images"/>
+                    <ShowImage images={invoice.image} text="View Invoice Images"/>
                   </div>
                 )}
               </div>
