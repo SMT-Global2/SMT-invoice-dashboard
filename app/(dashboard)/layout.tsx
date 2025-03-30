@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
+import { Department, UserType } from '@prisma/client';
 import {
   Home,
   Package,
@@ -42,11 +43,9 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { 
-  dashboardItems, 
-  getCategories, 
-  getItemsByCategory, 
-  DashboardItem, 
-  DashboardCategory 
+  dashboardCategories, 
+  homeItems,
+  DashboardItem
 } from '@/lib/constants/dashboardData';
 
 export default function DashboardLayout({
@@ -54,6 +53,13 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session } = useSession();
+  const userRoles = [session?.user?.type, session?.user?.department]
+    .filter((role): role is UserType | Department => role !== undefined);
+  
+  console.log("User session:", session);
+  console.log("User roles:", userRoles);
+    
   return (
     <Providers>
       <SidebarProvider defaultOpen={false}>
@@ -68,58 +74,70 @@ export default function DashboardLayout({
               </SidebarHeader>
               
               <SidebarContent className="space-y-[0.1rem] mt-0 gap-0 p-0">
-                {/* Dashboard */}
+                {/* Dashboard Home */}
                 <SidebarGroup>
                   <SidebarMenu>
-                    {/* Dashboard home item */}
-                    {(() => {
-                      const homeItem = dashboardItems.find(item => item.id === 'dashboard');
-                      if (!homeItem) return null;
-                      
-                      const HomeIcon = homeItem.icon;
+                    {homeItems.map(item => {
+                      const ItemIcon = item.icon;
                       return (
-                        <SidebarMenuItem>
-                          <Link href={homeItem.href} passHref legacyBehavior>
-                            <SidebarMenuButton tooltip={homeItem.title}>
-                              <HomeIcon className="h-5 w-5" />
-                              <span>{homeItem.title}</span>
+                        <SidebarMenuItem key={item.id}>
+                          <Link href={item.href} passHref legacyBehavior>
+                            <SidebarMenuButton tooltip={item.title}>
+                              <ItemIcon className="h-5 w-5" />
+                              <span>{item.title}</span>
                             </SidebarMenuButton>
                           </Link>
                         </SidebarMenuItem>
                       );
-                    })()}
+                    })}
                   </SidebarMenu>
                 </SidebarGroup>
 
                 {/* Render all categories and their items */}
-                {getCategories().filter(cat => cat.id !== 'home').map(category => (
-                  <SidebarGroup key={category.id}>
-                    <SidebarGroupLabel>{category.label}</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {getItemsByCategory(category.id).map(item => {
-                          const ItemIcon = item.icon;
-                          return (
-                            <SidebarMenuItem key={item.id}>
-                              {
-                                <RoleGuard allowedRoles={item.roles || []}>
+                {dashboardCategories.map(category => {
+                    // Filter items based on user roles
+                    const visibleItems = category.items.filter(item => {
+                      // If no roles specified, item is visible to everyone
+                      if (!item.roles || item.roles.length === 0) return true;
+                      
+                      // Check if user has any of the required roles
+                      const hasRequiredRole = userRoles.some(role => 
+                        item.roles?.includes(role)
+                      );
+                      
+                      console.log(`Item ${item.id} roles:`, item.roles);
+                      console.log(`Item ${item.id} visible:`, hasRequiredRole);
+                      
+                      return hasRequiredRole;
+                    });
+                    
+                    console.log(`Category ${category.id} has ${visibleItems.length} visible items`);
+                    
+                    // Only render the category if there are visible items
+                    return visibleItems.length > 0 ? (
+                      <SidebarGroup key={category.id}>
+                        <SidebarGroupLabel>{category.label}</SidebarGroupLabel>
+
+                        <SidebarGroupContent>
+                          <SidebarMenu>
+                            {visibleItems.map(item => {
+                              const ItemIcon = item.icon;
+                              return (
+                                <SidebarMenuItem key={item.id}>
                                   <Link href={item.href} passHref legacyBehavior>
                                     <SidebarMenuButton tooltip={item.title}>
                                       <ItemIcon className="h-5 w-5" />
                                       <span>{item.title}</span>
                                     </SidebarMenuButton>
                                   </Link>
-                                </RoleGuard>
-                              }
-                            </SidebarMenuItem>
-                          );
-                        })}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-                ))}
-
-                
+                                </SidebarMenuItem>
+                              );
+                            })}
+                          </SidebarMenu>
+                        </SidebarGroupContent>
+                      </SidebarGroup>
+                    ) : null;
+                })}
               </SidebarContent>
               <SidebarFooter className="border-t">
                 <UserProfile />

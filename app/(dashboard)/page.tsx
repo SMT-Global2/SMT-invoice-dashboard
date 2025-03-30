@@ -1,23 +1,30 @@
 import { RoleGuard } from "@/components/auth/role-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { ReactNode } from "react"
-import { UserType } from "@prisma/client"
+import React, { ReactNode } from "react"
+import { Department, UserType } from "@prisma/client"
 import { 
-  dashboardItems, 
-  getCategories, 
-  getItemsByCategory, 
-  DashboardItem, 
-  DashboardCategory 
+  dashboardCategories, 
+  homeItems,
+  DashboardItem
 } from "@/lib/constants/dashboardData"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 // Reusable tile component
 interface DashboardTileProps {
   item: DashboardItem;
+  userRoles: (UserType | Department)[];
 }
 
-const DashboardTile = ({ item }: DashboardTileProps) => {
+const DashboardTile = ({ item, userRoles }: DashboardTileProps) => {
   const { title, href, icon: Icon, description, roles } = item;
+  
+  // Check if user has permission to see this item
+  const canViewItem = !roles || roles.length === 0 || 
+    roles.some(role => userRoles.includes(role));
+  
+  if (!canViewItem) return null;
   
   const tileContent = (
     <Card className="relative h-[10rem] dashboard-tile group">
@@ -36,16 +43,6 @@ const DashboardTile = ({ item }: DashboardTileProps) => {
     </Card>
   );
 
-  if (roles) {
-    return (
-      <RoleGuard allowedRoles={roles}>
-        <Link href={href} className="w-full">
-          {tileContent}
-        </Link>
-      </RoleGuard>
-    );
-  }
-
   return (
     <Link href={href} className="w-full">
       {tileContent}
@@ -60,6 +57,9 @@ interface TileGroupProps {
 }
 
 const TileGroup = ({ title, children }: TileGroupProps) => {
+  // Don't render empty groups
+  if (!React.Children.count(children)) return null;
+  
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-semibold text-muted-foreground">{title}</h3>
@@ -71,19 +71,32 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
 };
 
 export default async function DashboardPage() {
-  // Get all categories from our data
-  const categories = getCategories();
+  const session = await getServerSession(authOptions);
+  const userRoles = [session?.user?.type, session?.user?.department]
+    .filter((role): role is UserType | Department => role !== undefined);
+  
+  console.log("Dashboard page - User roles:", userRoles);
+  
   return (
     <div className="w-full overflow-hidden">
       <div className="space-y-8">
-        {categories.map((category, index) => {
-          const items = getItemsByCategory(category.id);
-          if (items.length === 0 || category.id === 'home') return null;
+        {dashboardCategories.map((category) => {
+          // Skip home category
+          if (category.id === 'home') return null;
+          
+          // Filter items based on user roles
+          const visibleItems = category.items.filter(item => {
+            if (!item.roles || item.roles.length === 0) return true;
+            return userRoles.some(role => item.roles?.includes(role));
+          });
+          
+          // Skip rendering the category if no items are visible
+          if (visibleItems.length === 0) return null;
           
           return (
             <TileGroup key={category.id} title={category.label}>
-              {items.filter((item) => item.id !== 'dashboard').map((item) => (
-                <DashboardTile key={item.id} item={item} />
+              {visibleItems.map((item) => (
+                <DashboardTile key={item.id} item={item} userRoles={userRoles} />
               ))}
             </TileGroup>
           );

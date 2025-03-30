@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Search, X, ArrowRight } from 'lucide-react';
 import { 
   searchItems, 
-  DashboardItem 
+  DashboardItem,
+  getAllItems,
+  dashboardCategories
 } from '@/lib/constants/dashboardData';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { cn } from '@/lib/utils';
@@ -90,7 +92,11 @@ export function SearchInput() {
 
   // Group search results by category
   const groupedResults = searchResults.reduce((acc, item) => {
-    const category = item.category;
+    // Get the category from dashboardCategories
+    const category = dashboardCategories.find(cat => 
+      cat.items.some(i => i.id === item.id)
+    )?.id || 'other';
+    
     if (!acc[category]) {
       acc[category] = [];
     }
