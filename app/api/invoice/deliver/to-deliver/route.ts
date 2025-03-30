@@ -34,6 +34,12 @@ export async function GET(request: NextRequest) {
                 lte: selectedDate.endOf('day').toDate(),
             }
         };
+    } else {
+        dateFilter = {
+            packageTimestamp: {
+                not: null,
+            }
+        };
     }
 
     // Create search filter

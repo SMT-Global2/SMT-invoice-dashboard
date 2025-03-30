@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   
   // Search and filter parameters
   const search = searchParams.get('search') || '';
-  const dateStr = searchParams.get('date');
+  const dateStr = searchParams.get('date') || '';
   
   // Build where clause
   const where: any = {

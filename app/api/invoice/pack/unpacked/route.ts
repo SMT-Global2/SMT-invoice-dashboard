@@ -13,12 +13,19 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
     const regionalCodes = searchParams.get('regionalCodes')?.split(',') || [];
-
+    const date = searchParams.get('date') || '';
     const skip = (page - 1) * limit;
 
     // Build where clause
     const where: any = {
       packageStatus: PackageStatus.NOT_PACKED,
+      packageTimestamp: date ? {
+        not: null,
+        gte: moment(date).startOf('day').toDate(),
+        lte: moment(date).endOf('day').toDate(),
+      } : {
+        not: null,
+      },
     };
 
     // Add regional code filter if provided

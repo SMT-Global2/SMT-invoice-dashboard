@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
+    const date = searchParams.get('date') || '';
     const skip = (page - 1) * limit;
     
     // Search parameter
@@ -30,10 +31,12 @@ export async function GET(request: NextRequest) {
     const where: any = {
       isOtc: false,
       packageStatus: PackageStatus.PACKED,
-      packageTimestamp: {
+      packageTimestamp: date ? {
         not: null,
-        gte: moment().startOf('day').toDate(),
-        lte: moment().endOf('day').toDate(),
+        gte: moment(date).startOf('day').toDate(),
+        lte: moment(date).endOf('day').toDate(),
+      } : {
+        not: null,
       },
     };
     

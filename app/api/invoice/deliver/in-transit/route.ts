@@ -35,6 +35,12 @@ export async function GET(request: NextRequest) {
                 lte: selectedDate.endOf('day').toDate(),
             }
         };
+    } else {
+        dateFilter = {
+            pickupTimestamp: {
+                not: null,
+            }
+        };
     }
 
     // Create search filter

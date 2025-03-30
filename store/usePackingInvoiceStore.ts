@@ -187,11 +187,12 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const { unpackedCurrentPage, itemsPerPage, unpackedSearchTerm, unpackedSelectedRegionalCodes } = get();
+          const { unpackedCurrentPage, itemsPerPage, unpackedSearchTerm, unpackedSelectedRegionalCodes, unpackedSelectedDate } = get();
           
           const url = new URL('/api/invoice/pack/unpacked', window.location.origin);
           url.searchParams.set('page', unpackedCurrentPage.toString());
           url.searchParams.set('limit', itemsPerPage.toString());
+          url.searchParams.set('date', unpackedSelectedDate?.toString() || '');
           
           if (unpackedSearchTerm) {
             url.searchParams.set('search', unpackedSearchTerm);
@@ -224,11 +225,12 @@ export const usePackingInvoiceStore = create<PackingInvoiceState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const { packedCurrentPage, itemsPerPage, packedSearchTerm, packedSelectedRegionalCodes } = get();
+          const { packedCurrentPage, itemsPerPage, packedSearchTerm, packedSelectedRegionalCodes, packedSelectedDate } = get();
           
           const url = new URL('/api/invoice/pack/packed', window.location.origin);
           url.searchParams.set('page', packedCurrentPage.toString());
           url.searchParams.set('limit', itemsPerPage.toString());
+          url.searchParams.set('date', packedSelectedDate?.toString() || '');
           
           if (packedSearchTerm) {
             url.searchParams.set('search', packedSearchTerm);
