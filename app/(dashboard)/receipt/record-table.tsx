@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -48,6 +48,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { UserSelector, User } from '@/components/user-selector';
 
 // Creating a payment method filter type that includes "ALL"
 export type PaymentMethodFilter = PaymentMethod | "ALL" | undefined;
@@ -61,6 +62,8 @@ interface RecordTableProps {
   setSelectedDate: (date: Date | undefined) => void;
   selectedPaymentMethod: PaymentMethodFilter;
   setSelectedPaymentMethod: (method: PaymentMethod | undefined) => void;
+  selectedUser: string | null;
+  setSelectedUser: (userId: string | null) => void;
   currentPage: number;
   totalPages: number;
   itemsPerPage: number;
@@ -79,6 +82,8 @@ export function RecordTable({
   setSelectedDate,
   selectedPaymentMethod,
   setSelectedPaymentMethod,
+  selectedUser,
+  setSelectedUser,
   currentPage,
   totalPages,
   itemsPerPage,
@@ -175,6 +180,8 @@ export function RecordTable({
     );
   };
 
+  console.log({receiptItems})
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -190,10 +197,19 @@ export function RecordTable({
                   placeholder="Search party code, receipt no..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full"
+                  className="w-full h-9" 
                 />
               </div>
-              
+
+              {/* User Drop down */}
+              <div className="w-full sm:w-[160px]">
+                <UserSelector
+                  value={selectedUser}
+                  onChange={(user) => setSelectedUser && setSelectedUser(user.username)}
+                  placeholder="Filter by user"
+                />
+              </div>
+
               {/* Payment method dropdown - adapts width based on screen size */}
               <div className="w-full sm:w-[160px]">
                 <Select
@@ -213,7 +229,6 @@ export function RecordTable({
                   </SelectContent>
                 </Select>
               </div>
-              
               {/* Date picker and clear button - better wrapped layout for tablet */}
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <div className="w-full sm:w-auto flex-1 sm:flex-none">
@@ -227,6 +242,7 @@ export function RecordTable({
                   onClick={() => {
                     setSelectedDate(undefined);
                     setSelectedPaymentMethod(undefined);
+                    setSelectedUser && setSelectedUser(null);
                   }}
                   className="flex items-center justify-center gap-1 whitespace-nowrap"
                 >
@@ -252,6 +268,7 @@ export function RecordTable({
                   <TableHead>Payment Method</TableHead>
                   <TableHead>Payment Details</TableHead>
                   <TableHead>Generated Date</TableHead>
+                  <TableHead>User</TableHead>
                   <TableHead>Remarks</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
@@ -281,6 +298,7 @@ export function RecordTable({
                         }
                       </TableCell>
                       <TableCell>{tweleHrFormatDateString(receipt.generatedDate)}</TableCell>
+                      <TableCell>{receipt.receiptUsername || '-'}</TableCell>
                       <TableCell>{receipt.remarks || '-'}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

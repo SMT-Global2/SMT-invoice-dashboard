@@ -14,6 +14,7 @@ const getQuerySchema = z.object({
   date: z.string().nullable().optional(),
   paymentMethod: z.enum(["NONE", "CASH", "CHEQUE"]).nullable().optional(),
   id: z.string().nullable().optional(), // Added ID parameter for individual item operations
+  username: z.string().nullable().optional(), // Added username parameter for filtering by user
 });
 
 // Schema for currency bills
@@ -105,13 +106,14 @@ export async function GET(req: NextRequest) {
       date: url.searchParams.get("date"),
       paymentMethod: url.searchParams.get("paymentMethod"),
       id: url.searchParams.get("id"), // Get ID from query params
+      username: url.searchParams.get("username"), // Get username from query params
     });
     
     if (!queryParsed.success) {
       return NextResponse.json({ message: 'Invalid query parameters', errors: queryParsed.error.flatten() }, { status: 400 });
     }
     
-    const { page, limit, search, date, paymentMethod, id } = queryParsed.data;
+    const { page, limit, search, date, paymentMethod, id, username } = queryParsed.data;
     
     // If ID is provided, return a single item
     if (id) {
@@ -162,6 +164,11 @@ export async function GET(req: NextRequest) {
           // Filter by payment method
           paymentMethod ? {
             paymentMethod
+          } : {},
+          
+          // Filter by username
+          username ? {
+            receiptUsername: username
           } : {}
         ]
       },
@@ -209,6 +216,8 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    const username = session.user?.username;
     
     const body = await req.json();
     
@@ -265,6 +274,8 @@ export async function POST(req: NextRequest) {
         currencyBills,
         cheque,
         generatedDate,
+        receiptUsername: username,
+        receiptTimestamp: new Date(),
       },
       include: {
         party: true
@@ -295,7 +306,7 @@ export async function PUT(req: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
     

@@ -61,6 +61,7 @@ interface ReceiptState {
     search?: string;
     date?: Date;
     paymentMethod?: PaymentMethod;
+    username?: string | null;
   }) => Promise<void>;
   
   fetchReceiptItemById: (id: string) => Promise<ReceiptData | null>;
@@ -106,7 +107,7 @@ export const useReceiptStore = create<ReceiptState>()(
       setItemsPerPage: (count) => set({ itemsPerPage: count, currentPage: 1 }),
       
       // API calls
-      fetchReceiptItems: async ({ page, limit, search, date, paymentMethod }) => {
+      fetchReceiptItems: async ({ page, limit, search, date, paymentMethod, username }) => {
         try {
           set({ isLoading: true, error: null });
           
@@ -124,6 +125,10 @@ export const useReceiptStore = create<ReceiptState>()(
           
           if (paymentMethod) {
             url.searchParams.set('paymentMethod', paymentMethod);
+          }
+          
+          if (username) {
+            url.searchParams.set('username', username);
           }
           
           const response = await fetch(url.toString());

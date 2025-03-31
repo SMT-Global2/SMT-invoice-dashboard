@@ -41,6 +41,7 @@ export default function ReceiptPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodFilter>("ALL");
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
   // Initial data fetch
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function ReceiptPage() {
       search: searchTerm,
       date: selectedDate,
       paymentMethod: selectedPaymentMethod === "ALL" ? undefined : selectedPaymentMethod,
+      username: selectedUser,
     });
   }, [
     currentPage,
@@ -57,6 +59,7 @@ export default function ReceiptPage() {
     searchTerm,
     selectedDate,
     selectedPaymentMethod,
+    selectedUser,
     fetchReceiptItems
   ]);
 
@@ -172,6 +175,8 @@ export default function ReceiptPage() {
         setSelectedDate={setSelectedDate}
         selectedPaymentMethod={selectedPaymentMethod}
         setSelectedPaymentMethod={setSelectedPaymentMethod as (method: PaymentMethod | undefined) => void}
+        selectedUser={selectedUser}
+        setSelectedUser={setSelectedUser}
         currentPage={currentPage}
         totalPages={totalPages}
         itemsPerPage={itemsPerPage}
