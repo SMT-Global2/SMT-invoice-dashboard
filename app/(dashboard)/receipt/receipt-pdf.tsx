@@ -724,7 +724,7 @@ const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUs
               paymentMethod : paymentMethod,
               currencyBills : null, // Use null instead of '*' for consistency
               cheque : null,
-              remarks : '*** Missing Receipt(s) ***', // More descriptive remark
+              remarks : '*', // More descriptive remark
               partyCode : '*',
               party: { customerName: '*' }, // Add party structure
               createdAt : null,
