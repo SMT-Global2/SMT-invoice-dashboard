@@ -23,7 +23,7 @@ export default function BillingPage() {
   return (
     <div className='space-y-4 overflow-hidden w-full'>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Billing Management</h1>
+        <h1 className="text-2xl font-bold">Invoice Billing</h1>
       </div>
       
       <Tabs defaultValue="unbilled" className="w-full">

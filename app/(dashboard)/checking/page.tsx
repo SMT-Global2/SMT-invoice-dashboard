@@ -143,6 +143,9 @@ export default function CheckingPage() {
 
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2'>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Invoice Checking</h1>
+      </div>
       <Tabs defaultValue="unchecked" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="unchecked">Unchecked</TabsTrigger>

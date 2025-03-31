@@ -17,7 +17,7 @@ export default function DeliveryPage() {
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2'>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Delivery Management</h1>
+        <h1 className="text-2xl font-bold">Invoice Delivery</h1>
       </div>
       
       <Tabs defaultValue="to-deliver" className="w-full">

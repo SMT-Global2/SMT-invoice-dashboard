@@ -136,6 +136,9 @@ export default function AgencyPage() {
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Agency Management</h1>
+      </div>
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
           <CardTitle className="m-2">Agency List</CardTitle>

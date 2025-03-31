@@ -205,6 +205,9 @@ export default function InvoicePage() {
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Invoice Generation</h1>
+      </div>
       <Card>
         <CardHeader>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

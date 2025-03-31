@@ -1,15 +1,28 @@
 import { 
   BarChart, 
-  Building, 
+  Building,
+  Briefcase,
   CheckCircle, 
   FileText, 
   Home,
-  Newspaper, 
+  Receipt,
+  DollarSign,
   Package, 
   Truck, 
+  Users,
   User, 
   LucideIcon,
-  Calendar
+  Calendar,
+  ClipboardCheck,
+  ClipboardList,
+  Boxes,
+  FileSpreadsheet,
+  FileCheck,
+  ShoppingBag,
+  TimerOff,
+  PieChart,
+  Handshake,
+  Building2
 } from 'lucide-react';
 
 import { Department, UserType } from '@prisma/client';
@@ -54,7 +67,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'analytics',
         title: 'Analytics',
         href: '/analytics',
-        icon: BarChart,
+        icon: PieChart,
         description: 'View detailed invoice analytics and reports',
         roles: ['ADMIN'],
         searchTerms: ['analytics', 'reports', 'statistics', 'data', 'charts', 'metrics']
@@ -70,7 +83,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'invoice',
         title: 'Invoice',
         href: '/invoice',
-        icon: FileText,
+        icon: FileSpreadsheet,
         description: 'Create and Generate Invoices',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
         searchTerms: ['invoice', 'create', 'generate', 'bill', 'billing']
@@ -79,7 +92,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'checking',
         title: 'Checking',
         href: '/checking',
-        icon: CheckCircle,
+        icon: ClipboardCheck,
         description: 'Review and Verify Generated Invoices',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
         searchTerms: ['checking', 'verify', 'review', 'validation', 'check']
@@ -88,7 +101,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'packing',
         title: 'Packing',
         href: '/packing',
-        icon: Package,
+        icon: Boxes,
         description: 'Prepare and Pack Verified Invoices',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
         searchTerms: ['packing', 'prepare', 'pack', 'package', 'box']
@@ -106,7 +119,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'billing',
         title: 'Billing',
         href: '/billing',
-        icon: Newspaper,
+        icon: DollarSign,
         description: 'Billing Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
         searchTerms: ['billing', 'payment', 'invoice management', 'financial']
@@ -122,7 +135,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'receipt',
         title: 'Receipt',
         href: '/receipt',
-        icon: FileText,
+        icon: Receipt,
         description: 'Receipt Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.RECEIPT_MANAGEMENT]
       }
@@ -137,7 +150,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'inventory',
         title: 'Inventory',
         href: '/inventory',
-        icon: Package,
+        icon: ShoppingBag,
         description: 'Inventory Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.PURCHASE_MANAGEMENT]
       },
@@ -145,7 +158,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'delivery-memo',
         title: 'Delivery Memo',
         href: '/deliverymemo',
-        icon: Truck,
+        icon: ClipboardList,
         description: 'Delivery Memo Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT]
       },
@@ -153,7 +166,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'expiry',
         title: 'Expiry',
         href: '/expiry',
-        icon: Calendar,
+        icon: TimerOff,
         description: 'Expiry Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT]
       },
@@ -161,7 +174,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'statement',
         title: 'Statement',
         href: '/statement',
-        icon: FileText,
+        icon: FileCheck,
         description: 'Statement Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.RECEIPT_MANAGEMENT, Department.INVOICE_MANAGEMENT]
       }
@@ -176,7 +189,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'employee',
         title: 'Employee',
         href: '/employee',
-        icon: User,
+        icon: Users,
         description: 'Manage Employee Profiles',
         searchTerms: ['employee', 'staff', 'personnel', 'team', 'users'],
         roles: ['ADMIN']
@@ -185,7 +198,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'agency',
         title: 'Agency',
         href: '/agency',
-        icon: Building,
+        icon: Building2,
         description: 'Agency Management',
         roles: ['ADMIN', Department.PURCHASE_MANAGEMENT]
       },
@@ -193,7 +206,7 @@ export const dashboardCategories: DashboardCategory[] = [
         id: 'party',
         title: 'Parties / Clients',
         href: '/party',
-        icon: Building,
+        icon: Handshake,
         description: 'Maintain and organize client data',
         searchTerms: ['party', 'client', 'customer', 'organization', 'business'],
         roles: ['ADMIN']

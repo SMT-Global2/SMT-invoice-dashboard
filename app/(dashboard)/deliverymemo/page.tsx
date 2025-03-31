@@ -264,6 +264,9 @@ export default function DeliveryMemoPage() {
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Delivery Memo</h1>
+      </div>
       <Tabs defaultValue="collection" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="collection">Collection</TabsTrigger>
