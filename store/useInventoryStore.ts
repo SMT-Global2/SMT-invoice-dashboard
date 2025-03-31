@@ -320,7 +320,13 @@ export const useInventoryStore = create<InventoryState>()(
       addVoucher: async (id, voucherNumber) => {
         try {
           set({ isLoading: true, error: null });
+          const voucherItem = get().voucherItems.find((item) => item.id === id);
+          const image = voucherItem?.image;
           
+          if(!image || image.length === 0) {
+            throw new Error('Atleast one image is required');
+          }
+
           const url = new URL('/api/inventory/voucher', window.location.origin);
           url.searchParams.set('id', id);
           
@@ -329,7 +335,7 @@ export const useInventoryStore = create<InventoryState>()(
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ voucherNumber })
+            body: JSON.stringify({ voucherNumber , image : image })
           });
           
           if (!response.ok) {
@@ -344,6 +350,7 @@ export const useInventoryStore = create<InventoryState>()(
           set({ isLoading: false });
           
         } catch (error) {
+          console.log(error instanceof Error);
           set({ 
             error: error instanceof Error ? error.message : 'Failed to add voucher', 
             isLoading: false 

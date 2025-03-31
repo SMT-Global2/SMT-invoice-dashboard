@@ -53,8 +53,8 @@ export default function InventoryPage() {
   // Local state for search and filter
   const [searchTerm, setSearchTerm] = useState("");
   const [voucherSearchTerm, setVoucherSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [voucherSelectedDate, setVoucherSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedInventoryDate, setSelectedInventoryDate] = useState<Date | undefined>(new Date());
+  const [selectedVoucherDate, setSelectedVoucherDate] = useState<Date | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("check");
 
   // Initial data fetch
@@ -64,14 +64,14 @@ export default function InventoryPage() {
         page: currentPage,
         limit: itemsPerPage,
         search: searchTerm,
-        date: selectedDate,
+        date: selectedInventoryDate,
       });
     } else {
       fetchVoucherItems({
         page: voucherCurrentPage,
         limit: voucherItemsPerPage,
         search: voucherSearchTerm,
-        date: voucherSelectedDate,
+        date: selectedVoucherDate,
       });
     }
   }, [
@@ -82,8 +82,8 @@ export default function InventoryPage() {
     voucherItemsPerPage,
     searchTerm,
     voucherSearchTerm,
-    selectedDate,
-    voucherSelectedDate,
+    selectedInventoryDate,
+    selectedVoucherDate,
   ]);
 
   // Handle add button click
@@ -239,8 +239,8 @@ export default function InventoryPage() {
             isLoading={isLoading}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
+            selectedDate={selectedInventoryDate}
+            setSelectedDate={setSelectedInventoryDate}
             currentPage={currentPage}
             totalPages={totalPages}
             itemsPerPage={itemsPerPage}
@@ -258,8 +258,8 @@ export default function InventoryPage() {
             uploadingImage={uploadingImage}
             searchTerm={voucherSearchTerm}
             setSearchTerm={setVoucherSearchTerm}
-            selectedDate={voucherSelectedDate}
-            setSelectedDate={setVoucherSelectedDate}
+            selectedDate={selectedVoucherDate}
+            setSelectedDate={setSelectedVoucherDate}
             currentPage={voucherCurrentPage}
             totalPages={voucherTotalPages}
             itemsPerPage={voucherItemsPerPage}

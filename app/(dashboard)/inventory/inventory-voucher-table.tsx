@@ -93,12 +93,10 @@ export function InventoryVoucherTable({
 
   const handleVoucherNumberChange = (id: string, value: string) => {
     const numberValue = parseInt(value);
-    if (!isNaN(numberValue)) {
       setVoucherNumbers({
         ...voucherNumbers,
         [id]: numberValue,
       });
-    }
   };
 
   const handleSaveClick = async (id: string) => {

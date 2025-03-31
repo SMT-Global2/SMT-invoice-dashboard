@@ -11,6 +11,7 @@ const idParamSchema = z.object({
 
 const voucherSchema = z.object({
   voucherNumber: z.coerce.number().positive("Voucher number is required"),
+  image: z.array(z.string()).min(1, "Atleast one image is required")
 });
 
 export async function POST(req: NextRequest) {
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest) {
       data: {
         voucherNumber,
         inventoryVoucherUsername: session.user.username,
-        inventoryVoucherTimestamp: new Date()
+        inventoryVoucherTimestamp: new Date(),
+        image: body.image
       },
       include: { agency: true }
     });
