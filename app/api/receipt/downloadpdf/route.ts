@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import moment from 'moment';
+import { PaymentMethod } from "@/store/useReceiptStore";
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,6 +19,8 @@ export async function GET(req: NextRequest) {
     // Parse the date from query parameter
     const url = new URL(req.url);
     const dateParam = url.searchParams.get("date");
+    const userFilter = url.searchParams.get("user");
+    const paymentMethodFilter = url.searchParams.get("paymentMethod");
     
     if (!dateParam) {
       return NextResponse.json(
@@ -25,14 +28,15 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Find all receipts for the given date
-    const receipts = await prisma.receipt.findMany({
+
+    console.log({
       where: {
         generatedDate: {
           gte: moment(dateParam).startOf('day').toDate(),
           lt: moment(dateParam).endOf('day').toDate()
-        }
+        },
+        receiptUsername : userFilter ? userFilter : undefined,
+        paymentMethod : paymentMethodFilter ? paymentMethodFilter as PaymentMethod : undefined
       },
       include: {
         party: true
@@ -41,6 +45,25 @@ export async function GET(req: NextRequest) {
         receiptNumber: 'asc'
       }
     });
+    
+    // Find all receipts for the given date
+    const receipts = await prisma.receipt.findMany({
+      where: {
+        generatedDate: {
+          gte: moment(dateParam).startOf('day').toDate(),
+          lt: moment(dateParam).endOf('day').toDate()
+        },
+        receiptUsername : userFilter ? userFilter : undefined,
+        paymentMethod : paymentMethodFilter ? paymentMethodFilter as PaymentMethod : undefined
+      },
+      include: {
+        party: true
+      },
+      orderBy: {
+        receiptNumber: 'asc'
+      }
+    });
+    console.log(receipts);
     
     if (receipts.length === 0) {
       return NextResponse.json(

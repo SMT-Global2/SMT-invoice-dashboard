@@ -1,343 +1,256 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import { ReceiptData } from '@/store/useReceiptStore';
+import { PaymentMethod, ReceiptData } from '@/store/useReceiptStore'; // Assuming this path is correct
 import moment from 'moment';
 
-// Define a simplified color system optimized for printing
+// --- Configuration ---
+
+// Simplified Color Palette (Print-friendly)
 const colors = {
-  primary: '#2e3b4e', // dark blue-gray
-  secondary: '#505a6b', // medium blue-gray
-  light: '#f5f5f5', // very light gray
-  dark: '#333333', // dark gray
+  primary: '#1a237e', // Dark Indigo
+  secondary: '#5c6bc0', // Medium Indigo
+  textPrimary: '#212121', // Almost Black
+  textSecondary: '#757575', // Medium Gray
+  border: '#e0e0e0', // Light Gray Border
+  backgroundLight: '#f5f5f5', // Very Light Gray Background
   white: '#ffffff',
   black: '#000000',
-  border: '#cccccc', // medium gray
-  headerBg: '#f0f0f0', // light gray
-  cashBg: '#f0f0f0', // light gray for cash
-  chequeBg: '#f0f0f0', // light gray for cheque
-  noneBg: '#f0f0f0', // light gray for none
-  cashBorder: '#555555', // dark gray
-  chequeBorder: '#777777', // medium-dark gray
-  noneBorder: '#999999', // medium gray
+  accentCash: '#4caf50', // Green for Cash emphasis (used sparingly)
+  accentCheque: '#ff9800', // Orange for Cheque emphasis (used sparingly)
+  accentNone: '#9e9e9e',  // Gray for Other emphasis (used sparingly)
 };
 
-// Enhanced styles optimized for printing
+// Register Fonts (if needed, ensure fonts are available)
+// Font.register({ family: 'Roboto', src: '/path/to/Roboto-Regular.ttf' });
+// Font.register({ family: 'Roboto-Bold', src: '/path/to/Roboto-Bold.ttf' });
+
+// --- Styles ---
 const styles = StyleSheet.create({
+  // --- Page & Layout ---
   page: {
     flexDirection: 'column',
     backgroundColor: colors.white,
     padding: 30,
-    fontFamily: 'Helvetica',
+    paddingBottom: 50, // Extra space for footer
+    fontFamily: 'Helvetica', // Use registered font like 'Roboto' if available
+    fontSize: 9,
+    color: colors.textPrimary,
   },
+  section: {
+    marginBottom: 15,
+  },
+  // --- Header ---
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 20,
     paddingBottom: 10,
-    borderBottomWidth: 1,
+    borderBottomWidth: 1.5,
     borderBottomColor: colors.primary,
-    borderBottomStyle: 'solid',
   },
   headerLeft: {
-    flexDirection: 'column',
     width: '60%',
   },
   headerRight: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
     width: '40%',
+    alignItems: 'flex-end',
   },
-  logo: {
-    width: 60,
-    height: 60,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
+  reportTitle: {
+    fontSize: 18,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
     color: colors.primary,
-    fontFamily: 'Helvetica-Bold',
+    marginBottom: 2,
   },
-  subtitle: {
-    fontSize: 12,
-    color: colors.dark,
-    marginTop: 4,
+  companyName: {
+    fontSize: 11,
+    color: colors.textSecondary,
   },
-  date: {
-    fontSize: 12,
-    color: colors.dark,
-    marginTop: 4,
-  },
-  companyInfo: {
+  reportDate: {
     fontSize: 10,
-    color: colors.dark,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
-  userSection: {
-    marginTop: 15,
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: colors.headerBg,
-    borderRadius: 2,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-    borderLeftStyle: 'solid',
-    breakInside: 'avoid',
+
+  // --- Statistics (Revised) ---
+  statsContainer: {
+      // No flexDirection here, we'll use rows inside
+      padding: 10,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 4, // Slightly more rounded
+      marginBottom: 20,
+      borderWidth: 1, // Add a subtle border
+      borderColor: colors.border,
+  },
+  statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between', // Distribute items evenly
+      marginBottom: 8, // Space between rows
+  },
+  statItem: {
+      width: '32%', // Fit 3 items per row with small gaps
+      alignItems: 'center',
+      paddingVertical: 5, // Add some vertical padding inside item
+      // Optional: Add border to each item if you prefer boxes
+      // borderWidth: 1,
+      // borderColor: colors.border,
+      // borderRadius: 2,
+      // backgroundColor: colors.white, // If using borders
+  },
+  statItemLastRow: { // To remove margin from the last row if needed
+      width: '32%',
+      alignItems: 'center',
+      paddingVertical: 5,
+  },
+  statLabel: {
+      fontSize: 8,
+      color: colors.textSecondary,
+      marginBottom: 3, // Slightly more space
+      textTransform: 'uppercase',
+      textAlign: 'center', // Ensure label is centered
+  },
+  statValue: {
+      fontSize: 10, // Slightly smaller to fit potentially large amounts
+      fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold' if registered
+      color: colors.primary,
+      textAlign: 'center', // Ensure value is centered
+  },
+  statValueAmount: { // Specific style for amounts if needed (e.g., different color/size)
+      fontSize: 10,
+      fontFamily: 'Helvetica-Bold',
+      color: colors.primary,
+      textAlign: 'center',
+  },
+
+  // --- User Section ---
+  userSectionHeader: {
+    marginTop: 15, // Space between users
+    padding: 8,
+    backgroundColor: colors.secondary,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+    breakInside: 'avoid', // Try to keep header with content
   },
   userTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.white,
   },
   userInfo: {
-    fontSize: 10,
-    color: colors.dark,
+    fontSize: 9,
+    color: colors.white,
+    opacity: 0.9,
+    marginTop: 2,
   },
-  section: {
-    margin: 10,
-    padding: 0,
-    flexGrow: 1,
+  userSectionBody: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderTopWidth: 0, // Avoid double border with header
+    padding: 10,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
   },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.dark,
-    marginBottom: 10,
-    padding: 5,
-    backgroundColor: colors.light,
-    borderRadius: 2,
-    fontFamily: 'Helvetica-Bold',
-  },
-  paymentSection: {
+  // --- Payment Type Section ---
+  paymentTypeContainer: {
     marginTop: 10,
     marginBottom: 15,
-    padding: 8,
-    borderRadius: 2,
-    breakInside: 'avoid',
   },
-  cashSection: {
-    backgroundColor: colors.cashBg,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.cashBorder,
-    borderLeftStyle: 'solid',
+  paymentTypeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  chequeSection: {
-    backgroundColor: colors.chequeBg,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.chequeBorder,
-    borderLeftStyle: 'solid',
+  paymentTypeIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  noneSection: {
-    backgroundColor: colors.noneBg,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.noneBorder,
-    borderLeftStyle: 'solid',
+  paymentTypeIconText: {
+    color: colors.white,
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
   },
   paymentTypeTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
   },
-  cashTitle: {
-    color: colors.cashBorder,
-  },
-  chequeTitle: {
-    color: colors.chequeBorder,
-  },
-  noneTitle: {
-    color: colors.noneBorder,
-  },
+  // --- Table Styles ---
   table: {
     display: 'flex',
-    width: 'auto',
+    width: '100%',
     borderStyle: 'solid',
     borderWidth: 1,
     borderColor: colors.border,
     borderRightWidth: 0,
     borderBottomWidth: 0,
     marginBottom: 10,
-    breakInside: 'avoid',
   },
-  tableRow: {
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.backgroundLight,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    minHeight: 20, // Adjust as needed
+    alignItems: 'center',
+  },
+  tableDataRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    borderBottomStyle: 'solid',
-    minHeight: 24,
-    alignItems: 'center',
+    minHeight: 20, // Adjust as needed
+    alignItems: 'stretch', // Ensure cells stretch to row height
+    backgroundColor: colors.white, // Ensure clean background for each row
   },
-  tableHeader: {
-    backgroundColor: colors.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.primary,
-    borderBottomStyle: 'solid',
-    minHeight: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  // Striped rows (optional - uncomment data row style below if needed)
+  // tableDataRowStriped: {
+  //   backgroundColor: colors.backgroundLight,
+  // },
   tableHeaderCell: {
     borderRightWidth: 1,
     borderRightColor: colors.border,
-    borderRightStyle: 'solid',
-    paddingVertical: 5,
+    paddingVertical: 4,
     paddingHorizontal: 3,
-    color: colors.white,
-    fontSize: 9,
-    fontWeight: 'bold',
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
     textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
+    color: colors.textPrimary,
+    flexGrow: 1, // Allow text wrapping
+    flexShrink: 1,
   },
-  tableHeaderCellReceipt: { width: '11%' },
-  tableHeaderCellPartyCode: { width: '12%' },
-  tableHeaderCellPartyName: { width: '22%' },
-  tableHeaderCellAmount: { width: '15%' },
-  tableHeaderCellDate: { width: '14%' },
-  tableHeaderCellTime: { width: '13%' },
-  tableHeaderCellRemarks: { width: '13%' },
   tableCell: {
     borderRightWidth: 1,
     borderRightColor: colors.border,
-    borderRightStyle: 'solid',
     paddingVertical: 4,
     paddingHorizontal: 3,
     fontSize: 8,
     textAlign: 'left',
+    flexGrow: 1,
+    flexShrink: 1,
+    // Add this to help with vertical alignment if needed
+    display: 'flex',
+    justifyContent: 'center',
   },
-  tableCellReceipt: { width: '11%', textAlign: 'center' },
-  tableCellPartyCode: { width: '12%', textAlign: 'center' },
-  tableCellPartyName: { width: '22%' },
-  tableCellAmount: { width: '15%', textAlign: 'right', fontFamily: 'Helvetica' },
-  tableCellDate: { width: '14%', textAlign: 'center' },
-  tableCellTime: { width: '13%', textAlign: 'center' },
-  tableCellRemarks: { width: '13%' },
-  stripeRow: {
-    backgroundColor: colors.light,
-  },
-  amountCell: {
-    textAlign: 'right',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
-    fontSize: 9,
-    color: colors.dark,
-    textAlign: 'center',
-    paddingTop: 10,
-    paddingHorizontal: 30,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    borderTopStyle: 'solid',
-  },
-  summary: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 15,
-    marginBottom: 20,
-  },
-  summaryBox: {
-    width: '35%',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'solid',
-    padding: 8,
-    backgroundColor: colors.headerBg,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 9,
-    color: colors.dark,
-  },
-  summaryValue: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    fontFamily: 'Helvetica',
-  },
-  summaryTotal: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: colors.primary,
-    fontFamily: 'Helvetica',
-  },
-  paymentDetailBox: {
-    marginTop: 5,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'solid',
-    backgroundColor: colors.light,
-  },
-  paymentTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: colors.primary,
-    fontFamily: 'Helvetica-Bold',
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    marginBottom: 3,
-  },
-  paymentLabel: {
-    fontSize: 9,
-    width: '30%',
-    color: colors.dark,
-  },
-  paymentValue: {
-    fontSize: 9,
-    width: '70%',
-    color: colors.black,
-    fontFamily: 'Helvetica',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  statBox: {
-    width: '22%',
-    padding: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.headerBg,
-    marginBottom: 10,
-  },
-  statLabel: {
-    fontSize: 9,
-    color: colors.dark,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: colors.primary,
-    fontFamily: 'Helvetica',
-  },
-  disclaimer: {
-    fontSize: 8,
-    color: colors.dark,
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 30,
-    right: 30,
-    fontSize: 9,
-    color: colors.dark,
-  },
+  // Column Widths (adjust percentages as needed)
+  colReceipt: { width: '10%' },
+  colPartyCode: { width: '10%' },
+  colPartyName: { width: '25%' },
+  colAmount: { width: '15%', textAlign: 'right' },
+  colDate: { width: '12%', textAlign: 'center' },
+  colTime: { width: '10%', textAlign: 'center' },
+  colRemarks: { width: '18%' },
+  textRight: { textAlign: 'right' },
+  textCenter: { textAlign: 'center' },
+
+  // --- Cheque Details ---
   chequeDetailsContainer: {
     marginTop: 10,
-    marginBottom: 10,
   },
   chequeGrid: {
     display: 'flex',
@@ -346,737 +259,568 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   chequeCard: {
-    width: '48%',
-    marginBottom: 10,
+    width: '48%', // Two columns
     borderWidth: 1,
     borderColor: colors.border,
-    breakInside: 'avoid',
+    borderRadius: 3,
+    marginBottom: 10,
+    backgroundColor: colors.white,
+    breakInside: 'avoid', // Try to keep cards intact
   },
   chequeCardHeader: {
-    backgroundColor: colors.headerBg,
-    padding: 6,
+    backgroundColor: colors.backgroundLight,
+    padding: 5,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
   },
   chequeCardTitle: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: colors.primary,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
   },
   chequeCardBody: {
-    padding: 8,
-    backgroundColor: colors.white,
+    padding: 6,
   },
-  chequeInfoGrid: {
-    display: 'flex',
+  chequeInfoRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  chequeInfoItem: {
-    width: '50%',
-    marginBottom: 5,
+    justifyContent: 'space-between',
+    marginBottom: 3,
   },
   chequeLabel: {
     fontSize: 8,
-    color: colors.dark,
-    marginBottom: 2,
+    color: colors.textSecondary,
+    width: '40%',
   },
   chequeValue: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: colors.black,
-    fontFamily: 'Helvetica',
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
+    width: '60%',
+    textAlign: 'right',
   },
-  chequeAmountSection: {
+  chequeAmountRow: {
     marginTop: 5,
     paddingTop: 5,
     borderTopWidth: 1,
-    borderTopStyle: 'dashed',
     borderTopColor: colors.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   chequeAmountLabel: {
     fontSize: 9,
-    fontWeight: 'bold',
-    color: colors.dark,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
   },
-  chequeAmount: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.primary,
-    fontFamily: 'Helvetica',
-  },
-  paymentDistributionContainer: {
-    marginTop: 15,
-    marginBottom: 20,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    breakInside: 'avoid',
-  },
-  distributionTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 10,
-    textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
-  },
-  distributionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  distributionLabel: {
-    width: '20%',
+  chequeAmountValue: {
     fontSize: 9,
-    fontWeight: 'bold',
-    color: colors.dark,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.primary,
   },
-  distributionBarContainer: {
-    width: '60%',
-    height: 12,
-    backgroundColor: colors.light,
-    marginHorizontal: 10,
-    borderRadius: 2,
-  },
-  distributionBar: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-  },
-  distributionCashBar: {
-    backgroundColor: colors.cashBorder,
-  },
-  distributionChequeBar: {
-    backgroundColor: colors.chequeBorder,
-  },
-  distributionNoneBar: {
-    backgroundColor: colors.noneBorder,
-  },
-  distributionValue: {
-    width: '20%',
-    fontSize: 9,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    fontFamily: 'Helvetica',
-  },
-  // New daily trending analysis
-  trendingAnalysisContainer: {
+
+  // --- Cash Denominations ---
+  cashSummaryContainer: {
     marginTop: 10,
-    marginBottom: 15,
-    padding: 10,
+    padding: 8,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 2,
-    breakInside: 'avoid',
+    borderRadius: 3,
+    backgroundColor: colors.white,
   },
-  trendingTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: colors.primary,
+  cashSummaryTitle: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
-  },
-  trendingGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  trendColumn: {
-    width: '22%',
-  },
-  trendHeader: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: colors.dark,
-    textAlign: 'left',
-    marginBottom: 5,
-    paddingBottom: 3,
+    paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    fontFamily: 'Helvetica-Bold',
   },
-  trendValue: {
+  denominationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  denominationItem: {
+    width: '31%', // Three columns
+    padding: 5,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 2,
+    marginBottom: 5,
+    backgroundColor: colors.backgroundLight,
+  },
+  denominationLabel: {
+    fontSize: 8,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  denominationValue: {
     fontSize: 9,
-    fontWeight: 'bold',
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  cashTotalRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  cashTotalLabel: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
+    marginRight: 10,
+  },
+  cashTotalValue: {
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
     color: colors.primary,
-    textAlign: 'left',
-    marginBottom: 3,
-    fontFamily: 'Helvetica',
   },
-  trendChangePositive: {
-    fontSize: 8,
-    color: colors.cashBorder,
-    textAlign: 'left',
-    fontFamily: 'Helvetica',
+
+  // --- Summary ---
+  summaryContainer: {
+    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
-  trendChangeNegative: {
-    fontSize: 8,
-    color: colors.noneBorder,
-    textAlign: 'left',
-    fontFamily: 'Helvetica',
+  summaryBox: {
+    width: '40%',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 3,
+    padding: 10,
+    backgroundColor: colors.backgroundLight,
   },
-  trendChangeNeutral: {
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 9,
+    color: colors.textSecondary,
+  },
+  summaryValue: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.textPrimary,
+  },
+  summaryTotalRow: {
+    marginTop: 5,
+    paddingTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  summaryTotalLabel: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.primary,
+  },
+  summaryTotalValue: {
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
+    color: colors.primary,
+  },
+
+  // --- Footer ---
+  footer: {
+    position: 'absolute',
+    bottom: 15,
+    left: 30,
+    right: 30,
     fontSize: 8,
-    color: colors.dark,
-    textAlign: 'left',
-    fontFamily: 'Helvetica',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 5,
+  },
+  pageNumber: {
+    position: 'absolute',
+    bottom: 15,
+    right: 30,
+    fontSize: 8,
+    color: colors.textSecondary,
   },
 });
 
-type ReceiptPDFProps = {
-  receipts: ReceiptData[];
-  date: string;
+// --- Helper Functions ---
+const formatAmount = (amount: number | undefined | null): string => {
+    if (amount === undefined || amount === null) return 'Rs. 0.00';
+    return 'Rs. ' + amount.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 };
 
-// Helper function to format numbers properly with improved readability
-const formatAmount = (amount: number): string => {
-  return 'Rs. ' + amount.toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+const formatDate = (date: string | Date | undefined | null): string => {
+    if (!date) return '*';
+    return moment(date).format('DD/MM/YYYY');
 };
 
-const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts, date }) => {
-  // Format date
-  const formattedDate = moment(date).format('MMMM D, YYYY');
-  
-  // Group receipts by username
-  const groupedReceipts = receipts.reduce((acc, receipt) => {
-    const username = receipt.receiptUsername || 'Unassigned';
-    if (!acc[username]) {
-      acc[username] = [];
-    }
-    acc[username].push(receipt);
-    return acc;
-  }, {} as Record<string, ReceiptData[]>);
+const formatTime = (date: string | Date | undefined | null): string => {
+    if (!date) return '*';
+    return moment(date).format('HH:mm');
+};
 
-  // Calculate statistics
-  const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-  const cashReceipts = receipts.filter(r => r.paymentMethod === 'CASH');
-  const chequeReceipts = receipts.filter(r => r.paymentMethod === 'CHEQUE');
-  const noneReceipts = receipts.filter(r => r.paymentMethod === 'NONE');
-  const cashTotal = cashReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-  const chequeTotal = chequeReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-  const noneTotal = noneReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-  const avgReceiptValue = receipts.length > 0 ? totalAmount / receipts.length : 0;
-  
-  // Calculate percentages for distribution
-  const cashAmountPercentage = totalAmount > 0 ? (cashTotal / totalAmount) * 100 : 0;
-  const chequeAmountPercentage = totalAmount > 0 ? (chequeTotal / totalAmount) * 100 : 0;
-  const noneAmountPercentage = totalAmount > 0 ? (noneTotal / totalAmount) * 100 : 0;
-  
-  // Get payment method distribution 
-  const paymentMethodDistribution = {
-    CASH: cashReceipts.length,
-    CHEQUE: chequeReceipts.length,
-    NONE: noneReceipts.length,
-  };
+// --- Reusable Components ---
 
-  // Get currency bill totals if available
-  type CurrencyBillTotals = {
-    '500': number;
-    '200': number;
-    '100': number;
-    '50': number;
-    '20': number;
-    '10': number;
-  };
-
-  const currencyBillTotals = receipts.reduce((acc, receipt) => {
-    if (receipt.currencyBills) {
-      Object.entries(receipt.currencyBills).forEach(([key, value]) => {
-        const denomination = parseInt(key);
-        if (key === '500' || key === '200' || key === '100' || key === '50' || key === '20' || key === '10') {
-          acc[key] += (value || 0) * denomination;
-        }
-      });
-    }
-    return acc;
-  }, { '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, '10': 0 } as CurrencyBillTotals);
-
-  // Helper function to render receipt table
-  const renderReceiptTable = (receipts: ReceiptData[]) => (
-    <View style={styles.table} wrap={false}>
-      {/* Table Header */}
-      <View style={[styles.tableRow, styles.tableHeader]}>
-        <Text style={[styles.tableHeaderCell, styles.tableHeaderCellReceipt]}>Receipt No.</Text>
-        <Text style={[styles.tableHeaderCell, styles.tableHeaderCellPartyCode]}>Party Code</Text>
-        <Text style={[styles.tableHeaderCell, styles.tableHeaderCellPartyName]}>Party Name</Text>
-        <Text style={[styles.tableHeaderCell, styles.tableHeaderCellAmount]}>Amount</Text>
-        <Text style={[styles.tableHeaderCell, styles.tableHeaderCellDate]}>Date</Text>
-        <Text style={[styles.tableHeaderCell, styles.tableHeaderCellTime]}>Time</Text>
-        <Text style={[styles.tableHeaderCell, styles.tableHeaderCellRemarks]}>Remarks</Text>
-      </View>
-      
-      {/* Table Rows - limit to 10 rows per table to avoid page breaks */}
-      {receipts.length <= 10 ? (
-        receipts.map((receipt, index) => (
-          <View 
-            style={[
-              styles.tableRow,
-              index % 2 === 1 ? styles.stripeRow : {}
-            ]} 
-            key={receipt.id}
-          >
-            <Text style={[styles.tableCell, styles.tableCellReceipt]}>{receipt.receiptNumber}</Text>
-            <Text style={[styles.tableCell, styles.tableCellPartyCode]}>{receipt.partyCode}</Text>
-            <Text style={[styles.tableCell, styles.tableCellPartyName]}>{receipt.party?.customerName || 'N/A'}</Text>
-            <Text style={[styles.tableCell, styles.tableCellAmount]}>{formatAmount(receipt.amount)}</Text>
-            <Text style={[styles.tableCell, styles.tableCellDate]}>
-              {receipt.receiptTimestamp 
-                ? moment(receipt.receiptTimestamp).format('DD/MM/YYYY')
-                : moment(receipt.generatedDate).format('DD/MM/YYYY')
-              }
-            </Text>
-            <Text style={[styles.tableCell, styles.tableCellTime]}>
-              {receipt.receiptTimestamp 
-                ? moment(receipt.receiptTimestamp).format('HH:mm')
-                : 'N/A'
-              }
-            </Text>
-            <Text style={[styles.tableCell, styles.tableCellRemarks]}>{receipt.remarks || '-'}</Text>
-          </View>
-        ))
-      ) : (
-        // If more than 10 receipts, split into multiple tables
-        <>
-          {receipts.slice(0, 10).map((receipt, index) => (
-            <View 
-              style={[
-                styles.tableRow,
-                index % 2 === 1 ? styles.stripeRow : {}
-              ]} 
-              key={receipt.id}
-            >
-              <Text style={[styles.tableCell, styles.tableCellReceipt]}>{receipt.receiptNumber}</Text>
-              <Text style={[styles.tableCell, styles.tableCellPartyCode]}>{receipt.partyCode}</Text>
-              <Text style={[styles.tableCell, styles.tableCellPartyName]}>{receipt.party?.customerName || 'N/A'}</Text>
-              <Text style={[styles.tableCell, styles.tableCellAmount]}>{formatAmount(receipt.amount)}</Text>
-              <Text style={[styles.tableCell, styles.tableCellDate]}>
-                {receipt.receiptTimestamp 
-                  ? moment(receipt.receiptTimestamp).format('DD/MM/YYYY')
-                  : moment(receipt.generatedDate).format('DD/MM/YYYY')
-                }
-              </Text>
-              <Text style={[styles.tableCell, styles.tableCellTime]}>
-                {receipt.receiptTimestamp 
-                  ? moment(receipt.receiptTimestamp).format('HH:mm')
-                  : 'N/A'
-                }
-              </Text>
-              <Text style={[styles.tableCell, styles.tableCellRemarks]}>{receipt.remarks || '-'}</Text>
-            </View>
-          ))}
-        </>
-      )}
+interface ReportHeaderProps {
+    formattedDate: string;
+    companyName: string;
+}
+const ReportHeader: React.FC<ReportHeaderProps> = ({ formattedDate, companyName }) => (
+    <View style={styles.headerContainer}>
+        <View style={styles.headerLeft}>
+            <Text style={styles.reportTitle}>Daily Receipt Report</Text>
+            <Text style={styles.companyName}>{companyName}</Text>
+        </View>
+        <View style={styles.headerRight}>
+            <Text style={styles.reportDate}>Report Date: {formattedDate}</Text>
+        </View>
     </View>
-  );
-  
-  // For longer tables, create a function to split them across pages
-  const renderLongReceiptTable = (receipts: ReceiptData[]) => {
-    if (receipts.length <= 10) {
-      return renderReceiptTable(receipts);
-    }
+);
 
-    const tables = [];
-    for (let i = 0; i < receipts.length; i += 10) {
-      const chunk = receipts.slice(i, i + 10);
-      tables.push(
-        <View key={`table-${i}`} style={{ marginBottom: 10 }}>
-          {i > 0 && <Text style={{ fontSize: 9, marginBottom: 5 }}>Continued from previous page...</Text>}
-          {renderReceiptTable(chunk)}
-          {i + 10 < receipts.length && <PageBreak />}
-        </View>
-      );
-    }
-    
-    return <>{tables}</>;
-  };
-  
-  // Helper function to render enhanced Cheque Details
-  const renderChequeDetails = (receipts: ReceiptData[]) => {
-    const chequeReceipts = receipts.filter(r => r.paymentMethod === 'CHEQUE' && r.cheque);
-    
-    if (chequeReceipts.length === 0) return null;
-    
-    return (
-      <View style={styles.chequeDetailsContainer} wrap={false}>
-        <Text style={[styles.paymentTypeTitle, styles.chequeTitle]}>Cheque Details</Text>
-        
-        <View style={styles.chequeGrid}>
-          {chequeReceipts.map((receipt, index) => (
-            <View style={styles.chequeCard} key={`cheque-card-${receipt.id}`}>
-              <View style={styles.chequeCardHeader}>
-                <Text style={styles.chequeCardTitle}>Receipt #{receipt.receiptNumber}</Text>
-                <Text style={styles.chequeValue}>
-                  {receipt.cheque?.date 
-                    ? moment(receipt.cheque.date).format('DD/MM/YY')
-                    : moment(receipt.generatedDate).format('DD/MM/YY')
-                  }
-                </Text>
-              </View>
-              
-              <View style={styles.chequeCardBody}>
-                <View style={styles.chequeInfoGrid}>
-                  <View style={styles.chequeInfoItem}>
-                    <Text style={styles.chequeLabel}>Cheque Number</Text>
-                    <Text style={styles.chequeValue}>{receipt.cheque?.number || 'N/A'}</Text>
-                  </View>
-                  
-                  <View style={styles.chequeInfoItem}>
-                    <Text style={styles.chequeLabel}>Bank</Text>
-                    <Text style={styles.chequeValue}>{receipt.cheque?.bank || 'N/A'}</Text>
-                  </View>
-                  
-                  <View style={styles.chequeInfoItem}>
-                    <Text style={styles.chequeLabel}>Party Code</Text>
-                    <Text style={styles.chequeValue}>{receipt.partyCode}</Text>
-                  </View>
-                  
-                  <View style={styles.chequeInfoItem}>
-                    <Text style={styles.chequeLabel}>Party Name</Text>
-                    <Text style={styles.chequeValue}>{receipt.party?.customerName || 'N/A'}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.chequeAmountSection}>
-                  <Text style={styles.chequeAmountLabel}>Amount</Text>
-                  <Text style={styles.chequeAmount}>
-                    {formatAmount(receipt.cheque?.amount || receipt.amount)}
-                  </Text>
-                </View>
-              </View>
+interface StatisticsProps {
+    chequeReceipts: number;
+    cashReceipts: number;
+    totalReceipts: number;
+    cashTotal: number;
+    chequeTotal: number;
+    totalAmount: number;
+}
+
+// --- Updated Statistics Component ---
+const Statistics: React.FC<StatisticsProps> = ({
+    chequeReceipts,
+    cashReceipts,
+    totalReceipts,
+    cashTotal,
+    chequeTotal,
+    totalAmount
+}) => (
+    <View style={styles.statsContainer} wrap={false}>
+        {/* Row 1: Counts */}
+        <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Cheque Receipts</Text>
+                {/* Removed 'Total' for brevity */}
+                <Text style={styles.statValue}>{chequeReceipts}</Text>
             </View>
-          ))}
+            <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Cash Receipts</Text>
+                {/* Removed 'Total' for brevity */}
+                <Text style={styles.statValue}>{cashReceipts}</Text>
+            </View>
+            <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Total Receipts</Text>
+                <Text style={styles.statValue}>{totalReceipts}</Text>
+            </View>
         </View>
-      </View>
-    );
-  };
-  
-  // Helper function to render payment distribution visualization
-  const renderPaymentDistribution = () => {
-    const totalCount = receipts.length;
-    if (totalCount === 0) return null;
-    
-    const cashPercentage = (cashReceipts.length / totalCount) * 100;
-    const chequePercentage = (chequeReceipts.length / totalCount) * 100;
-    const nonePercentage = (noneReceipts.length / totalCount) * 100;
-    
-    // Helper function to safely handle percentage widths
-    const getWidthString = (percentage: number) => {
-      const safePercentage = Math.min(Math.max(percentage || 0, 0), 100);
-      return safePercentage + '%';
-    };
-    
-    return (
-      <View style={styles.paymentDistributionContainer} wrap={false}>
-        <Text style={styles.distributionTitle}>Payment Method Distribution</Text>
-        
-        {/* Distribution by Count */}
-        <Text style={[styles.paymentTypeTitle, { marginTop: 5 }]}>By Number of Receipts</Text>
-        
-        <View style={styles.distributionRow}>
-          <Text style={styles.distributionLabel}>Cash</Text>
-          <View style={styles.distributionBarContainer}>
-            <View style={[styles.distributionBar, styles.distributionCashBar, { width: getWidthString(cashPercentage) }]} />
-          </View>
-          <Text style={styles.distributionValue}>{cashReceipts.length} ({cashPercentage.toFixed(1)}%)</Text>
-        </View>
-        
-        <View style={styles.distributionRow}>
-          <Text style={styles.distributionLabel}>Cheque</Text>
-          <View style={styles.distributionBarContainer}>
-            <View style={[styles.distributionBar, styles.distributionChequeBar, { width: getWidthString(chequePercentage) }]} />
-          </View>
-          <Text style={styles.distributionValue}>{chequeReceipts.length} ({chequePercentage.toFixed(1)}%)</Text>
-        </View>
-        
-        <View style={styles.distributionRow}>
-          <Text style={styles.distributionLabel}>Other</Text>
-          <View style={styles.distributionBarContainer}>
-            <View style={[styles.distributionBar, styles.distributionNoneBar, { width: getWidthString(nonePercentage) }]} />
-          </View>
-          <Text style={styles.distributionValue}>{noneReceipts.length} ({nonePercentage.toFixed(1)}%)</Text>
-        </View>
-        
-        {/* Distribution by Amount */}
-        <Text style={[styles.paymentTypeTitle, { marginTop: 10 }]}>By Total Amount</Text>
-        
-        <View style={styles.distributionRow}>
-          <Text style={styles.distributionLabel}>Cash</Text>
-          <View style={styles.distributionBarContainer}>
-            <View style={[styles.distributionBar, styles.distributionCashBar, { width: getWidthString(cashAmountPercentage) }]} />
-          </View>
-          <Text style={styles.distributionValue}>{formatAmount(cashTotal)} ({cashAmountPercentage.toFixed(1)}%)</Text>
-        </View>
-        
-        <View style={styles.distributionRow}>
-          <Text style={styles.distributionLabel}>Cheque</Text>
-          <View style={styles.distributionBarContainer}>
-            <View style={[styles.distributionBar, styles.distributionChequeBar, { width: getWidthString(chequeAmountPercentage) }]} />
-          </View>
-          <Text style={styles.distributionValue}>{formatAmount(chequeTotal)} ({chequeAmountPercentage.toFixed(1)}%)</Text>
-        </View>
-        
-        <View style={styles.distributionRow}>
-          <Text style={styles.distributionLabel}>Other</Text>
-          <View style={styles.distributionBarContainer}>
-            <View style={[styles.distributionBar, styles.distributionNoneBar, { width: getWidthString(noneAmountPercentage) }]} />
-          </View>
-          <Text style={styles.distributionValue}>{formatAmount(noneTotal)} ({noneAmountPercentage.toFixed(1)}%)</Text>
-        </View>
-      </View>
-    );
-  };
-  
-  // SURPRISE FEATURE: Daily Trend Analysis
-  const renderTrendingAnalysis = () => {
-    // This simulates a trending analysis by comparing today's stats with "previous days"
-    // In a real implementation, you'd have historical data
-    
-    // Calculate some "faked" historical trends for the surprise element
-    const fakePrevDayCount = Math.max(5, Math.round(receipts.length * 0.9));
-    const fakePrevDayAmount = Math.round(totalAmount * 0.85);
-    const fakePrevAvgValue = fakePrevDayCount > 0 ? fakePrevDayAmount / fakePrevDayCount : 0;
-    const fakePrevCashRatio = Math.max(0, Math.min(100, cashAmountPercentage - 5));
-    
-    // Calculate trends (this is simulated)
-    const countChange = receipts.length > 0 && fakePrevDayCount > 0 ? 
-      ((receipts.length - fakePrevDayCount) / fakePrevDayCount) * 100 : 0;
-    const amountChange = fakePrevDayAmount > 0 ? 
-      ((totalAmount - fakePrevDayAmount) / fakePrevDayAmount) * 100 : 0;
-    const avgChange = fakePrevAvgValue > 0 ? 
-      ((avgReceiptValue - fakePrevAvgValue) / fakePrevAvgValue) * 100 : 0;
-    const cashRatioChange = fakePrevCashRatio > 0 ? 
-      (cashAmountPercentage - fakePrevCashRatio) : 0;
-    
-    return (
-      <View style={styles.trendingAnalysisContainer}>
-        <Text style={styles.trendingTitle}>Daily Trend Analysis</Text>
-        
-        <View style={styles.trendingGrid}>
-          <View style={styles.trendColumn}>
-            <Text style={styles.trendHeader}>Metric</Text>
-            <Text style={styles.trendValue}>Total Receipts</Text>
-            <Text style={styles.trendValue}>Total Amount</Text>
-            <Text style={styles.trendValue}>Avg. Receipt</Text>
-            <Text style={styles.trendValue}>Cash Ratio</Text>
-          </View>
-          
-          <View style={styles.trendColumn}>
-            <Text style={styles.trendHeader}>Today</Text>
-            <Text style={styles.trendValue}>{receipts.length}</Text>
-            <Text style={styles.trendValue}>{formatAmount(totalAmount)}</Text>
-            <Text style={styles.trendValue}>{formatAmount(avgReceiptValue)}</Text>
-            <Text style={styles.trendValue}>{cashAmountPercentage.toFixed(1)}%</Text>
-          </View>
-          
-          <View style={styles.trendColumn}>
-            <Text style={styles.trendHeader}>Previous Day</Text>
-            <Text style={styles.trendValue}>{fakePrevDayCount}</Text>
-            <Text style={styles.trendValue}>{formatAmount(fakePrevDayAmount)}</Text>
-            <Text style={styles.trendValue}>{formatAmount(fakePrevAvgValue)}</Text>
-            <Text style={styles.trendValue}>{fakePrevCashRatio.toFixed(1)}%</Text>
-          </View>
-          
-          <View style={styles.trendColumn}>
-            <Text style={styles.trendHeader}>Change %</Text>
-            <Text style={countChange > 0 ? styles.trendChangePositive : countChange < 0 ? styles.trendChangeNegative : styles.trendChangeNeutral}>
-              {countChange > 0 ? '+' : ''}{countChange.toFixed(1)}%
-            </Text>
-            <Text style={amountChange > 0 ? styles.trendChangePositive : amountChange < 0 ? styles.trendChangeNegative : styles.trendChangeNeutral}>
-              {amountChange > 0 ? '+' : ''}{amountChange.toFixed(1)}%
-            </Text>
-            <Text style={avgChange > 0 ? styles.trendChangePositive : avgChange < 0 ? styles.trendChangeNegative : styles.trendChangeNeutral}>
-              {avgChange > 0 ? '+' : ''}{avgChange.toFixed(1)}%
-            </Text>
-            <Text style={cashRatioChange > 0 ? styles.trendChangePositive : cashRatioChange < 0 ? styles.trendChangeNegative : styles.trendChangeNeutral}>
-              {cashRatioChange > 0 ? '+' : ''}{cashRatioChange.toFixed(1)}%
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  };
-  
-  // Add page break wrapper component
-  const PageBreak = () => (
-    <View style={{ height: 0, borderTopWidth: 0, borderTopColor: 'white', borderTopStyle: 'solid'}} />
-  );
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page} wrap>
-        {/* Header */}
-        <View style={styles.headerContainer}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Daily Receipt Report</Text>
-            <Text style={styles.subtitle}>SMT Enterprises</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <Text style={styles.date}>Report Date: {formattedDate}</Text>
-          </View>
+        {/* Row 2: Amounts */}
+        {/* Use specific style for last row items if needed, and remove margin from row */}
+        <View style={[styles.statsRow, { marginBottom: 0 }]}>
+             <View style={styles.statItemLastRow}>
+                <Text style={styles.statLabel}>Cheque Amount</Text>
+                <Text style={styles.statValueAmount}>{formatAmount(chequeTotal)}</Text>
+            </View>
+            <View style={styles.statItemLastRow}>
+                <Text style={styles.statLabel}>Cash Amount</Text>
+                <Text style={styles.statValueAmount}>{formatAmount(cashTotal)}</Text>
+            </View>
+            <View style={styles.statItemLastRow}>
+                <Text style={styles.statLabel}>Total Amount</Text>
+                <Text style={styles.statValueAmount}>{formatAmount(totalAmount)}</Text>
+            </View>
         </View>
-        
-        {/* SURPRISE! Add the Trending Analysis here */}
-        {renderTrendingAnalysis()}
-        
-        {/* Statistics Section */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Total Receipts</Text>
-            <Text style={styles.statValue}>{receipts.length}</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Total Amount</Text>
-            <Text style={styles.statValue}>{formatAmount(totalAmount)}</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Cash Receipts</Text>
-            <Text style={styles.statValue}>{formatAmount(cashTotal)}</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Cheque Receipts</Text>
-            <Text style={styles.statValue}>{formatAmount(chequeTotal)}</Text>
-          </View>
+    </View>
+);
+// --- End Updated Statistics Component ---
+
+interface ReceiptTableProps {
+    receipts: ReceiptData[];
+}
+const ReceiptTable: React.FC<ReceiptTableProps> = ({ receipts }) => (
+    <View style={styles.table}>
+        {/* Table Header - Keep header from breaking */}
+        <View style={styles.tableHeaderRow} wrap={false}>
+            <Text style={[styles.tableHeaderCell, styles.colDate]}>Sr. No.</Text>
+            <Text style={[styles.tableHeaderCell, styles.colReceipt]}>Receipt#</Text>
+            <Text style={[styles.tableHeaderCell, styles.colPartyCode]}>Party Code</Text>
+            <Text style={[styles.tableHeaderCell, styles.colPartyName]}>Party Name</Text>
+            <Text style={[styles.tableHeaderCell, styles.colAmount, styles.textRight]}>Amount</Text>
+            <Text style={[styles.tableHeaderCell, styles.colRemarks]}>Remarks</Text>
         </View>
-        
-        {/* Payment Distribution Visualization */}
-        {renderPaymentDistribution()}
-        
-        {/* Add a forced page break before the receipts by user section */}
-        <PageBreak />
-        
-        {/* Receipts by User */}
-        {Object.entries(groupedReceipts).map(([username, userReceipts], index) => {
-          const userTotalAmount = userReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-          
-          // Group user receipts by payment method
-          const userCashReceipts = userReceipts.filter(r => r.paymentMethod === 'CASH');
-          const userChequeReceipts = userReceipts.filter(r => r.paymentMethod === 'CHEQUE');
-          const userNoneReceipts = userReceipts.filter(r => r.paymentMethod === 'NONE');
-          
-          return (
-            <View key={username}>
-              {/* Add page break before each new user except the first one */}
-              {index > 0 && <PageBreak />}
-              
-              <View style={styles.userSection}>
+
+        {/* Table Rows - Allow rows to break, but try to keep each row intact */}
+        {receipts.map((receipt, index) => (
+            <View
+                style={[
+                    styles.tableDataRow,
+                    // index % 2 === 1 ? styles.tableDataRowStriped : {} // Optional: Uncomment for striped rows
+                ]}
+                key={receipt.id}
+                wrap={false} // Try to keep the row content together
+            >
+                <Text style={[styles.tableCell, styles.colDate, styles.textCenter]}>{receipt.receiptNumber as any === '*' ? '*' : (receipt as any).idx}</Text>
+                <Text style={[styles.tableCell, styles.colReceipt, styles.textCenter]}>{receipt.receiptNumber}</Text>
+                <Text style={[styles.tableCell, styles.colPartyCode, styles.textCenter]}>{receipt.partyCode}</Text>
+                <Text style={[styles.tableCell, styles.colPartyName]}>{receipt.party?.customerName || '*'}</Text>
+                <Text style={[styles.tableCell, styles.colAmount, styles.textRight]}>{receipt.amount as any === '*' ? '*' : formatAmount(receipt.amount)}</Text>
+                <Text style={[styles.tableCell, styles.colRemarks]}>{receipt.remarks || '-'}</Text>
+            </View>
+        ))}
+    </View>
+);
+
+interface ChequeDetailsProps {
+    receipts: ReceiptData[];
+}
+const ChequeDetails: React.FC<ChequeDetailsProps> = ({ receipts }) => {
+    const chequeReceipts = receipts.filter(r => r.paymentMethod === 'CHEQUE' && r.cheque);
+    if (chequeReceipts.length === 0) return null;
+
+    return (
+        <View style={styles.chequeDetailsContainer}>
+            {/* Optional Title: <Text style={styles.detailsTitle}>Cheque Details</Text> */}
+            <View style={styles.chequeGrid}>
+                {chequeReceipts.map((receipt) => (
+                    <View style={styles.chequeCard} key={`cheque-${receipt.id}`}>
+                        <View style={styles.chequeCardHeader}>
+                            <Text style={styles.chequeCardTitle}>Receipt #{receipt.receiptNumber}</Text>
+                        </View>
+                        <View style={styles.chequeCardBody}>
+                            <View style={styles.chequeInfoRow}>
+                                <Text style={styles.chequeLabel}>Cheque #:</Text>
+                                <Text style={styles.chequeValue}>{receipt.cheque?.number || 'N/A'}</Text>
+                            </View>
+                            <View style={styles.chequeInfoRow}>
+                                <Text style={styles.chequeLabel}>Cheque Date:</Text>
+                                <Text style={styles.chequeValue}>{formatDate(receipt.cheque?.date)}</Text>
+                            </View>
+                            <View style={styles.chequeInfoRow}>
+                                <Text style={styles.chequeLabel}>Bank:</Text>
+                                <Text style={styles.chequeValue}>{receipt.cheque?.bank || 'N/A'}</Text>
+                            </View>
+                            <View style={styles.chequeInfoRow}>
+                                <Text style={styles.chequeLabel}>Party:</Text>
+                                <Text style={styles.chequeValue}>{receipt.party?.customerName || receipt.partyCode}</Text>
+                            </View>
+                            <View style={styles.chequeAmountRow}>
+                                <Text style={styles.chequeAmountLabel}>Amount:</Text>
+                                <Text style={styles.chequeAmountValue}>{formatAmount(receipt.cheque?.amount || receipt.amount)}</Text>
+                            </View>
+                        </View>
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+};
+
+interface CashDenominationSummaryProps {
+    receipts: ReceiptData[];
+}
+const CashDenominationSummary: React.FC<CashDenominationSummaryProps> = ({ receipts }) => {
+    const cashReceiptsWithBills = receipts.filter(r => r.paymentMethod === 'CASH' && r.currencyBills);
+    if (cashReceiptsWithBills.length === 0) return null;
+
+    const denominations = ['500', '200', '100', '50', '20', '10'];
+    let totalDenominationAmount = 0;
+
+    const summary = denominations.map(denom => {
+        const count = cashReceiptsWithBills.reduce((sum, r) => {
+            const bills = r.currencyBills as Record<string, number> | undefined;
+            return sum + (bills?.[denom] || 0);
+        }, 0);
+        const amount = parseInt(denom) * count;
+        totalDenominationAmount += amount;
+        return { denom, count, amount };
+    }).filter(item => item.count > 0); // Only show denominations with counts
+
+    if (summary.length === 0) return null; // Don't show if no counts entered
+
+    return (
+        <View style={styles.cashSummaryContainer}>
+            <Text style={styles.cashSummaryTitle}>Cash Denomination Summary</Text>
+            <View style={styles.denominationGrid}>
+                {summary.map(({ denom, count, amount }) => (
+                    <View key={denom} style={styles.denominationItem}>
+                        <Text style={styles.denominationLabel}>{denom} x {count}</Text>
+                        <Text style={styles.denominationValue}>{formatAmount(amount)}</Text>
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+};
+
+interface PaymentTypeSectionProps {
+    title: string;
+    iconBgColor: string;
+    receipts: ReceiptData[];
+    children?: React.ReactNode; // For additional details like Cheque/Cash summary
+}
+const PaymentTypeSection: React.FC<PaymentTypeSectionProps> = ({ title, iconBgColor, receipts, children }) => {
+    if (receipts.length === 0) return null;
+
+    const total = receipts.reduce((sum, r) => sum + r.amount, 0);
+
+    return (
+        <View style={styles.paymentTypeContainer}>
+            <ReceiptTable receipts={receipts} />
+            {children}
+        </View>
+    );
+};
+
+interface UserSectionProps {
+    username: string;
+    receipts: ReceiptData[];
+    isFirstUser: boolean;
+}
+const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUser }) => {
+    const userTotalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+
+    const functionThatHandlesTheBlankRangesBetweenReceiptNumbers = (receipts: ReceiptData[] , paymentMethod : PaymentMethod) => {
+        if(receipts.length === 0) return [];
+        let idx = 1;
+        const changedReceipts : any[] = [];
+        for(let i = 0; i < receipts.length; i++) {
+          if(i - 1 > 0 && receipts[i].receiptNumber !== receipts[i-1].receiptNumber + 1) {
+            changedReceipts.push({
+              receiptNumber : '*',
+              amount : '*',
+              paymentMethod : paymentMethod,
+              currencyBills : '*',
+              cheque : '*',
+              remarks : '*',
+              partyCode : '*',
+              createdAt : '*',
+              updatedAt : '*',
+            })
+            
+          }
+          changedReceipts.push({...receipts[i] , idx : idx});
+          idx++;
+        }
+        return changedReceipts;
+    }
+
+    const userCashReceipts = receipts.filter(r => r.paymentMethod === 'CASH');
+    const userChequeReceipts = receipts.filter(r => r.paymentMethod === 'CHEQUE');
+
+    return (
+        // Add 'break' prop to View for page break *before* this section if it's not the first one
+        <View break={!isFirstUser}>
+            <View style={styles.userSectionHeader}>
                 <Text style={styles.userTitle}>Receipts by: {username}</Text>
                 <Text style={styles.userInfo}>
-                  Total Receipts: {userReceipts.length} | Total Amount: {formatAmount(userTotalAmount)}
+                    Total Receipts: {receipts.length} | Total Amount: {formatAmount(userTotalAmount)}
                 </Text>
-              </View>
-              
-              {/* Cheque Receipts Section */}
-              {userChequeReceipts.length > 0 && (
-                <View style={[styles.paymentSection, styles.chequeSection]}>
-                  <Text style={[styles.paymentTypeTitle, styles.chequeTitle]}>
-                    Cheque Payments ({userChequeReceipts.length}) - Total: {formatAmount(userChequeReceipts.reduce((sum, r) => sum + r.amount, 0))}
-                  </Text>
-                  {renderLongReceiptTable(userChequeReceipts)}
-                  {renderChequeDetails(userChequeReceipts)}
-                </View>
-              )}
-              
-              {/* Cash Receipts Section */}
-              {userCashReceipts.length > 0 && (
-                <View style={[styles.paymentSection, styles.cashSection]}>
-                  <Text style={[styles.paymentTypeTitle, styles.cashTitle]}>
-                    Cash Payments ({userCashReceipts.length}) - Total: {formatAmount(userCashReceipts.reduce((sum, r) => sum + r.amount, 0))}
-                  </Text>
-                  {renderLongReceiptTable(userCashReceipts)}
-                  
-                  {/* Render Cash Denomination Details */}
-                  {userCashReceipts.some(r => r.currencyBills) && (
-                    <View style={styles.paymentDetailBox}>
-                      <Text style={styles.paymentTitle}>Cash Denomination Summary</Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                        {['500', '200', '100', '50', '20', '10'].map(denomination => {
-                          const count = userCashReceipts
-                            .filter(r => r.currencyBills)
-                            .reduce((sum, r) => {
-                              const bills = r.currencyBills as Record<string, number>;
-                              return sum + (bills[denomination] || 0);
-                            }, 0);
-                          
-                          if (count === 0) return null;
-                          
-                          return (
-                            <View key={denomination} style={{ width: '33%', marginBottom: 5 }}>
-                              <View style={styles.paymentRow}>
-                                <Text style={styles.paymentLabel}>Rs. {denomination} x {count}</Text>
-                                <Text style={styles.paymentValue}>{formatAmount(parseInt(denomination) * count)}</Text>
-                              </View>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  )}
-                </View>
-              )}
-              
-              {/* None Payment Method Section */}
-              {userNoneReceipts.length > 0 && (
-                <View style={[styles.paymentSection, styles.noneSection]}>
-                  <Text style={[styles.paymentTypeTitle, styles.noneTitle]}>
-                    Other Payments ({userNoneReceipts.length}) - Total: {formatAmount(userNoneReceipts.reduce((sum, r) => sum + r.amount, 0))}
-                  </Text>
-                  {renderLongReceiptTable(userNoneReceipts)}
-                </View>
-              )}
             </View>
-          );
-        })}
-        
-        {/* Summary Section */}
-        <View style={styles.summary}>
-          <View style={styles.summaryBox}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total Receipts:</Text>
-              <Text style={styles.summaryValue}>{receipts.length}</Text>
+            <View style={styles.userSectionBody}>
+                <PaymentTypeSection
+                    title="Cheque Payments"
+                    iconBgColor={colors.accentCheque}
+                    receipts={functionThatHandlesTheBlankRangesBetweenReceiptNumbers(userChequeReceipts , 'CHEQUE')}
+                >
+                    <ChequeDetails receipts={userChequeReceipts} />
+                </PaymentTypeSection>
+
+                <PaymentTypeSection
+                    title="Cash Payments"
+                    iconBgColor={colors.accentCash}
+                    receipts={functionThatHandlesTheBlankRangesBetweenReceiptNumbers(userCashReceipts , 'CASH')}
+                >
+                    <CashDenominationSummary receipts={userCashReceipts} />
+                </PaymentTypeSection>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Cash Receipts:</Text>
-              <Text style={styles.summaryValue}>{cashReceipts.length}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Cheque Receipts:</Text>
-              <Text style={styles.summaryValue}>{chequeReceipts.length}</Text>
-            </View>
-            <View style={[styles.summaryRow, { marginTop: 5, paddingTop: 5, borderTopWidth: 1, borderTopColor: colors.border }]}>
-              <Text style={styles.summaryLabel}>Total Amount:</Text>
-              <Text style={styles.summaryTotal}>{formatAmount(totalAmount)}</Text>
-            </View>
-          </View>
         </View>
-        
-        <Text style={styles.disclaimer}>
-          This is an automatically generated report. Please verify all figures with official records.
-        </Text>
-        
-        {/* Footer */}
-        <Text style={styles.footer}>
-          SMT Enterprises | Generated on {moment().format('MMMM D, YYYY, h:mm A')}
-        </Text>
-        
-        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
-          `Page ${pageNumber} of ${totalPages}`
-        )} />
-      </Page>
-    </Document>
-  );
+    );
 };
 
-export default ReceiptPDF; 
+interface ReportFooterProps {
+    companyName: string;
+}
+const ReportFooter: React.FC<ReportFooterProps> = ({ companyName }) => (
+    <>
+        <Text style={styles.footer} fixed>
+            {companyName} | Generated on {moment().format('MMMM D, YYYY, h:mm A')} | This is an automatically generated report.
+        </Text>
+        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
+            `Page ${pageNumber} / ${totalPages}`
+        )} fixed />
+    </>
+);
+
+// --- Main PDF Document Component ---
+interface ReceiptPDFProps {
+    receipts: ReceiptData[];
+    date: string;
+    companyName?: string; // Optional: Pass company name as prop
+}
+
+const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts, date, companyName = "SMT Enterprises" }) => {
+    const formattedDate = moment(date).format('MMMM D, YYYY');
+
+    // Group receipts by username
+    const groupedReceipts = receipts.reduce((acc, receipt) => {
+        const username = receipt.receiptUsername || 'Unassigned';
+        if (!acc[username]) {
+            acc[username] = [];
+        }
+        acc[username].push(receipt);
+        return acc;
+    }, {} as Record<string, ReceiptData[]>);
+
+    // Calculate overall statistics
+    const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+    const cashReceipts = receipts.filter(r => r.paymentMethod === 'CASH');
+    const chequeReceipts = receipts.filter(r => r.paymentMethod === 'CHEQUE');
+    const cashTotal = cashReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+    const chequeTotal = chequeReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+
+
+    return (
+        <Document title={`Daily Receipt Report - ${formattedDate}`}>
+            <Page size="A4" style={styles.page}>
+                {/* Fixed Header */}
+                <ReportHeader formattedDate={formattedDate} companyName={companyName} />
+
+                {/* Overall Statistics (Uses Updated Component/Styles) */}
+                <Statistics
+                    chequeReceipts={chequeReceipts.length}
+                    cashReceipts={cashReceipts.length}
+                    totalReceipts={receipts.length}
+                    cashTotal={cashTotal}
+                    chequeTotal={chequeTotal}
+                    totalAmount={totalAmount}
+                />
+
+                {/* Receipts by User Sections */}
+                {Object.entries(groupedReceipts).map(([username, userReceipts], index) => (
+                    <UserSection
+                      key={username}
+                      username={username}
+                      receipts={userReceipts}
+                      isFirstUser={index === 0} // Pass flag to control page break
+                    />
+                ))}
+
+                {/* Fixed Footer */}
+                <ReportFooter companyName={companyName} />
+            </Page>
+        </Document>
+    );
+};
+
+export default ReceiptPDF;

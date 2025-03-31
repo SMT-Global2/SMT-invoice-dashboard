@@ -152,7 +152,12 @@ export default function ReceiptPage() {
         <h1 className="text-2xl font-bold">Receipt Management</h1>
         <div className="flex flex-col md:flex-row gap-2">
 
-          {selectedDate && <PDFGenerator date={selectedDate} />}
+          {selectedDate && 
+          <PDFGenerator 
+            date={selectedDate} 
+            userFilter={selectedUser} 
+            paymentMethodFilter={selectedPaymentMethod} 
+          />}
 
           <Button 
             onClick={handleAddClick}

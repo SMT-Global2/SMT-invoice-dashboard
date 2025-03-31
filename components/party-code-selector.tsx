@@ -79,7 +79,7 @@ export function PartyCodeSelector({
           {value || placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
+      <PopoverContent className="p-0 w-[300px]">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Party Code"
@@ -99,30 +99,28 @@ export function PartyCodeSelector({
             </CommandEmpty>
           )}
 
-          <div className="max-h-[200px] overflow-y-auto">
-            <CommandGroup>
-              {partyCodes.map((party) => (
-                <CommandItem
-                  key={party.id}
-                  value={party.code}
-                  onSelect={() => {
-                    onChange(party);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === party.code ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {party.code} - {party?.customerName}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </div>
+          <CommandGroup className="max-h-[200px] overflow-y-auto">
+            {partyCodes.map((party) => (
+              <CommandItem
+                key={party.id}
+                value={party.code}
+                onSelect={() => {
+                  onChange(party);
+                  setOpen(false);
+                }}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    value === party.code ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {party.code} - {party?.customerName}
+              </CommandItem>
+            ))}
+          </CommandGroup>
         </Command>
       </PopoverContent>
     </Popover>
   );
-} 
+}

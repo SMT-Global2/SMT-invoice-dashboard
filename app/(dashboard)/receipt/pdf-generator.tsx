@@ -9,9 +9,11 @@ import { ReceiptData } from '@/store/useReceiptStore';
 
 interface PDFGeneratorProps {
   date: Date;
+  userFilter ?: string | null;
+  paymentMethodFilter ?: string | null;
 }
 
-const PDFGenerator: React.FC<PDFGeneratorProps> = ({ date }) => {
+const PDFGenerator: React.FC<PDFGeneratorProps> = ({ date, userFilter, paymentMethodFilter }) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [receipts, setReceipts] = useState<ReceiptData[] | null>(null);
@@ -20,7 +22,11 @@ const PDFGenerator: React.FC<PDFGeneratorProps> = ({ date }) => {
     try {
       setIsGenerating(true);
       const formattedDate = moment(date).format('YYYY-MM-DD');
-      const response = await fetch(`/api/receipt/downloadpdf?date=${formattedDate}`);
+      const url = new URL('/api/receipt/downloadpdf', window.location.origin);
+      if(userFilter) url.searchParams.set('user', userFilter);
+      if(paymentMethodFilter && paymentMethodFilter !== 'ALL') url.searchParams.set('paymentMethod', paymentMethodFilter);
+      if(date) url.searchParams.set('date', formattedDate);
+      const response = await fetch(url);
       
       if (!response.ok) {
         const errorData = await response.json();
