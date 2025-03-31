@@ -8,7 +8,7 @@ import moment from 'moment';
 // Simplified Color Palette (Print-friendly)
 const colors = {
   primary: '#1a237e', // Dark Indigo
-  secondary: '#5c6bc0', // Medium Indigo
+  secondary: '#5c6bc0', // Medium Indigo (Original user section header background)
   textPrimary: '#212121', // Almost Black
   textSecondary: '#757575', // Medium Gray
   border: '#e0e0e0', // Light Gray Border
@@ -122,33 +122,39 @@ const styles = StyleSheet.create({
       textAlign: 'center',
   },
 
-  // --- User Section ---
+  // --- User Section (MODIFIED FOR LESS INK) ---
   userSectionHeader: {
     marginTop: 15, // Space between users
-    padding: 8,
-    backgroundColor: colors.secondary,
-    borderTopLeftRadius: 3,
-    borderTopRightRadius: 3,
+    paddingVertical: 5, // Adjusted padding
+    paddingHorizontal: 8,
+    backgroundColor: colors.white, // Use white background
+    borderBottomWidth: 1.5, // Add a border for separation
+    borderBottomColor: colors.primary, // Use primary color for border
+    // Removed border radius as background is gone
     breakInside: 'avoid', // Try to keep header with content
+    marginBottom: 0, // Remove margin if body border provides separation
   },
   userTitle: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
-    color: colors.white,
+    color: colors.primary, // Use dark text color
   },
   userInfo: {
     fontSize: 9,
-    color: colors.white,
-    opacity: 0.9,
+    color: colors.textSecondary, // Use secondary text color
+    // Removed opacity
     marginTop: 2,
   },
   userSectionBody: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderTopWidth: 0, // Avoid double border with header
+    // borderTopWidth: 0, // Keep this if header border is enough separation, or set to 1 if needed
+    borderTopWidth: 0, // Removed top border since header now has bottom border
     padding: 10,
     borderBottomLeftRadius: 3,
     borderBottomRightRadius: 3,
+    borderTopLeftRadius: 0, // Removed radius matching the header change
+    borderTopRightRadius: 0, // Removed radius matching the header change
   },
   // --- Payment Type Section ---
   paymentTypeContainer: {
@@ -567,7 +573,7 @@ const ReceiptTable: React.FC<ReceiptTableProps> = ({ receipts }) => (
                     styles.tableDataRow,
                     // index % 2 === 1 ? styles.tableDataRowStriped : {} // Optional: Uncomment for striped rows
                 ]}
-                key={receipt.id}
+                key={receipt.id || `receipt-${index}`} // Added fallback key
                 wrap={false} // Try to keep the row content together
             >
                 <Text style={[styles.tableCell, styles.colDate, styles.textCenter]}>{receipt.receiptNumber as any === '*' ? '*' : (receipt as any).idx}</Text>
@@ -633,7 +639,7 @@ const CashDenominationSummary: React.FC<CashDenominationSummaryProps> = ({ recei
     const cashReceiptsWithBills = receipts.filter(r => r.paymentMethod === 'CASH' && r.currencyBills);
     if (cashReceiptsWithBills.length === 0) return null;
 
-    const denominations = ['500', '200', '100', '50', '20', '10'];
+    const denominations = ['500', '200', '100', '50', '20', '10']; // Add more if needed
     let totalDenominationAmount = 0;
 
     const summary = denominations.map(denom => {
@@ -659,23 +665,32 @@ const CashDenominationSummary: React.FC<CashDenominationSummaryProps> = ({ recei
                     </View>
                 ))}
             </View>
+             {/* Optional: Show total from denominations if needed */}
+             {/* <View style={styles.cashTotalRow}>
+                 <Text style={styles.cashTotalLabel}>Denomination Total:</Text>
+                 <Text style={styles.cashTotalValue}>{formatAmount(totalDenominationAmount)}</Text>
+             </View> */}
         </View>
     );
 };
 
+
 interface PaymentTypeSectionProps {
     title: string;
-    iconBgColor: string;
+    iconBgColor: string; // Not currently used, but kept for potential future use
     receipts: ReceiptData[];
     children?: React.ReactNode; // For additional details like Cheque/Cash summary
 }
 const PaymentTypeSection: React.FC<PaymentTypeSectionProps> = ({ title, iconBgColor, receipts, children }) => {
     if (receipts.length === 0) return null;
 
-    const total = receipts.reduce((sum, r) => sum + r.amount, 0);
+    // No separate header for payment type needed inside user section body
+    // const total = receipts.reduce((sum, r) => sum + r.amount, 0);
 
     return (
         <View style={styles.paymentTypeContainer}>
+            {/* Optional: Add a simple text title if needed */}
+            {/* <Text style={styles.paymentTypeTitle}>{title}</Text> */}
             <ReceiptTable receipts={receipts} />
             {children}
         </View>
@@ -688,28 +703,38 @@ interface UserSectionProps {
     isFirstUser: boolean;
 }
 const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUser }) => {
-    const userTotalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+    const userTotalAmount = receipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0); // Added fallback for amount
 
     const functionThatHandlesTheBlankRangesBetweenReceiptNumbers = (receipts: ReceiptData[] , paymentMethod : PaymentMethod) => {
-        if(receipts.length === 0) return [];
+        if (!receipts || receipts.length === 0) return []; // Added null/empty check
+
+        // Ensure receipts are sorted by receiptNumber if they aren't already
+        const sortedReceipts = [...receipts].sort((a, b) => (a.receiptNumber || 0) - (b.receiptNumber || 0));
+
         let idx = 1;
         const changedReceipts : any[] = [];
-        for(let i = 0; i < receipts.length; i++) {
-          if(i - 1 > 0 && receipts[i].receiptNumber !== receipts[i-1].receiptNumber + 1) {
+        for(let i = 0; i < sortedReceipts.length; i++) {
+          // Check for gap only if not the first receipt and previous receipt exists
+          if(i > 0 && sortedReceipts[i-1] && sortedReceipts[i].receiptNumber !== (sortedReceipts[i-1].receiptNumber || 0) + 1) {
+            // Add a placeholder for the gap
             changedReceipts.push({
+              id: `gap-${paymentMethod}-${i}`, // Unique key for gap
               receiptNumber : '*',
               amount : '*',
               paymentMethod : paymentMethod,
-              currencyBills : '*',
-              cheque : '*',
-              remarks : '*',
+              currencyBills : null, // Use null instead of '*' for consistency
+              cheque : null,
+              remarks : '*** Missing Receipt(s) ***', // More descriptive remark
               partyCode : '*',
-              createdAt : '*',
-              updatedAt : '*',
-            })
-            
+              party: { customerName: '*' }, // Add party structure
+              createdAt : null,
+              updatedAt : null,
+              idx: '*' // Indicate non-sequential
+            });
+            idx++; // Increment index for the gap row itself
           }
-          changedReceipts.push({...receipts[i] , idx : idx});
+          // Add the actual receipt
+          changedReceipts.push({...sortedReceipts[i] , idx : idx});
           idx++;
         }
         return changedReceipts;
@@ -718,31 +743,52 @@ const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUs
     const userCashReceipts = receipts.filter(r => r.paymentMethod === 'CASH');
     const userChequeReceipts = receipts.filter(r => r.paymentMethod === 'CHEQUE');
 
+    // Only render the section if there are receipts for this user
+    if (receipts.length === 0) {
+        return null;
+    }
+
     return (
         // Add 'break' prop to View for page break *before* this section if it's not the first one
         <View break={!isFirstUser}>
+            {/* --- USER SECTION HEADER (Uses modified styles) --- */}
             <View style={styles.userSectionHeader}>
                 <Text style={styles.userTitle}>Receipts by: {username}</Text>
                 <Text style={styles.userInfo}>
                     Total Receipts: {receipts.length} | Total Amount: {formatAmount(userTotalAmount)}
                 </Text>
             </View>
-            <View style={styles.userSectionBody}>
-                <PaymentTypeSection
-                    title="Cheque Payments"
-                    iconBgColor={colors.accentCheque}
-                    receipts={functionThatHandlesTheBlankRangesBetweenReceiptNumbers(userChequeReceipts , 'CHEQUE')}
-                >
-                    <ChequeDetails receipts={userChequeReceipts} />
-                </PaymentTypeSection>
+            {/* --- END USER SECTION HEADER --- */}
 
-                <PaymentTypeSection
-                    title="Cash Payments"
-                    iconBgColor={colors.accentCash}
-                    receipts={functionThatHandlesTheBlankRangesBetweenReceiptNumbers(userCashReceipts , 'CASH')}
-                >
-                    <CashDenominationSummary receipts={userCashReceipts} />
-                </PaymentTypeSection>
+            <View style={styles.userSectionBody}>
+                {/* Cheque Section */}
+                {userChequeReceipts.length > 0 && (
+                    <PaymentTypeSection
+                        title="Cheque Payments" // Title not displayed by default in current setup
+                        iconBgColor={colors.accentCheque} // Not used by default
+                        receipts={functionThatHandlesTheBlankRangesBetweenReceiptNumbers(userChequeReceipts , 'CHEQUE')}
+                    >
+                        <ChequeDetails receipts={userChequeReceipts} />
+                    </PaymentTypeSection>
+                )}
+
+                 {/* Cash Section */}
+                {userCashReceipts.length > 0 && (
+                    <PaymentTypeSection
+                        title="Cash Payments" // Title not displayed by default
+                        iconBgColor={colors.accentCash} // Not used by default
+                        receipts={functionThatHandlesTheBlankRangesBetweenReceiptNumbers(userCashReceipts , 'CASH')}
+                    >
+                        <CashDenominationSummary receipts={userCashReceipts} />
+                    </PaymentTypeSection>
+                )}
+
+                 {/* Add message if user has receipts but neither cash nor cheque (unlikely but possible) */}
+                 {userCashReceipts.length === 0 && userChequeReceipts.length === 0 && receipts.length > 0 && (
+                     <Text style={{ fontSize: 9, color: colors.textSecondary, textAlign: 'center', padding: 10 }}>
+                         No cash or cheque receipts found for this user (check payment methods).
+                     </Text>
+                 )}
             </View>
         </View>
     );
@@ -769,11 +815,12 @@ interface ReceiptPDFProps {
     companyName?: string; // Optional: Pass company name as prop
 }
 
-const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts, date, companyName = "SMT Enterprises" }) => {
+const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyName = "SMT Enterprises" }) => { // Added default empty array for receipts
     const formattedDate = moment(date).format('MMMM D, YYYY');
 
     // Group receipts by username
     const groupedReceipts = receipts.reduce((acc, receipt) => {
+        // Handle potential null/undefined username
         const username = receipt.receiptUsername || 'Unassigned';
         if (!acc[username]) {
             acc[username] = [];
@@ -783,11 +830,11 @@ const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts, date, companyName = "
     }, {} as Record<string, ReceiptData[]>);
 
     // Calculate overall statistics
-    const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+    const totalAmount = receipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0); // Added fallback
     const cashReceipts = receipts.filter(r => r.paymentMethod === 'CASH');
     const chequeReceipts = receipts.filter(r => r.paymentMethod === 'CHEQUE');
-    const cashTotal = cashReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-    const chequeTotal = chequeReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+    const cashTotal = cashReceipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0); // Added fallback
+    const chequeTotal = chequeReceipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0); // Added fallback
 
 
     return (
@@ -815,6 +862,15 @@ const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts, date, companyName = "
                       isFirstUser={index === 0} // Pass flag to control page break
                     />
                 ))}
+
+                 {/* Message if no receipts found at all */}
+                {receipts.length === 0 && (
+                    <View style={{ marginTop: 20, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                            No receipts found for this date.
+                        </Text>
+                    </View>
+                )}
 
                 {/* Fixed Footer */}
                 <ReportFooter companyName={companyName} />
