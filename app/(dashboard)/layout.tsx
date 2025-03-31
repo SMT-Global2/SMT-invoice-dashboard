@@ -54,7 +54,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { data: session } = useSession();
-  const userRoles = [session?.user?.type, session?.user?.department]
+  const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
   console.log("User session:", session);

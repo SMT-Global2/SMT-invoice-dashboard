@@ -8,7 +8,7 @@ type UserSeed = {
     firstName: string;
     lastName: string;
     phoneNumber: string;
-    department: Department;
+    department: Department[];
     type: UserType;
     email?: string;
     address?: string;
@@ -23,7 +23,7 @@ export const userSeed: UserSeed[] = [
         firstName: 'Admin',
         lastName: 'Admin',
         phoneNumber: '1234567890',
-        department: Department.ALL_ROUNDER,
+        department: [Department.ALL_ROUNDER],
     },
 ]
 

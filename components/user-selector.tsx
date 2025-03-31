@@ -15,7 +15,7 @@ export interface User {
   firstName: string;
   lastName: string;
   type: string;
-  department: string;
+  department: string[];
 }
 
 interface UserSelectorProps {
@@ -73,6 +73,13 @@ export function UserSelector({
   const selectedUser = users.find(user => user.username === value);
   const displayValue = selectedUser ? getDisplayName(selectedUser) : value;
 
+  const formatDepartments = (departments: string[] | string) => {
+    if (Array.isArray(departments)) {
+      return departments.join(', ');
+    }
+    return departments;
+  };
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -129,7 +136,9 @@ export function UserSelector({
                   />
                   <div className="flex flex-col">
                     <span>{getDisplayName(user)}</span>
-                    <span className="text-xs text-muted-foreground">{user.username} - {user.department}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {user.username} - {formatDepartments(user.department)}
+                    </span>
                   </div>
                 </CommandItem>
               ))}

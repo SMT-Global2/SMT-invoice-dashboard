@@ -1,4 +1,3 @@
-import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -10,7 +9,7 @@ declare module 'next-auth' {
   interface User {
     username: string;
     type : UserType;
-    department : Department;
+    department : Department[];
   }
   
   interface Session {
@@ -18,7 +17,7 @@ declare module 'next-auth' {
       id: string;
       username: string;
       type : UserType;
-      department : Department;
+      department : Department[];
     }
   }
 }
@@ -28,7 +27,7 @@ declare module 'next-auth/jwt' {
     id: string;
     username: string;
     type : UserType;
-    department : Department;
+    department : Department[];
   }
 }
 
@@ -74,7 +73,7 @@ export const authOptions: AuthOptions = {
             id: user.id,
             username: user.username,
             type : user.type,
-            department : user.department
+            department : user.department ?? []
           };
         }
         return null;

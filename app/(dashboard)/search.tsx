@@ -30,7 +30,7 @@ export function SearchInput() {
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Get user roles
-  const userRoles = [session?.user?.type, session?.user?.department]
+  const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
 
   // Handle clickaway to close results and remove focus state

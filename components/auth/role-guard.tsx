@@ -23,7 +23,7 @@ export function RoleGuard({
   }
   
   // Get user roles, filtering out undefined values
-  const userRoles = [session?.user?.type, session?.user?.department]
+  const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
   console.log("RoleGuard - User roles:", userRoles);

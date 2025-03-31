@@ -72,7 +72,7 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  const userRoles = [session?.user?.type, session?.user?.department]
+  const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
   console.log("Dashboard page - User roles:", userRoles);

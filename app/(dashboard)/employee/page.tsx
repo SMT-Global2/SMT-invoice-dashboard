@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from '@/components/ui/badge'
 
 export default function EmployeePage() {
   const { users, fetchUsers, deleteUser, setSelectedUser, isLoading } = useUsersStore()
@@ -68,17 +69,21 @@ export default function EmployeePage() {
       phoneNumber: "",
       email: "",
       address: "",
-      department: "RECEIPT_MANAGEMENT",
+      department: ["RECEIPT_MANAGEMENT"],
       type: "USER",
     })
   }
 
-  const formatDepartment = (department: string | undefined) => {
-    if (!department) return '-';
-    return department
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+  const formatDepartment = (departments: string[] | undefined): string => {
+    if (!departments?.length) return '-';
+
+    return departments
+      .map(dept => dept
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+      )
+      .join(',');
   };
 
   const togglePasswordVisibility = (userId: string) => {
@@ -156,7 +161,34 @@ export default function EmployeePage() {
                       <TableCell>
                         {user.email?.trim() ? user.email : '-'}
                       </TableCell>
-                      <TableCell>{formatDepartment(user.department)}</TableCell>
+                      <TableCell>
+                        {user.department?.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {user.department.map(dept => {
+                              let variant: "default" | "destructive" | "outline" | "secondary" = "outline";
+                              if (dept === "INVOICE_MANAGEMENT") variant = "secondary";
+                              if (dept === "RECEIPT_MANAGEMENT") variant = "default";
+                              if (dept === "PURCHASE_MANAGEMENT") variant = "destructive";
+                              if (dept === "ALL_ROUNDER") variant = "outline";
+                              
+                              return (
+                                <Badge 
+                                  key={dept} 
+                                  variant={variant} 
+                                  className="whitespace-nowrap text-xs px-2 py-0.5 rounded-full font-normal"
+                                >
+                                  {dept
+                                    .split('_')
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                    .join(' ')}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
                       <TableCell>{user.type}</TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button

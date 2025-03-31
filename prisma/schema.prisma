@@ -17,7 +17,7 @@ model User {
   phoneNumber   String
   email         String?
   address       String?
-  department    Department
+  department    Department[]
   type          UserType  @default(USER)
 
   // invoice       Invoice[] @relation("InvoiceToUser")
