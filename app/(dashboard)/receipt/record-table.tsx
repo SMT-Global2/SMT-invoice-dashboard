@@ -180,8 +180,6 @@ export function RecordTable({
     );
   };
 
-  console.log({receiptItems})
-
   return (
     <Card className="w-full">
       <CardHeader>

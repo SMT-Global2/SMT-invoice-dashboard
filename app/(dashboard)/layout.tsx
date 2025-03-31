@@ -57,9 +57,6 @@ export default function DashboardLayout({
   const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
-  console.log("User session:", session);
-  console.log("User roles:", userRoles);
-    
   return (
     <Providers>
       <SidebarProvider defaultOpen={false}>
@@ -105,13 +102,8 @@ export default function DashboardLayout({
                         item.roles?.includes(role)
                       );
                       
-                      console.log(`Item ${item.id} roles:`, item.roles);
-                      console.log(`Item ${item.id} visible:`, hasRequiredRole);
-                      
                       return hasRequiredRole;
                     });
-                    
-                    console.log(`Category ${category.id} has ${visibleItems.length} visible items`);
                     
                     // Only render the category if there are visible items
                     return visibleItems.length > 0 ? (

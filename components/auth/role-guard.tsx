@@ -26,9 +26,6 @@ export function RoleGuard({
   const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
-  console.log("RoleGuard - User roles:", userRoles);
-  console.log("RoleGuard - Allowed roles:", allowedRoles);
-  
   // If there's no session or user doesn't have any of the allowed roles, show fallback
   if (!session?.user || !allowedRoles.some(role => userRoles.includes(role))) {
     console.log("RoleGuard - Access denied");

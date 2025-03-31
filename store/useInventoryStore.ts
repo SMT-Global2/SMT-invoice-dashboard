@@ -350,7 +350,6 @@ export const useInventoryStore = create<InventoryState>()(
           set({ isLoading: false });
           
         } catch (error) {
-          console.log(error instanceof Error);
           set({ 
             error: error instanceof Error ? error.message : 'Failed to add voucher', 
             isLoading: false 

@@ -26,8 +26,6 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const date = searchParams.get('date') || '';
 
-    console.log(date);
-    
     // Build where clause
     const where: any = {
       isOtc: false,

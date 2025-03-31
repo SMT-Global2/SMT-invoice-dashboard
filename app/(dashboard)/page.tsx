@@ -75,8 +75,6 @@ export default async function DashboardPage() {
   const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
-  console.log("Dashboard page - User roles:", userRoles);
-  
   return (
     <div className="w-full overflow-hidden">
       <div className="space-y-8">

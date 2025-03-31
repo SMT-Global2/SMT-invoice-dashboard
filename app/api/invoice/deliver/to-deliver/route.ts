@@ -73,24 +73,6 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    console.log({
-        where: {
-            isOtc: false,
-            ...dateFilter,
-            ...(searchTerm ? searchFilter : {}),
-            ...regionalCodesFilter,
-            packageStatus: PackageStatus.PACKED,
-            deliveryStatus: DeliveryStatus.NOT_DELIVERED
-        },
-        include: {
-            party: true,
-        },
-        orderBy: {
-            packageTimestamp: 'asc'
-        },
-        skip,
-        take: limit
-    })
     const [totalCount, data] = await Promise.all([
         prisma.invoice.count({
             where: {
