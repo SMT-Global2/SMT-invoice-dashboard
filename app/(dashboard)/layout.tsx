@@ -175,8 +175,9 @@ function MainContent({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex justify-end items-center gap-2">
           <ModeToggle />
+          <UserProfileNavbar />
         </div>
       </header>
       
@@ -214,6 +215,48 @@ function UserProfile() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem
+            className="text-destructive cursor-pointer"
+            onClick={async () => {
+              await signOut({ callbackUrl: '/login' });
+            }}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign Out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+
+function UserProfileNavbar() {
+  const { data: session } = useSession();
+  
+  if (!session) return null;
+  
+  const username = session.user?.username || '';
+  const firstLetter = username.charAt(0).toUpperCase();
+
+  return (
+    <div className="flex-shrink-0">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary/10 text-primary">{firstLetter}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem disabled>
+            <span className="font-medium text-lg">{username}</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled>
+            <span className="text-sm text-muted-foreground">{session.user?.type}</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive cursor-pointer"
             onClick={async () => {
