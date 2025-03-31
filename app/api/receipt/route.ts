@@ -231,7 +231,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    
+    if(validation.data?.paymentMethod === 'NONE') {
+      return NextResponse.json({
+        message: 'Payment method is required',
+        errors: validation.error
+      }, { status: 400 });
+    }
+
     const { partyCode, amount, remarks, paymentMethod, currencyBills, cheque, generatedDate } = validation.data;
     
     // Check if party code exists
@@ -331,6 +337,13 @@ export async function PUT(req: NextRequest) {
           errors: validation.error
         }, { status: 400 });
       }
+    }
+
+    if(validation.data?.paymentMethod === 'NONE') {
+      return NextResponse.json({
+        message: 'Payment method is required',
+        errors: validation.error
+      }, { status: 400 });
     }
 
     const { partyCode, amount, remarks, paymentMethod, currencyBills, cheque, generatedDate , receiptNumber } = validation.data;

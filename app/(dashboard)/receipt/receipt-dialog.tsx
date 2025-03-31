@@ -185,7 +185,7 @@ export function ReceiptDialog({
       city: receiptItem?.party?.city || '',
       amount: receiptItem?.amount || 0,
       remarks: receiptItem?.remarks || '',
-      paymentMethod: receiptItem?.paymentMethod || 'NONE',
+      paymentMethod: receiptItem?.paymentMethod,
       generatedDate: receiptItem?.generatedDate ? new Date(receiptItem?.generatedDate) : new Date(),
       // Set currencyBills and cheque based on payment method
       currencyBills: receiptItem?.paymentMethod === 'CASH' ? (
@@ -245,6 +245,10 @@ export function ReceiptDialog({
         paymentMethod: values.paymentMethod,
         generatedDate: values.generatedDate
       };
+
+      if(values.paymentMethod === 'NONE') {
+        throw new Error('Payment method is required');
+      }
       
       if (values.paymentMethod === 'CASH') {
         data.currencyBills = values.currencyBills;
@@ -428,7 +432,7 @@ export function ReceiptDialog({
         onClose();
       }
     }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-[85vw] md:w-[80vw] lg:w-[75vw] xl:w-[70vw] 2xl:w-[65vw] p-4 sm:p-6 gap-4">
+      <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] p-4 sm:p-6 gap-4">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             {dialogType === 'edit' ? 'Edit Receipt' : 'Add New Receipt'}
@@ -546,7 +550,7 @@ export function ReceiptDialog({
                 name="paymentMethod"
                 render={({ field }) => (
                   <FormItem className="grid grid-cols-4 items-center gap-2">
-                    <FormLabel className="text-right">Payment Method</FormLabel>
+                    <FormLabel className="text-right text-sm">Payment Method</FormLabel>
                     <div className="col-span-3">
                       <Select 
                         value={field.value} 
@@ -591,7 +595,7 @@ export function ReceiptDialog({
                           <SelectValue placeholder="Select payment method" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="NONE">None</SelectItem>
+                          <SelectItem value="NONE">Select payment method</SelectItem>
                           <SelectItem value="CASH">Cash</SelectItem>
                           <SelectItem value="CHEQUE">Cheque</SelectItem>
                         </SelectContent>
@@ -601,36 +605,10 @@ export function ReceiptDialog({
                   </FormItem>
                 )}
               />
-              
-              {/* Custom styling for number inputs and date picker */}
-              <style jsx global>{`
-                /* Chrome, Safari, Edge, Opera */
-                input::-webkit-outer-spin-button,
-                input::-webkit-inner-spin-button {
-                  -webkit-appearance: none;
-                  margin: 0;
-                }
-                
-                /* Firefox */
-                input[type=number] {
-                  -moz-appearance: textfield;
-                }
 
-                .rdp-months {
-                  background-color: white;
-                  border-radius: 0.5rem;
-                  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                }
-
-                /* Ensure popover content is above everything */
-                [data-radix-popper-content-wrapper] {
-                  z-index: 9999 !important;
-                }
-              `}</style>
-              
               {/* Cash Payment Fields */}
               {paymentMethod === 'CASH' && (
-                <div className="border p-4 rounded-md space-y-4 mx-auto max-w-[90%]">
+                <div className="rounded-md mx-auto border-t pt-3 ">
                   <h3 className="text-lg font-semibold">Cash Denominations</h3>
                   
                   {/* Receipt Number Input */}
@@ -638,9 +616,9 @@ export function ReceiptDialog({
                     control={form.control}
                     name="receiptNumber"
                     render={({ field }) => (
-                      <FormItem className="mb-3">
-                        <FormLabel>Receipt Number</FormLabel>
-                        <FormControl>
+                      <FormItem className="grid grid-cols-4 items-center gap-2 mb-3">
+                        <FormLabel className="text-right">Receipt Number</FormLabel>
+                        <FormControl className="col-span-3">
                           <Input
                             type="number"
                             min="1"
@@ -680,12 +658,13 @@ export function ReceiptDialog({
                       (This is just a calculation and does not affect the form amount)
                     </div>
                   </div>
+                  
                 </div>
               )}
               
               {/* Cheque Payment Fields - Updated styling for consistency */}
               {paymentMethod === 'CHEQUE' && (
-                <div className="border p-4 rounded-md mx-auto max-w-[90%]">
+                <div className="rounded-md mx-auto border-t pt-3">
                   <h3 className="text-lg font-semibold mb-2">Cheque Details</h3>
                   
                   <div className="space-y-4">
@@ -694,9 +673,9 @@ export function ReceiptDialog({
                       control={form.control}
                       name="cheque.number"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cheque Number</FormLabel>
-                          <FormControl>
+                        <FormItem className="grid grid-cols-4 items-center gap-2">
+                          <FormLabel className="text-right">Cheque Number</FormLabel>
+                          <FormControl className="col-span-3">
                             <Input {...field} placeholder="Enter cheque number" />
                           </FormControl>
                           <FormMessage />
@@ -709,9 +688,9 @@ export function ReceiptDialog({
                       control={form.control}
                       name="cheque.bank"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Bank Name</FormLabel>
-                          <FormControl>
+                        <FormItem className="grid grid-cols-4 items-center gap-2">
+                          <FormLabel className="text-right">Bank Name</FormLabel>
+                          <FormControl className="col-span-3">
                             <Input {...field} placeholder="Enter bank name" />
                           </FormControl>
                           <FormMessage />
@@ -724,8 +703,8 @@ export function ReceiptDialog({
                       control={form.control}
                       name="cheque.date"
                       render={({ field }) => (
-                        <FormItem className="mb-4">
-                          <FormLabel>Cheque Date</FormLabel>
+                        <FormItem className="grid grid-cols-4 items-center gap-2">
+                          <FormLabel className="text-right">Cheque Date</FormLabel>
                           <div className="mt-2">
                             <DatePicker
                               date={field.value}
@@ -742,9 +721,9 @@ export function ReceiptDialog({
                       control={form.control}
                       name="cheque.amount"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cheque Amount</FormLabel>
-                          <FormControl>
+                        <FormItem className="grid grid-cols-4 items-center gap-2">
+                          <FormLabel className="text-right">Cheque Amount</FormLabel>
+                          <FormControl className="col-span-3">
                             <Input
                               type="number"
                               min="0"

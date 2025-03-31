@@ -161,11 +161,17 @@ export function RecordTable({
     if (denominations.length === 0) return 'No bills';
     
     return (
+      <>
       <div className="text-xs">
         {denominations.map(d => (
           <p key={d.value}><strong>₹{d.value}:</strong> {d.count} bills</p>
         ))}
       </div>
+      <div className="h-[0.5px] bg-slate-700" />
+      <div className="text-xs">
+        <p><strong>Total:</strong> {formatCurrency(receipt.amount)}</p>
+      </div>
+      </>
     );
   };
 
@@ -203,7 +209,7 @@ export function RecordTable({
                     <SelectItem value="ALL">All Methods</SelectItem>
                     <SelectItem value="CASH">Cash</SelectItem>
                     <SelectItem value="CHEQUE">Cheque</SelectItem>
-                    <SelectItem value="NONE">None</SelectItem>
+                    {/* <SelectItem value="NONE">None</SelectItem> */}
                   </SelectContent>
                 </Select>
               </div>
