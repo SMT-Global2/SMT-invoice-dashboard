@@ -42,6 +42,7 @@ const createReceiptSchema = z.object({
   paymentMethod: z.enum(["NONE", "CASH", "CHEQUE"]),
   currencyBills: currencyBillsSchema.optional().nullable(),
   cheque: chequeSchema.optional().nullable(),
+  receiptNumber: z.number().nullable().optional(),
   generatedDate: z.string().default(() => moment().format()).transform((date) => moment(date).toDate()),
 }).refine(data => {
 
@@ -68,6 +69,7 @@ const updateReceiptSchema = z.object({
   currencyBills: currencyBillsSchema.optional().nullable(),
   cheque: chequeSchema.optional().nullable(),
   generatedDate: z.string().optional().transform(date => date ? moment(date).toDate() : undefined),
+  receiptNumber: z.number().nullable().optional(),
 }).refine(data => {
   // Validate based on payment method
   if (data.paymentMethod === "CASH" && !data.currencyBills) {
@@ -212,13 +214,23 @@ export async function POST(req: NextRequest) {
     
     // Validate request body
     const validation = createReceiptSchema.safeParse(body);
-    
+
     if (!validation.success) {
       return NextResponse.json({ 
         message: 'Validation error', 
         errors: validation.error.flatten() 
       }, { status: 400 });
     }
+
+    if(validation.data?.paymentMethod === 'CASH') {
+      if(!validation.data?.receiptNumber) {
+        return NextResponse.json({
+          message: 'Receipt number is required',
+          errors: validation.error
+        }, { status: 400 });
+      }
+    }
+
     
     const { partyCode, amount, remarks, paymentMethod, currencyBills, cheque, generatedDate } = validation.data;
     
@@ -233,16 +245,8 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       );
     }
-    
-    // Generate receipt number
-    // Get the latest receipt number from the database and increment
-    const latestReceipt = await prisma.receipt.findFirst({
-      orderBy: {
-        receiptNumber: 'desc'
-      }
-    });
-    
-    const receiptNumber = (latestReceipt && latestReceipt.receiptNumber) ? latestReceipt.receiptNumber + 1 : 1;
+
+    const receiptNumber = validation.data?.receiptNumber;
     
     // Create receipt
     const receiptItem = await prisma.receipt.create({
@@ -319,8 +323,17 @@ export async function PUT(req: NextRequest) {
         errors: validation.error.flatten() 
       }, { status: 400 });
     }
-    
-    const { partyCode, amount, remarks, paymentMethod, currencyBills, cheque, generatedDate } = validation.data;
+
+    if(validation.data?.paymentMethod === 'CASH') {
+      if(!validation.data?.receiptNumber) {
+        return NextResponse.json({
+          message: 'Receipt number is required',
+          errors: validation.error
+        }, { status: 400 });
+      }
+    }
+
+    const { partyCode, amount, remarks, paymentMethod, currencyBills, cheque, generatedDate , receiptNumber } = validation.data;
     
     // If partyCode is provided, check if it exists
     if (partyCode) {
@@ -340,6 +353,7 @@ export async function PUT(req: NextRequest) {
     const updatedReceipt = await prisma.receipt.update({
       where: { id },
       data: {
+        receiptNumber,
         partyCode,
         amount,
         remarks,

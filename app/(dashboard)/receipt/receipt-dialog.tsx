@@ -66,6 +66,7 @@ const receiptFormSchema = z.object({
   generatedDate: z.date(),
   currencyBills: currencyBillsSchema.optional().nullable(),
   cheque: chequeSchema.optional().nullable(),
+  receiptNumber: z.number().optional(),
 }).refine((data) => {
     return true;
 }, {
@@ -202,7 +203,8 @@ export function ReceiptDialog({
           date: new Date(),
           amount: receiptItem?.amount || 0
         }
-      ) : null
+      ) : null,
+      receiptNumber: receiptItem?.receiptNumber || undefined
     },
     mode: "onChange",
   });
@@ -247,12 +249,20 @@ export function ReceiptDialog({
       if (values.paymentMethod === 'CASH') {
         data.currencyBills = values.currencyBills;
         data.cheque = null;
+
+        if(!values.receiptNumber) {
+          throw new Error('Receipt number is required');
+        }
+
+        data.receiptNumber = values.receiptNumber;
       } else if (values.paymentMethod === 'CHEQUE') {
         data.cheque = values.cheque;
         data.currencyBills = null;
+        data.receiptNumber = undefined;
       } else {
         data.currencyBills = null;
         data.cheque = null;
+        data.receiptNumber = undefined;
       }
 
       // Call the appropriate API based on dialog type
@@ -282,7 +292,8 @@ export function ReceiptDialog({
         paymentMethod: 'NONE',
         generatedDate: new Date(),
         currencyBills: null,
-        cheque: null
+        cheque: null,
+        receiptNumber: undefined
       });
       
       // Close the dialog
@@ -342,7 +353,8 @@ export function ReceiptDialog({
           paymentMethod,
           generatedDate: receiptItem.generatedDate ? new Date(receiptItem.generatedDate) : new Date(),
           currencyBills,
-          cheque
+          cheque,
+          receiptNumber: receiptItem.receiptNumber
         });
 
       } else {
@@ -356,7 +368,8 @@ export function ReceiptDialog({
           paymentMethod: 'NONE',
           generatedDate: new Date(),
           currencyBills: null,
-          cheque: null
+          cheque: null,
+          receiptNumber: undefined
         });
       }
     } else {
@@ -370,7 +383,8 @@ export function ReceiptDialog({
         paymentMethod: 'NONE',
         generatedDate: new Date(),
         currencyBills: null,
-        cheque: null
+        cheque: null,
+        receiptNumber: undefined
       });
     }
   }, [isOpen, receiptItem, dialogType, form]);
@@ -389,7 +403,8 @@ export function ReceiptDialog({
         paymentMethod: 'NONE',
         generatedDate: new Date(),
         currencyBills: null,
-        cheque: null
+        cheque: null,
+        receiptNumber: undefined
       });
     };
   }, []); // Empty dependency array since this only runs on mount/unmount
@@ -407,7 +422,8 @@ export function ReceiptDialog({
           paymentMethod: 'NONE',
           generatedDate: new Date(),
           currencyBills: null,
-          cheque: null
+          cheque: null,
+          receiptNumber: undefined
         });
         onClose();
       }
@@ -549,6 +565,8 @@ export function ReceiptDialog({
                             });
                             // Reset cheque when switching to CASH
                             form.setValue('cheque', null);
+                            // Keep or initialize receipt number for CASH
+                            form.setValue('receiptNumber', receiptItem?.receiptNumber || undefined);
                           } else if (value === 'CHEQUE') {
                             form.setValue('cheque', {
                               number: '',
@@ -558,10 +576,14 @@ export function ReceiptDialog({
                             });
                             // Reset currencyBills when switching to CHEQUE
                             form.setValue('currencyBills', null);
+                            // Clear receipt number for non-CASH methods
+                            form.setValue('receiptNumber', undefined);
                           } else if (value === 'NONE') {
                             // Reset both fields when switching to NONE
                             form.setValue('currencyBills', null);
                             form.setValue('cheque', null);
+                            // Clear receipt number for non-CASH methods
+                            form.setValue('receiptNumber', undefined);
                           }
                         }}
                       >
@@ -610,6 +632,31 @@ export function ReceiptDialog({
               {paymentMethod === 'CASH' && (
                 <div className="border p-4 rounded-md space-y-4 mx-auto max-w-[90%]">
                   <h3 className="text-lg font-semibold">Cash Denominations</h3>
+                  
+                  {/* Receipt Number Input */}
+                  <FormField
+                    control={form.control}
+                    name="receiptNumber"
+                    render={({ field }) => (
+                      <FormItem className="mb-3">
+                        <FormLabel>Receipt Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Enter receipt number"
+                            {...field}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              field.onChange(value < 0 ? 0 : value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
                   <div className="space-y-3">
                     {currencyControllers.map(({ denomination, value, handleChange }) => (
                       <div key={denomination} className="grid grid-cols-4 items-center gap-2">
