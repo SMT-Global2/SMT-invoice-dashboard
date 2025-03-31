@@ -199,6 +199,10 @@ export const useInvoiceStore = create<InvoiceState>()(
             throw new Error('Invoice not found');
           }
 
+          if(!invoice.paymodeMode) {
+            throw new Error('Paymode mode is required');
+          }
+
           const invoiceToSave = {
             invoiceNumber : invoice.invoiceNumber,
             generatedDate: date,
