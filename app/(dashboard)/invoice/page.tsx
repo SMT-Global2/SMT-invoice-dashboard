@@ -233,27 +233,6 @@ export default function InvoicePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            
-            {/* <div className="flex flex-col sm:flex-row gap-2">
-              <div className="w-full sm:max-w-[300px]">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={invoiceSearchTerm}
-                  onChange={(e) => setInvoiceSearchTerm(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <DatePicker date={selectedDate} setDate={setSelectedDate} />
-                <Button
-                  variant={'outline'}
-                  disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
-                  onClick={() => setSelectedDate(moment().startOf('day').toDate())}
-                >Clear Date</Button>
-              </div>
-            </div> */}
-
             <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <Table className=''>
                 <TableHeader>
