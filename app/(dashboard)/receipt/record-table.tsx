@@ -189,6 +189,7 @@ export function RecordTable({
           <CardTitle className="self-start">Receipts</CardTitle>
           <div className="flex flex-col w-full md:w-auto md:ml-auto">
             {/* Filters container with right alignment */}
+            
             <div className="flex flex-wrap justify-end gap-2 w-full mt-2 md:mt-0">
               {/* Search input - full width on small screens, reasonable width on larger screens */}
               <div className="w-full sm:w-[300px] lg:w-[300px]">
@@ -251,6 +252,7 @@ export function RecordTable({
                 </Button>
               </div>
             </div>
+            
           </div>
         </div>
       </CardHeader>

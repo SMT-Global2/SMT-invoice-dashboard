@@ -80,7 +80,7 @@ export function UserSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="justify-between"
+          className="justify-between w-full"
           disabled={disabled}
         >
           {displayValue || placeholder}
@@ -113,7 +113,11 @@ export function UserSelector({
                   key={user.id}
                   value={user.username}
                   onSelect={() => {
-                    onChange(user);
+                    if (value === user.username) {
+                      onChange({...user, username: null as unknown as string});
+                    } else {
+                      onChange(user);
+                    }
                     setOpen(false);
                   }}
                 >
