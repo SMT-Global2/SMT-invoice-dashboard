@@ -193,7 +193,13 @@ export const useReceiptStore = create<ReceiptState>()(
           
           // Refresh the list
           const { currentPage, itemsPerPage } = get();
-          await get().fetchReceiptItems({ page: currentPage, limit: itemsPerPage });
+          await get().fetchReceiptItems({ 
+            page: currentPage, 
+            limit: itemsPerPage , 
+            paymentMethod: data.paymentMethod , 
+            username: data.receiptUsername ,
+            date: data.generatedDate
+          });
           set({ isLoading: false, isDialogOpen: false });
           
         } catch (error) {
@@ -227,8 +233,14 @@ export const useReceiptStore = create<ReceiptState>()(
           
           // Refresh the list
           const { currentPage, itemsPerPage } = get();
-          await get().fetchReceiptItems({ page: currentPage, limit: itemsPerPage });
-          
+          await get().fetchReceiptItems({ 
+            page: currentPage, 
+            limit: itemsPerPage , 
+            paymentMethod: data.paymentMethod , 
+            username: data.receiptUsername ,
+            date: data.generatedDate
+          });
+            
           set({ isLoading: false, isDialogOpen: false });
           
         } catch (error) {
@@ -258,7 +270,13 @@ export const useReceiptStore = create<ReceiptState>()(
           
           // Refresh the list
           const { currentPage, itemsPerPage } = get();
-          await get().fetchReceiptItems({ page: currentPage, limit: itemsPerPage });
+          await get().fetchReceiptItems({ 
+            page: currentPage, 
+            limit: itemsPerPage , 
+            paymentMethod: data.paymentMethod , 
+            username: data.receiptUsername ,
+            date: data.generatedDate
+          });
           
           set({ isLoading: false });
           

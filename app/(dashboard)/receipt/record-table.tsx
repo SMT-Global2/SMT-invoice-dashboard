@@ -196,7 +196,7 @@ export function RecordTable({
                   placeholder="Search party code, receipt no..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-9" 
+                  className="w-full h-10" 
                 />
               </div>
 
@@ -217,7 +217,7 @@ export function RecordTable({
                     setSelectedPaymentMethod(value === "ALL" ? undefined : value as PaymentMethod)
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full h-10">
                     <SelectValue placeholder="Payment Method" />
                   </SelectTrigger>
                   <SelectContent>

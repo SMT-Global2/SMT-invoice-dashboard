@@ -52,7 +52,7 @@ const chequeSchema = z.object({
   number: z.string().optional(),
   bank: z.string().optional(),
   date: z.date().optional(),
-  amount: z.coerce.number().min(0, "Amount must be non-negative").optional(),
+  amount: z.number().optional(),
 });
 
 // Define the form schema with Zod
@@ -60,7 +60,7 @@ const receiptFormSchema = z.object({
   partyCode: z.string().min(1, "Party code is required"),
   medicalName: z.string().optional(),
   city: z.string().optional(),
-  amount: z.coerce.number().positive("Amount must be positive"),
+  amount: z.number().nonnegative().default(0),
   remarks: z.string().optional(),
   paymentMethod: z.enum(["NONE", "CASH", "CHEQUE"] as const),
   generatedDate: z.date(),
@@ -515,8 +515,8 @@ export function ReceiptDialog({
                         type="number"
                         {...field}
                         onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0;
-                          field.onChange(value < 0 ? 0 : value);
+                          const value = parseFloat(e.target.value);
+                          field.onChange(value);
                         }}
                       />
                       <FormMessage />
@@ -726,7 +726,6 @@ export function ReceiptDialog({
                           <FormControl className="col-span-3">
                             <Input
                               type="number"
-                              min="0"
                               placeholder="Enter amount"
                               {...field}
                               onChange={(e) => {

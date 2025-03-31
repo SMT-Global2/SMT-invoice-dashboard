@@ -44,6 +44,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { InvoiceCard } from "./invoice-card"
 import { tweleHrFormatDateString } from '@/lib/helper';
+import { BankNote } from "lucide-react"
 
 export default function AdminInvoiceTable() {
   const {
@@ -137,9 +138,33 @@ export default function AdminInvoiceTable() {
       searchQuery: '',
       date: new Date().toISOString(),
       sortField: 'invoiceTimestamp',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
+      progressStage: 'all'
     });
     setPagination({ ...pagination, page: 0 });
+  };
+
+  const calculateProgress = (invoice) => {
+    let stages = 0;
+    let completed = 0;
+    
+    stages++;
+    completed++;
+    
+    stages++;
+    if (invoice.checkStatus === 'CHECKED') completed++;
+    
+    stages++;
+    if (invoice.packageStatus === 'PACKED') completed++;
+    
+    stages += 2;
+    if (invoice.deliveryStatus === 'PICKED_UP') completed++;
+    if (invoice.deliveryStatus === 'DELIVERED') completed += 2;
+    
+    stages++;
+    if (invoice.billedStatus === 'BILLED') completed++;
+    
+    return Math.round((completed / stages) * 100);
   };
 
   return (
@@ -191,6 +216,32 @@ export default function AdminInvoiceTable() {
                 />
               </PopoverContent>
             </Popover>
+
+            <Select
+              value={filters.progressStage || 'all'}
+              onValueChange={(value) => {
+                setFilters({
+                  ...filters,
+                  progressStage: value
+                });
+                setPagination({ ...pagination, page: 0 });
+              }}
+            >
+              <SelectTrigger className="w-full md:w-auto h-9">
+                <SelectValue placeholder="Process Stage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stages</SelectItem>
+                <SelectItem value="generated">Generated Only</SelectItem>
+                <SelectItem value="checked">Checked</SelectItem>
+                <SelectItem value="packed">Packed</SelectItem>
+                <SelectItem value="picked_up">Picked Up</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="billed">Billed</SelectItem>
+                <SelectItem value="incomplete">Incomplete (&lt; 100%)</SelectItem>
+                <SelectItem value="complete">Complete (100%)</SelectItem>
+              </SelectContent>
+            </Select>
 
             <div className="flex flex-row gap-2">
               <Select

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Invoice, CheckStatus, PackageStatus, DeliveryStatus, PartyCode, User } from '@prisma/client'
+import { Invoice, CheckStatus, PackageStatus, DeliveryStatus, BilledStatus, PartyCode, User } from '@prisma/client'
 
 
 export interface IInvoice extends Invoice {
@@ -9,6 +9,7 @@ export interface IInvoice extends Invoice {
   packedBy ?: User;
   pickedBy ?: User;
   deliveredBy ?: User;
+  billedBy ?: User;
 }
 
 interface PaginationState {
@@ -23,17 +24,28 @@ interface Analytics {
   totalPickedUp: number;
   totalDelivered: number;
   totalOTC: number;
+  totalBilled: number;
+  processingEfficiency: number;
+  billingRate: number;
+  paymentDistribution: {
+    cash: number;
+    credit: number;
+    cashRatio: number;
+    creditRatio: number;
+  };
 }
 
 
 type SortOrder = 'asc' | 'desc';
 type SortField = 'invoiceNumber' | 'invoiceTimestamp';
+type ProgressStage = 'all' | 'generated' | 'checked' | 'packed' | 'picked_up' | 'delivered' | 'billed' | 'incomplete' | 'complete';
 
 interface FilterState {
   searchQuery: string;
   date: string | null;
   sortField: SortField;
   sortOrder: SortOrder;
+  progressStage: ProgressStage;
 }
 
 interface AnalyticsState {
@@ -74,7 +86,16 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     totalPacked: 0,
     totalPickedUp: 0,
     totalDelivered: 0,
-    totalOTC: 0
+    totalOTC: 0,
+    totalBilled: 0,
+    processingEfficiency: 0,
+    billingRate: 0,
+    paymentDistribution: {
+      cash: 0,
+      credit: 0,
+      cashRatio: 0,
+      creditRatio: 0
+    }
   },
 
   pagination: {
@@ -85,7 +106,8 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     searchQuery: '',
     date: new Date().toISOString(),
     sortField: 'invoiceTimestamp',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    progressStage: 'all'
   },
   totalPages: 0,
 
@@ -103,6 +125,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         search: filters.searchQuery,
         sortField: filters.sortField,
         sortOrder: filters.sortOrder,
+        progressStage: filters.progressStage,
         ...(filters.date && { date: filters.date }),
       });
       
@@ -119,12 +142,6 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         response.json(),
         analyticsResponse.json()
       ])
-
-      // if (!response.ok) {
-      //   throw new Error('Failed to fetch analytics data');
-      // }
-
-      // const data = await response.json();
       
       set({
         allInvoices: {
@@ -137,7 +154,16 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
           totalPacked: 0,
           totalPickedUp: 0,
           totalDelivered: 0,
-          totalOTC: 0
+          totalOTC: 0,
+          totalBilled: 0,
+          processingEfficiency: 0,
+          billingRate: 0,
+          paymentDistribution: {
+            cash: 0,
+            credit: 0,
+            cashRatio: 0,
+            creditRatio: 0
+          }
         },
         totalPages: Math.ceil((invoiceData.total || 0) / pagination.limit),
         isLoading: false
