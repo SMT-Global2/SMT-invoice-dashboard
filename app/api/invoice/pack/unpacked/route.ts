@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     // Build where clause
     const where: any = {
       packageStatus: PackageStatus.NOT_PACKED,
-      packageTimestamp: date ? {
+      checkTimestamp: date ? {
         not: null,
         gte: moment(date).startOf('day').toDate(),
         lte: moment(date).endOf('day').toDate(),

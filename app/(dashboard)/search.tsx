@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Search, X, ArrowRight } from 'lucide-react';
 import { 
@@ -10,6 +11,7 @@ import {
   getAllItems,
   dashboardCategories
 } from '@/lib/constants/dashboardData';
+import { Department, UserType } from '@prisma/client';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function SearchInput() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DashboardItem[]>([]);
@@ -25,6 +28,10 @@ export function SearchInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Get user roles
+  const userRoles = [session?.user?.type, session?.user?.department]
+    .filter((role): role is UserType | Department => role !== undefined);
 
   // Handle clickaway to close results and remove focus state
   useEffect(() => {
@@ -48,14 +55,27 @@ export function SearchInput() {
     };
   }, []);
 
+  // Filter items by user role
+  const filterByUserRole = (items: DashboardItem[]): DashboardItem[] => {
+    return items.filter(item => {
+      // If no roles are required, show the item
+      if (!item.roles || item.roles.length === 0) return true;
+      
+      // Check if user has any of the required roles
+      return userRoles.some(role => item.roles?.includes(role));
+    });
+  };
+
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setSearchQuery(value);
     
     if (value.trim().length > 0) {
+      // Get all search results, then filter by user role
       const results = searchItems(value);
-      setSearchResults(results);
-      setIsResultsVisible(results.length > 0);
+      const filteredResults = filterByUserRole(results);
+      setSearchResults(filteredResults);
+      setIsResultsVisible(filteredResults.length > 0);
     } else {
       setSearchResults([]);
       setIsResultsVisible(false);

@@ -154,9 +154,9 @@ export default function CheckingPage() {
             <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <CardTitle>Unchecked Invoices</CardTitle>
-              <div className="flex flex-col w-full md:w-auto gap-2">
-                
-                <div className="flex flex-col gap-2 lg:hidden">
+              
+              <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
+                <div className="flex flex-col gap-2">
                   <Input
                     type="text"
                     placeholder="Search invoice number..."
@@ -320,9 +320,9 @@ export default function CheckingPage() {
             <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <CardTitle>Checked Invoices</CardTitle>
-              <div className="flex flex-col w-full md:w-auto gap-2">
-                
-                <div className="flex flex-col gap-2 lg:hidden">
+
+              <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
+                <div className="flex flex-col gap-2">
                   <Input
                     type="text"
                     placeholder="Search invoice number..."
