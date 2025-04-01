@@ -1,3 +1,5 @@
+"use client"
+
 import { RoleGuard } from "@/components/auth/role-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -10,6 +12,7 @@ import {
 } from "@/lib/constants/dashboardData"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { useSession } from "next-auth/react"
 
 // Reusable tile component
 interface DashboardTileProps {
@@ -70,9 +73,10 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
   );
 };
 
-export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
+export default function DashboardPage() {
+  // const session = await getServerSession(authOptions);
+  const session = useSession()
+  const userRoles = [session?.data?.user?.type, ...(session?.data?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
   return (
