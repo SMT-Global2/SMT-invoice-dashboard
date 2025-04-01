@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { Department, UserType } from '@prisma/client'
 import { ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
 
 interface RoleGuardProps {
   children: ReactNode
@@ -15,19 +16,30 @@ export function RoleGuard({
   allowedRoles,
   fallback = null,
 }: RoleGuardProps) {
-  const { data: session } = useSession()
+  const { data: session , status } = useSession()
   
+  if(status === "loading" || !session) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   // If no roles are required, show the children
   if(allowedRoles.length === 0) {
     return <>{children}</>
   }
-  
+
   // Get user roles, filtering out undefined values
   const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
   
   // If there's no session or user doesn't have any of the allowed roles, show fallback
-  if (!session?.user || !allowedRoles.some(role => userRoles.includes(role))) {
+  if (!allowedRoles.some(role => userRoles.includes(role))) {
     console.log("RoleGuard - Access denied");
     return <>{fallback}</>
   }
