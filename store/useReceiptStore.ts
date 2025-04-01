@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import moment from 'moment'
 import { PartyCode } from '@prisma/client'
+import { PaymentMethodFilter } from 'app/(dashboard)/receipt/record-table'
 
 export type Cheque = {
   number: string;
@@ -53,16 +54,8 @@ interface ReceiptState {
   currentPage: number;
   totalPages: number;
   itemsPerPage: number;
-  
   // Actions
-  fetchReceiptItems: (params: {
-    page: number;
-    limit: number;
-    search?: string;
-    date?: Date;
-    paymentMethod?: PaymentMethod;
-    username?: string | null;
-  }) => Promise<void>;
+  fetchReceiptItems: () => Promise<void>;
   
   fetchReceiptItemById: (id: string) => Promise<ReceiptData | null>;
   createReceiptItem: (data: Partial<ReceiptData>) => Promise<void>;
@@ -77,6 +70,16 @@ interface ReceiptState {
   // Pagination actions
   setCurrentPage: (page: number) => void;
   setItemsPerPage: (count: number) => void;
+
+  // Search and filter
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  selectedDate: Date | undefined;
+  setSelectedDate: (date: Date | undefined) => void;
+  selectedPaymentMethod: PaymentMethodFilter | undefined;
+  setSelectedPaymentMethod: (method: PaymentMethodFilter | undefined) => void;
+  selectedUser: string | null;
+  setSelectedUser: (user: string | null) => void;
 }
 
 export const useReceiptStore = create<ReceiptState>()(
@@ -97,6 +100,17 @@ export const useReceiptStore = create<ReceiptState>()(
       totalPages: 1,
       itemsPerPage: 10,
       
+
+      // Search and filter
+      searchTerm: '',
+      setSearchTerm: (term) => set({ searchTerm: term }),
+      selectedDate: undefined,
+      setSelectedDate: (date) => set({ selectedDate: date }),
+      selectedPaymentMethod: 'ALL',
+      setSelectedPaymentMethod: (method) => set({ selectedPaymentMethod: method }),
+      selectedUser: '',
+      setSelectedUser: (user) => set({ selectedUser: user }),
+      
       // Dialog actions
       setIsDialogOpen: (isOpen) => set({ isDialogOpen: isOpen }),
       setDialogType: (type) => set({ dialogType: type }),
@@ -107,13 +121,18 @@ export const useReceiptStore = create<ReceiptState>()(
       setItemsPerPage: (count) => set({ itemsPerPage: count, currentPage: 1 }),
       
       // API calls
-      fetchReceiptItems: async ({ page, limit, search, date, paymentMethod, username }) => {
+      fetchReceiptItems: async () => {
         try {
           set({ isLoading: true, error: null });
           
           const url = new URL('/api/receipt', window.location.origin);
-          url.searchParams.set('page', page.toString());
-          url.searchParams.set('limit', limit.toString());
+          url.searchParams.set('page', get().currentPage.toString());
+          url.searchParams.set('limit', get().itemsPerPage.toString());
+
+          const user = get().selectedUser;
+          const paymentMethod = get().selectedPaymentMethod === 'ALL' ? undefined : get().selectedPaymentMethod;
+          const date = get().selectedDate;
+          const search = get().searchTerm;
           
           if (search) {
             url.searchParams.set('search', search);
@@ -127,8 +146,8 @@ export const useReceiptStore = create<ReceiptState>()(
             url.searchParams.set('paymentMethod', paymentMethod);
           }
           
-          if (username) {
-            url.searchParams.set('username', username);
+          if (user) {
+            url.searchParams.set('username', user);
           }
           
           const response = await fetch(url.toString());
@@ -192,14 +211,7 @@ export const useReceiptStore = create<ReceiptState>()(
           }
           
           // Refresh the list
-          const { currentPage, itemsPerPage } = get();
-          await get().fetchReceiptItems({ 
-            page: currentPage, 
-            limit: itemsPerPage , 
-            paymentMethod: data.paymentMethod , 
-            username: data.receiptUsername ,
-            date: data.generatedDate
-          });
+          await get().fetchReceiptItems();
           set({ isLoading: false, isDialogOpen: false });
           
         } catch (error) {
@@ -232,14 +244,7 @@ export const useReceiptStore = create<ReceiptState>()(
           }
           
           // Refresh the list
-          const { currentPage, itemsPerPage } = get();
-          await get().fetchReceiptItems({ 
-            page: currentPage, 
-            limit: itemsPerPage , 
-            paymentMethod: data.paymentMethod , 
-            username: data.receiptUsername ,
-            date: data.generatedDate
-          });
+          await get().fetchReceiptItems();
             
           set({ isLoading: false, isDialogOpen: false });
           
@@ -255,7 +260,7 @@ export const useReceiptStore = create<ReceiptState>()(
       deleteReceiptItem: async (id) => {
         try {
           set({ isLoading: true, error: null });
-          
+
           const url = new URL('/api/receipt', window.location.origin);
           url.searchParams.set('id', id);
           
@@ -269,14 +274,7 @@ export const useReceiptStore = create<ReceiptState>()(
           }
           
           // Refresh the list
-          const { currentPage, itemsPerPage } = get();
-          await get().fetchReceiptItems({ 
-            page: currentPage, 
-            limit: itemsPerPage , 
-            paymentMethod: data.paymentMethod , 
-            username: data.receiptUsername ,
-            date: data.generatedDate
-          });
+          await get().fetchReceiptItems();
           
           set({ isLoading: false });
           
@@ -287,7 +285,7 @@ export const useReceiptStore = create<ReceiptState>()(
           });
           throw error;
         }
-      }
+      },
     }),
     {
       name: 'receipt-store'

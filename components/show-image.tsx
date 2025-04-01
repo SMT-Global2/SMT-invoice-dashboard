@@ -1,6 +1,5 @@
 'use client';
 
-import { CldImage } from 'next-cloudinary';
 import {
   Dialog,
   DialogContent,

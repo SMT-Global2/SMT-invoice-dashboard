@@ -26,6 +26,15 @@ export default function ReceiptPage() {
     deleteReceiptItem,
     setItemsPerPage,
     setCurrentPage,
+
+    searchTerm,
+    setSearchTerm,
+    selectedDate,
+    setSelectedDate,
+    selectedPaymentMethod,
+    setSelectedPaymentMethod,
+    selectedUser,
+    setSelectedUser,
     
     // Dialog state
     isDialogOpen,
@@ -38,21 +47,14 @@ export default function ReceiptPage() {
   } = useReceiptStore();
 
   // Local state for search and filter
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodFilter>("ALL");
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  // const [searchTerm, setSearchTerm] = useState("");
+  // const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  // const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodFilter>("ALL");
+  // const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
   // Initial data fetch
   useEffect(() => {
-    fetchReceiptItems({
-      page: currentPage,
-      limit: itemsPerPage,
-      search: searchTerm,
-      date: selectedDate,
-      paymentMethod: selectedPaymentMethod === "ALL" ? undefined : selectedPaymentMethod,
-      username: selectedUser,
-    });
+    fetchReceiptItems();
   }, [
     currentPage,
     itemsPerPage,
