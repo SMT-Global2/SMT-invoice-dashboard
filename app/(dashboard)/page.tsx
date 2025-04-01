@@ -10,8 +10,8 @@ import {
   homeItems,
   DashboardItem
 } from "@/lib/constants/dashboardData"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+// import { getServerSession } from "next-auth"
+// import { authOptions } from "@/lib/auth"
 import { useSession } from "next-auth/react"
 import { Loader2 } from "lucide-react"
 

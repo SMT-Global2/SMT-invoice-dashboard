@@ -6,25 +6,25 @@ import { SessionProvider, useSession } from 'next-auth/react';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
 
-  const session = useSession();
+  // const session = useSession();
 
-  //white auth is loading show loadign screen
-  if (session.status === "loading") {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
-  }
+  // //white auth is loading show loadign screen
+  // if (session.status === "loading") {
+  //   return (
+  //     <div className="flex h-screen w-screen items-center justify-center bg-background">
+  //       <div className="flex flex-col items-center gap-4">
+  //         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  //         <p className="text-sm text-muted-foreground">Loading...</p>
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <TooltipProvider>
-      <SessionProvider>
+      {/* <SessionProvider> */}
         {children}
-      </SessionProvider>
+      {/* </SessionProvider> */}
     </TooltipProvider>
   );
 }
