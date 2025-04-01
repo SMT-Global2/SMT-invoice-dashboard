@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
@@ -29,8 +28,6 @@ import {
 import { InvoiceData, useInvoiceStore } from '@/store/useInvoiceStore';
 import {Check} from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from '@/components/ui/use-toast';
 import { compressImage, convertImage, tweleHrFormatDateString, uploadFileToS3 } from '@/lib/helper';
 import {
@@ -47,18 +44,12 @@ import {
 import moment from 'moment';
 import { Capsule } from '@/components/capsule';
 import TableSkeleton from '@/components/table-skeleton';
-import { TableEmpty } from '@/components/TableEmpty';
-import { Spinner } from '@/components/icons';
+import { TableEmpty } from '@/components/table-empty';
 import { TakeImage } from '@/components/take-image';
 import { Input } from "@/components/ui/input";
-import { debounce } from 'lodash';
-
-interface PartyCode {
-  id: string;
-  code: string;
-  customerName: string | null;
-  city: string | null;
-}
+import { PartyCodeSelector, PartyCode } from '@/components/party-code-selector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PaymodeMode } from '@prisma/client';
 
 export default function InvoicePage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -81,48 +72,11 @@ export default function InvoicePage() {
     handleInvoices,
   } = useInvoiceStore();
 
-  const [partyCodes, setPartyCodes] = useState<PartyCode[]>([]);
-  const [partyCodeLoading, setPartyCodeLoading] = useState<boolean>(false)
-  const [searchTerms, setSearchTerms] = useState<{ [key: number]: string }>({});
-  const [openComboboxes, setOpenComboboxes] = useState<{ [key: number]: boolean }>({});
-  const [searchTerm, setSearchTerm] = useState('');
-
   useEffect(() => {
     handleInvoices();
   }, [handleInvoices, selectedDate]);
 
-  const searchPartyCode = useCallback(async (search: string) => {
-    try {
-      setPartyCodeLoading(true);
-      const response = await fetch(`/api/partycode?search=${search}`);
-      const { data } = await response.json();
-      setPartyCodes(data);
-    } catch (error) {
-      console.error('Failed to fetch party codes:', error);
-    } finally {
-      setPartyCodeLoading(false);
-    }
-  }, []);
-
-  const debouncedSearchPartyCode = useCallback(
-    debounce((search: string) => {
-      searchPartyCode(search);
-    }, 600),
-    [searchPartyCode]
-  );
-
-  const handleSearchChange = (invoiceNumber: number, value: string) => {
-    setSearchTerms(prev => ({ ...prev, [invoiceNumber]: value }));
-    debouncedSearchPartyCode(value);
-  };
-
-  const toggleCombobox = (invoiceNumber: number, isOpen: boolean) => {
-    setOpenComboboxes(prev => ({ ...prev, [invoiceNumber]: isOpen }));
-    if (isOpen) {
-      searchPartyCode(searchTerms[invoiceNumber] || '');
-    }
-  };
-
+  //prefixKeyId ? `invoice#${prefixKeyId}#${fileNameWithoutType}` : fileNameWithoutType) + new Date().toISOString() + '.' + fileType,
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setLastInteractedInvoice(invoiceNumber);
@@ -130,10 +84,11 @@ export default function InvoicePage() {
       if (!file) return;
 
       setUploadingImage(invoiceNumber);
-
+      
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile , invoiceNumber.toString());
+      const prefixKeyId = `invoice/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile , prefixKeyId);
 
       updateInvoiceImage(invoiceNumber , uploadedImage.key);
 
@@ -250,13 +205,14 @@ export default function InvoicePage() {
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Invoice Generation</h1>
+      </div>
       <Card>
         <CardHeader>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <CardTitle>Invoices</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
               <div className="w-full sm:max-w-[300px]">
                 <Input
                   type="text"
@@ -275,7 +231,11 @@ export default function InvoicePage() {
                 >Clear Date</Button>
               </div>
             </div>
+          </div>
 
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
             <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <Table className=''>
                 <TableHeader>
@@ -287,6 +247,7 @@ export default function InvoicePage() {
                     <TableHead>Party Code</TableHead>
                     <TableHead>Medical Name</TableHead>
                     <TableHead>City</TableHead>
+                    <TableHead>Paymode</TableHead>
                     <TableHead>Image</TableHead>
                     <TableHead>Actions</TableHead>
                     <TableHead>Generated Time</TableHead>
@@ -306,7 +267,7 @@ export default function InvoicePage() {
                         <TableRow key={row.invoiceNumber}
                           className={cn(
                             "border-gray-400",
-                            lastInteractedInvoice === row.invoiceNumber && "border-[2px] border-yellow-300"
+                            lastInteractedInvoice === row.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
                           )}
                         >
                           <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
@@ -337,79 +298,54 @@ export default function InvoicePage() {
                           <TableCell>{row.invoiceNumber}</TableCell>
                           <TableCell>{selectedDate ? selectedDate.toLocaleDateString() : new Date().toLocaleDateString()}</TableCell>
                           <TableCell>
-                            <Popover
-                              open={openComboboxes[row.invoiceNumber]}
-                              onOpenChange={(isOpen) => toggleCombobox(row.invoiceNumber, isOpen)}
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  aria-expanded={openComboboxes[row.invoiceNumber]}
-                                  className="justify-between"
-                                  disabled={row.isDisabled || row.invoiceTimestamp !== null}
-                                >
-                                  {row.partyCode || "Select Party"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
-                                <Command>
-                                  <CommandInput
-                                    placeholder="Party Code"
-                                    value={searchTerms[row.invoiceNumber] || ''}
-                                    onValueChange={(value) => handleSearchChange(row.invoiceNumber, value)}
-                                  />
-
-                                  {
-                                    partyCodeLoading ?
-                                      <CommandEmpty className="m-auto flex items-center justify-center p-4 relative h-[100px]">
-                                        <div className="flex items-center justify-center w-full">
-                                          <Spinner />
-                                        </div>
-                                      </CommandEmpty>
-                                      :
-                                      <CommandEmpty className="m-auto flex items-center justify-center p-4">
-                                        No party found.
-                                      </CommandEmpty>
-                                  }
-
-                                  <div className="max-h-[200px] overflow-y-auto">
-                                    <CommandGroup>
-                                      {partyCodes.map((party) => (
-                                        <CommandItem
-                                          key={party.id}
-                                          value={party.code}
-                                          onSelect={() => {
-                                            handlePartyCodeSelect(row, party);
-                                            toggleCombobox(row.invoiceNumber, false);
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              row.partyCode === party.code ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                          {party.code} - {party?.customerName}
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </div>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
+                            <PartyCodeSelector
+                              value={row.partyCode || null}
+                              onChange={(partyCode) => handlePartyCodeSelect(row, partyCode)}
+                              disabled={row.isDisabled || row.invoiceTimestamp !== null}
+                            />
                           </TableCell>
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
+                          
                           <TableCell>
-                          <TakeImage
-                              invoice={row}
-                              uploadingImage={uploadingImage}
-                              handleImageUpload={handleImageUpload}
-                              isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
-                              showImages={[...row.image]}
-                              takeType='BOTH'
-                            />
+                            <Select
+                              disabled={row.isDisabled || row.invoiceTimestamp !== null}
+                              value={row.paymodeMode || ""}
+                              onValueChange={(value) => {
+                                try {
+                                  const newData = [...invoices];
+                                  const index = newData.findIndex(item => item.invoiceNumber === row.invoiceNumber);
+                                  if (index !== -1) {
+                                    newData[index] = {
+                                      ...newData[index],
+                                      paymodeMode: value as PaymodeMode
+                                    };
+                                    setInvoices(newData);
+                                  }
+                                } catch (error) {
+                                  console.error("Error updating payment mode:", error);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Payment mode" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={PaymodeMode.CASH}>Cash</SelectItem>
+                                <SelectItem value={PaymodeMode.CREDIT}>Credit</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          
+                          <TableCell>
+                            <TakeImage
+                                imageKey={row.invoiceNumber}
+                                handleImageUpload={handleImageUpload}
+                                isUploading={uploadingImage === row.invoiceNumber}
+                                isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                                showImages={[...row.image]}
+                                takeType='BOTH'
+                              />
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

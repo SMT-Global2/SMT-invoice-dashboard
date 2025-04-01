@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const dateFilter = searchParams.get('date') ?? new Date();
 
-  const dayStart = await prisma.dayStart.findUnique({
+  const dayStart = await prisma.dayStartInvoice.findUnique({
     where: {
       date: moment(dateFilter).startOf('day').format('YYYY-MM-DD')
     }

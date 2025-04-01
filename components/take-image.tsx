@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Camera, Loader2, Upload } from "lucide-react";
+import { Camera, CameraOff, Loader2, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ShowImage } from "./show-image";
@@ -10,22 +10,21 @@ import { ShowImage } from "./show-image";
 type TakeType = 'BOTH' | 'CAMERA' | 'UPLOAD'
 
 export function TakeImage({ 
-    invoice, 
-    handleImageUpload, 
-    uploadingImage,
+    imageKey,
+    handleImageUpload,
+    isUploading,
     isDisabled,
     showImages,
     takeType = 'BOTH'
 } : {
-    invoice: any;
+    imageKey: number | string;
     handleImageUpload: any;
-    uploadingImage: any;
     isDisabled: boolean;
-    showImages: any[];
+    isUploading: boolean;
+    showImages: string[];
     takeType : TakeType
 }) {
     const [cameraAvailable, setCameraAvailable] = useState(false);
-
     useEffect(() => {
         const checkCameraAvailability = async () => {
             try {
@@ -43,33 +42,26 @@ export function TakeImage({
 
     return (
         <div className="flex items-center space-x-2">
+            
             {(takeType === 'BOTH' || takeType === 'UPLOAD') && (
                 <div className="relative">
-                        <Button
-                            variant="outline"
-                            className="gap-2 z-10"
-                            disabled={isDisabled}
+                    <Button
+                        variant="outline"
+                        className="gap-2 relative hover:opacity-90 transition-opacity"
+                        disabled={isDisabled || isUploading}
                     >
-                        {uploadingImage === invoice.invoiceNumber ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                {/* Uploading... */}
-                            </>
-                        ) : (
-                            <>
-                                <Upload className='w-5 h-5'/> 
-                                {/* Upload Image  */}
-                            </>
-                        )}
+                    {
+                        isUploading ? <Loader2 className='w-5 h-5 animate-spin' /> : <Upload className='w-5 h-5'/>
+                    }
                     </Button>
                     <Input
                         type="file"
                         accept="image/*"
-                        onChange={handleImageUpload(invoice.invoiceNumber)}
-                        className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                        hidden={isDisabled}
+                        onChange={handleImageUpload(imageKey)}
+                        className="absolute inset-0 cursor-pointer opacity-0"
+                        hidden={isDisabled || isUploading}
                         style={{
-                            pointerEvents: isDisabled ? 'none' : 'auto'
+                            pointerEvents: isDisabled || isUploading ? 'none' : 'auto'
                         }}
                     />
                 </div>
@@ -80,25 +72,39 @@ export function TakeImage({
                     <Button
                         variant="outline"
                         className="gap-2 z-10"
-                        disabled={isDisabled}
+                        disabled={isDisabled || isUploading}
                     >
                         <Camera className='w-5 h-5'/> 
                     </Button>
+                    {/* {
+                        isUploading ? <Loader2 className='w-5 h-5 animate-spin' /> : <Upload className='w-5 h-5'/>
+                    } */}
                     <Input
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        onChange={handleImageUpload(invoice.invoiceNumber)}
+                        onChange={handleImageUpload(imageKey)}
                         className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                        hidden={isDisabled}
+                        hidden={isDisabled || isUploading}
                         style={{
-                            pointerEvents: isDisabled ? 'none' : 'auto'
+                            pointerEvents: isDisabled || isUploading ? 'none' : 'auto'
                         }}
                     />
                 </div>
             )}
             
-            <ShowImage invoice={invoice} images={showImages} />
+            {!cameraAvailable && takeType === 'CAMERA' && (
+                <Button
+                    variant="outline"
+                    className="gap-2 z-10"
+                    disabled={true}
+                >
+                    <CameraOff className='w-5 h-5 text-muted-foreground' />
+                </Button>
+             )
+            }
+            
+            <ShowImage images={showImages} />
         </div>
     );
 }

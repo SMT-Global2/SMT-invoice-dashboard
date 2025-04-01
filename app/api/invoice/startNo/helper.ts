@@ -8,7 +8,7 @@ export async function findOrCreateDayStart(dateFilter : Date) {
 
       const defaultInvoiceStartNo = 1
 
-      const alreadtExist = await prisma.dayStart.findUnique({
+      const alreadtExist = await prisma.dayStartInvoice.findUnique({
         where: {
           date: moment(dateFilter).format('YYYY-MM-DD')
         }
@@ -40,7 +40,7 @@ export async function findOrCreateDayStart(dateFilter : Date) {
         } else {
           invoiceStartNo = defaultInvoiceStartNo;
         }
-        await prisma.dayStart.create({
+        await prisma.dayStartInvoice.create({
           data: {
             date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
             invoiceStartNo,
@@ -74,7 +74,7 @@ export async function findOrCreateDayStart(dateFilter : Date) {
         invoiceStartNo = lowestInvoiceNumber?.invoiceNumber ? lowestInvoiceNumber.invoiceNumber + 1 : defaultInvoiceStartNo;
         invoiceEndNo = maxInvoiceNumber?.invoiceNumber ? maxInvoiceNumber.invoiceNumber : null;
   
-        await prisma.dayStart.create({
+        await prisma.dayStartInvoice.create({
           data: {
             date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
             invoiceStartNo,

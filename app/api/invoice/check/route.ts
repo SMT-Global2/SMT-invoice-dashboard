@@ -74,6 +74,14 @@ export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     //Get all invoices checked today or created today
     const invoiceNumber = searchParams.get('invoiceNumber');
+    const paymodeMode = searchParams.get('paymodeMode');
+
+    if(!paymodeMode) {
+      return Response.json({
+        success: false,
+        message: 'Paymode mode is required'
+      }, { status: 400 });
+    }
 
     if (!invoiceNumber) {
       return Response.json({
@@ -81,6 +89,22 @@ export async function POST(request: NextRequest) {
         message: 'Invoice number is required'
       }, { status: 400 });
     }
+
+    //check if invoice exist 
+    const invoice = await prisma.invoice.findUnique({
+      where : {
+        invoiceNumber : parseInt(invoiceNumber)
+      }
+    });
+
+    if(invoice?.paymodeMode !== paymodeMode) {
+      return Response.json({
+        success: false,
+        message: 'Invoice paymode mode is not correct'
+      }, { status: 400 });
+    }
+    
+    
 
     const result = await prisma.invoice.update({
       where: {

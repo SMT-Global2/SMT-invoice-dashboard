@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import moment from 'moment'
+import moment from 'moment-timezone'
+import { CheckStatus, DeliveryStatus, PackageStatus, BilledStatus } from '@prisma/client'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -27,9 +28,10 @@ export async function GET(request: Request) {
     const date = searchParams.get('date')
     const sortField = searchParams.get('sortField') || 'invoiceTimestamp'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
+    const progressStage = searchParams.get('progressStage') || 'all'
 
     // Build where clause
-    const where: any = {
+    let where: any = {
       AND: [
         {
           OR: [
@@ -57,30 +59,80 @@ export async function GET(request: Request) {
       ]
     }
 
-    // Get total count
-    const total = await prisma.invoice.count({ where })
+    // Add process stage filter
+    switch (progressStage) {
+      case 'generated':
+        // Only generated, not checked
+        where.AND.push({ checkStatus: CheckStatus.NOT_CHECKED })
+        break
+      case 'checked':
+        // Checked but not packed
+        where.AND.push({ 
+          checkStatus: CheckStatus.CHECKED,
+          packageStatus: PackageStatus.NOT_PACKED
+        })
+        break
+      case 'packed':
+        // Packed but not picked up or delivered
+        where.AND.push({ 
+          packageStatus: PackageStatus.PACKED,
+          deliveryStatus: DeliveryStatus.NOT_DELIVERED
+        })
+        break
+      case 'picked_up':
+        // Picked up but not delivered
+        where.AND.push({ deliveryStatus: DeliveryStatus.PICKED_UP })
+        break
+      case 'delivered':
+        // Delivered but not billed
+        where.AND.push({ 
+          deliveryStatus: DeliveryStatus.DELIVERED,
+          billedStatus: BilledStatus.NOT_BILLED
+        })
+        break
+      case 'billed':
+        // Fully billed
+        where.AND.push({ billedStatus: BilledStatus.BILLED })
+        break
+      case 'incomplete':
+        // Not fully processed (not delivered or not billed)
+        where.AND.push({ 
+          OR: [
+            { deliveryStatus: { not: DeliveryStatus.DELIVERED } },
+            { billedStatus: BilledStatus.NOT_BILLED }
+          ]
+        })
+        break
+      case 'complete':
+        // Fully processed (delivered and billed)
+        where.AND.push({ 
+          deliveryStatus: DeliveryStatus.DELIVERED,
+          billedStatus: BilledStatus.BILLED
+        })
+        break
+    }
 
-    // Get paginated invoices
-    const invoices = await prisma.invoice.findMany({
-      where,
-      orderBy: {
-        [sortField]: sortOrder
-      },
-      include: {
-        party: true,
-        // invoicedBy: true,
-        // checkedBy: true,
-        // packedBy: true,
-        // deliveredBy: true,
-        // pickedUpBy: true
-      },
-      skip: page * limit,
-      take: limit
-    })
+    const [total, invoices] = await Promise.all([
+      prisma.invoice.count({ where }),
+      prisma.invoice.findMany({
+        where,
+        skip: page * limit,
+        take: limit,
+        include: {
+          party: true
+        },
+        orderBy: {
+          [sortField]: sortOrder
+        } as any
+      })
+    ])
 
     return NextResponse.json({
       invoices,
       total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
     })
 
   } catch (error) {

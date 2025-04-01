@@ -40,6 +40,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function PartyPage() {
   const { 
@@ -49,8 +56,9 @@ export default function PartyPage() {
     setSelectedParty, 
     isLoading,
     pagination,
-    setPagination,
     totalPages,
+    setPage,
+    setItemsPerPage,
     setSelectedPartyForDeliveries,
     resetDeliveriesState
   } = usePartyStore()
@@ -85,7 +93,7 @@ export default function PartyPage() {
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
-    setPagination({ ...pagination, page: 0 }) // Reset to first page on search
+    setPage(0) // Reset to first page on search
   }
 
   const handleDeleteClick = (partyId: string) => {
@@ -105,6 +113,7 @@ export default function PartyPage() {
     setSelectedPartyForDeliveries(partyCode)
   }
 
+  // Helper function to display pagination pages
   const displayedPages = () => {
     const currentPage = pagination.page
     const total = totalPages
@@ -138,6 +147,9 @@ export default function PartyPage() {
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Party Management</h1>
+      </div>
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
           <CardTitle className="m-2">Party List</CardTitle>
@@ -164,6 +176,7 @@ export default function PartyPage() {
                 <TableRow>
                   <TableHead>Sr. No.</TableHead>
                   <TableHead>Party Code</TableHead>
+                  <TableHead>Regional Code</TableHead>
                   <TableHead>Customer Name</TableHead>
                   <TableHead>City</TableHead>
                   <TableHead>Created At</TableHead>
@@ -186,6 +199,7 @@ export default function PartyPage() {
                         {pagination.page * pagination.limit + index + 1}
                       </TableCell>
                       <TableCell>{party.code}</TableCell>
+                      <TableCell>{party.regionalCode || '-'}</TableCell>
                       <TableCell>{party.customerName || '-'}</TableCell>
                       <TableCell>{party.city || '-'}</TableCell>
                       <TableCell>
@@ -222,20 +236,15 @@ export default function PartyPage() {
             </Table>
           </div>
 
+          {/* Updated Pagination Controls */}
           <div className="mt-4 flex justify-center">
             <Pagination>
-              <PaginationContent className="flex flex-wrap justify-center gap-1">
+              <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
                 <PaginationItem>
-                  {pagination.page > 0 ? (
-                    <PaginationPrevious 
-                      onClick={() => setPagination({ 
-                        ...pagination, 
-                        page: pagination.page - 1 
-                      })}
-                    />
-                  ) : (
-                    <PaginationPrevious className="pointer-events-none opacity-50" />
-                  )}
+                  <PaginationPrevious
+                    onClick={() => pagination.page > 0 && setPage(pagination.page - 1)}
+                    className={pagination.page <= 0 ? 'pointer-events-none opacity-50' : ''}
+                  />
                 </PaginationItem>
                 
                 {displayedPages().map((pageIndex, i) => (
@@ -244,7 +253,7 @@ export default function PartyPage() {
                       <span className="px-4 py-2">...</span>
                     ) : (
                       <PaginationLink
-                        onClick={() => setPagination({ ...pagination, page: pageIndex })}
+                        onClick={() => setPage(pageIndex)}
                         isActive={pagination.page === pageIndex}
                       >
                         {pageIndex + 1}
@@ -254,17 +263,28 @@ export default function PartyPage() {
                 ))}
                 
                 <PaginationItem>
-                  {pagination.page < totalPages - 1 ? (
-                    <PaginationNext
-                      onClick={() => setPagination({ 
-                        ...pagination, 
-                        page: pagination.page + 1 
-                      })}
-                    />
-                  ) : (
-                    <PaginationNext className="pointer-events-none opacity-50" />
-                  )}
+                  <PaginationNext
+                    onClick={() => pagination.page < totalPages - 1 && setPage(pagination.page + 1)}
+                    className={pagination.page >= totalPages - 1 ? 'pointer-events-none opacity-50' : ''}
+                  />
                 </PaginationItem>
+
+                <div className="ml-4 border-l pl-4">
+                  <Select
+                    value={pagination.limit.toString()}
+                    onValueChange={(value) => setItemsPerPage(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-[100px] h-8">
+                      <SelectValue placeholder="Per page" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 / page</SelectItem>
+                      <SelectItem value="10">10 / page</SelectItem>
+                      <SelectItem value="20">20 / page</SelectItem>
+                      <SelectItem value="50">50 / page</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </PaginationContent>
             </Pagination>
           </div>

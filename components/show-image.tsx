@@ -1,6 +1,5 @@
 'use client';
 
-import { CldImage } from 'next-cloudinary';
 import {
   Dialog,
   DialogContent,
@@ -18,15 +17,13 @@ import {
 import { DialogTitle } from '@radix-ui/react-dialog';
 import { useState, useEffect, useRef } from 'react';
 import { getS3BucketUrl } from '@/lib/helper';
-import { InvoiceData } from '@/store/useInvoiceStore';
 
 interface ShowImageProps {
-  invoice: InvoiceData;
   images: string[];
   text?: string;
 }
 
-export function ShowImage({ invoice , images, text }: ShowImageProps) {
+export function ShowImage({ images, text }: ShowImageProps) {
   const [processedImages, setProcessedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -44,34 +41,7 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
         setLoading(false);
         return;
       }
-
       try {
-        // const { default: heic2any } = await import('heic2any'); // Import dynamically on the client
-
-        // const processed = await Promise.all(
-        //   images.map(async (imageUrl) => {
-        //     if (imageUrl.toLowerCase().endsWith('.heic')) {
-        //       try {
-        //         const response = await fetch(imageUrl);
-        //         const blob = await response.blob();
-
-        //         const jpegBlob = await heic2any({
-        //           blob,
-        //           toType: 'image/jpeg',
-        //           quality: 1,
-        //         });
-
-        //         return URL.createObjectURL(jpegBlob as Blob);
-        //       } catch (error) {
-        //         console.error('Error converting HEIC image:', error);
-        //         return imageUrl;
-        //       }
-        //     }
-        //     return imageUrl;
-        //   })
-        // );
-
-        // setProcessedImages(processed);
         setProcessedImages(images);
       } catch (error) {
         console.error('Error processing images:', error);
@@ -95,9 +65,7 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
   const handleDownload = async (imageUrl: string) => {
     try {
       // Append a cache-busting timestamp to avoid cached responses
-      const url = imageUrl.includes('cloudinary') 
-        ? imageUrl 
-        : `${getS3BucketUrl(imageUrl)}?timestamp=${new Date().getTime()}`;
+      const url = `${getS3BucketUrl(imageUrl)}?timestamp=${new Date().getTime()}`;
   
       // Fetch with specific options to handle CORS
       const response = await fetch(url, {
@@ -202,7 +170,6 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
       <DialogTrigger asChild>
         <Button size="sm" className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
-          {/* <span>View {images.length} {images.length === 1 ? 'Image' : 'Images'}</span> */}
           <span>{text ? text : 'View'} {images.length} {images.length === 1 ? '' : ''}</span>
         </Button>
       </DialogTrigger>
@@ -212,7 +179,9 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <DialogTitle className="text-lg font-semibold m-2">View Images (Invoice #{invoice.invoiceNumber}) </DialogTitle>
+        <DialogTitle className="text-lg font-semibold m-2">
+            {images[currentIndex]}
+        </DialogTitle>
         <Carousel   
           className="w-full relative"
           setApi={(api) => {
@@ -224,44 +193,31 @@ export function ShowImage({ invoice , images, text }: ShowImageProps) {
           <CarouselContent>
             {images.map((image, index) => (
               <CarouselItem key={index}>
-                <div 
-                  ref={containerRef}
-                  className="flex items-center justify-center p-4 cursor-move"
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  style={{ 
-                    overflow: 'hidden',
-                    touchAction: 'none',
-                    cursor: isDragging ? 'grabbing' : (zoom > 1 ? 'grab' : 'default')
-                  }}
-                >
+                <div className="flex flex-col w-full">
                   <div 
+                    ref={containerRef}
+                    className="flex items-center justify-center p-4 cursor-move"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
                     style={{ 
-                      transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-                      transition: isDragging ? 'none' : 'transform 0.2s',
+                      overflow: 'hidden',
+                      touchAction: 'none',
+                      cursor: isDragging ? 'grabbing' : (zoom > 1 ? 'grab' : 'default')
                     }}
                   >
-                    {image.includes('cloudinary') ? (
-                      <CldImage
-                        src={image}
-                        alt={`Bill Image ${index + 1}`}
-                        width="1920"
-                        height="1080"
-                        crop={{
-                          type: 'scale',
-                          source: true,
-                        }}
-                        className="rounded-lg object-contain max-h-[80vh]"
-                        draggable={false}
-                      />
-                    ) : (
+                    <div 
+                      style={{ 
+                        transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+                        transition: isDragging ? 'none' : 'transform 0.2s',
+                      }}
+                    >
                       <img 
                         src={getS3BucketUrl(image)} 
                         alt={`Bill Image ${index + 1}`} 
                         className="rounded-lg object-contain max-h-[80vh]"
                         draggable={false}
                       />
-                    )}
+                    </div>
                   </div>
                 </div>
               </CarouselItem>

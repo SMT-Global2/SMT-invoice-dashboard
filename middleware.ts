@@ -13,6 +13,15 @@ export const config = {
     '/delivery',
     '/dashboard',
     '/packing',
-    '/checking'
+    '/checking',
+    '/analytics',
+    '/employee',
+    '/agency',
+    '/party',
+    '/statement',
+    '/receipt',
+    '/inventory',
+    '/deliverymemo',
+    '/expiry'
   ],
 };

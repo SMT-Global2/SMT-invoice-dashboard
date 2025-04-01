@@ -16,12 +16,12 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
           Expand
         </Button>
       </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-w-[95vw] md:max-w-[60vw] rounded-md max-h-[80vh] overflow-x-hidden mb-5 p-5">
+      <DialogContent className="overflow-y-auto max-w-[95%] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] rounded-md max-h-[90vh] overflow-x-hidden mb-5 p-3 md:p-5">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Invoice #{invoice.invoiceNumber}</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl font-bold">Invoice #{invoice.invoiceNumber}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6 pt-4 overflow-y-hidden">
+        <div className="space-y-4 sm:space-y-6 pt-2 sm:pt-4 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="p-4">
               <h3 className="font-semibold mb-2">Party Details</h3>
@@ -40,21 +40,21 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                 <p><span className="text-muted-foreground">Delayed:</span> {moment(invoice.generatedDate).isSame(moment(invoice.invoiceTimestamp), 'day') ? "No" : "Yes"}</p>
                 {invoice.image && invoice.image.length > 0 && (
                   <div className="pt-2">
-                    <ShowImage invoice={{ invoiceNumber : invoice.invoiceNumber} as InvoiceData} images={invoice.image} text="View Invoice Images"/>
+                    <ShowImage images={invoice.image} text="View Invoice Images"/>
                   </div>
                 )}
               </div>
             </Card>
           </div>
 
-          <Card className="p-6 dark:bg-gray-800 md:h-[14rem]">
-            <h3 className="font-semibold mb-6 text-lg">Order Status Timeline</h3>
-            <div className="relative w-[100%] mx-auto">
+          <Card className="p-4 md:p-6 dark:bg-gray-800">
+            <h3 className="font-semibold mb-4 md:mb-6 text-base md:text-lg">Order Status Timeline</h3>
+            <div className="relative w-full mx-auto overflow-visible">
               
               <div className="absolute left-3 md:left-1/2 top-6 bottom-5 
-              md:top-[15px] md:bottom-auto w-2 md:w-[80%] h-[90%] 
-              md:h-1 bg-gray-200 dark:bg-gray-600 md:-translate-x-1/2 
-              transition-colors duration-500">
+                md:top-[15px] md:bottom-auto w-2 md:w-[80%] h-[90%] 
+                md:h-1 bg-gray-200 dark:bg-gray-600 md:-translate-x-1/2 
+                transition-colors duration-500">
                 <div 
                   className="h-full w-full md:w-[80%] bg-green-500 rounded-full" 
                   style={{
@@ -72,7 +72,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                 />
               </div>
 
-              <div className="flex flex-col md:flex-row w-full h-[100%] justify-between space-y-8 md:space-y-0">
+              <div className="flex flex-col md:flex-row w-full justify-between space-y-6 md:space-y-0">
                 
                 <div className="h-[5rem] w-[20%] relative flex items-center md:flex-col md:items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${invoice.invoiceTimestamp ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
@@ -83,7 +83,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                     {invoice.invoiceTimestamp && (
                       <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.invoiceTimestamp))}</p>
-                        <p className="font-medium text-primary text-[12px]">{invoice.invoiceUsername}</p>
+                        <p className="font-medium text-primary text-[16px]">{invoice.invoiceUsername}</p>
                       </div>
                     )}
                   </div>
@@ -98,7 +98,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                     {invoice.checkTimestamp && (
                       <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.checkTimestamp))}</p>
-                        <p className="font-medium text-primary text-[12px]">{invoice.checkUsername}</p>
+                        <p className="font-medium text-primary text-[16px]">{invoice.checkUsername}</p>
                       </div>
                     )}
                   </div>
@@ -113,7 +113,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                     {invoice.packageTimestamp && (
                       <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.packageTimestamp))}</p>
-                        <p className="font-medium text-primary text-[12px]">{invoice.packageUsername}</p>
+                        <p className="font-medium text-primary text-[16px]">{invoice.packageUsername}</p>
                       </div>
                     )}
                   </div>
@@ -128,7 +128,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                     {invoice.pickupTimestamp && (
                       <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.pickupTimestamp))}</p>
-                        <p className="font-medium text-primary text-[12px]">{invoice.pickupUsername}</p>
+                        <p className="font-medium text-primary text-[16px]">{invoice.pickupUsername}</p>
                       </div>
                     )}
                   </div>
@@ -143,7 +143,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => (
                     {invoice.deliveredTimestamp && (
                       <div className="text-[11px] text-muted-foreground">
                         <p>{tweleHrFormatDateString(new Date(invoice.deliveredTimestamp))}</p>
-                        <p className="font-medium text-primary text-[12px]">{invoice.deliveredUsername}</p>
+                        <p className="font-medium text-primary text-[16px]">{invoice.deliveredUsername}</p>
                       </div>
                     )}
                   </div>

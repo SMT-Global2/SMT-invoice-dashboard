@@ -1,17 +1,16 @@
 'use client';
 
-export function tweleHrFormatDateString(date: Date) {
-  const formattedDate = new Date(date).toLocaleString('en-GB', {
-    day: '2-digit',
-    month: '2-digit', 
+export const tweleHrFormatDateString = (date: string | Date): string => {
+  const dateObj = new Date(date);
+  return dateObj.toLocaleDateString('en-US', {
     year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
     hour12: true
   });
-  return formattedDate;
-}
+};
 
 const heic2anyPromise = import('heic2any').then((mod) => mod.default);
 
@@ -45,7 +44,6 @@ export async function convertImage(file: File): Promise<File> {
       throw new Error('Failed to convert HEIC image. Please try converting it to JPEG first.');
     }
   }
-  console.log("HERE" , {file})
   return file;
 }
 
@@ -110,13 +108,12 @@ export async function compressImage(file: File): Promise<File> {
 }
 
 export async function getPresignedUrl(fileName: string , contentType: string , prefixKeyId : string = '') {
-  console.log('Getting presigned url...');
   const fileType = fileName.split('.').pop()?.toLowerCase();
   const fileNameWithoutType = fileName.split('.').slice(0, -1).join('.');
   const response = await fetch('/api/s3/presignedUrl', {
     method: 'POST',
     body: JSON.stringify({ 
-        fileName: (prefixKeyId ? `invoice#${prefixKeyId}#${fileNameWithoutType}` : fileNameWithoutType) + new Date().toISOString() + '.' + fileType,
+        fileName: prefixKeyId,
         contentType: contentType,
         // customKey : prefixKeyId + fileName
       }),
@@ -130,12 +127,6 @@ export async function getPresignedUrl(fileName: string , contentType: string , p
 }
 
 export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
-  console.log('File details:', {
-    name: file.name,
-    type: file.type,
-    size: file.size,
-    extension: file.name.split('.').pop()?.toLowerCase()
-  });
   const {
     presignedUrl,
     key
@@ -154,8 +145,17 @@ export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
     key: key
   }
 }
+
+//https://smt-images-bucket.s3.ap-south-1.amazonaws.com/1740321810294-shreyas
+export function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(amount);
+}
+
 //https://smt-images-bucket.s3.ap-south-1.amazonaws.com/1740321810294-shreyas
 export function getS3BucketUrl(key: string) {
-  const encodedKey = encodeURIComponent(key);
-  return `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_S3_REGION}.amazonaws.com/${encodedKey}`;
+  return `https://${process.env.NEXT_PUBLIC_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_S3_REGION}.amazonaws.com/${encodeURIComponent(key)}`;
 }

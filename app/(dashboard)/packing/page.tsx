@@ -17,15 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoiceStore } from '@/store/useInvoiceStore';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
-import { Camera, Loader2, Upload } from 'lucide-react';
+import { Camera, Loader2, Upload, FilterX } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
-import imageCompression from 'browser-image-compression';
 import { compressImage, convertImage, tweleHrFormatDateString, uploadFileToS3 } from '@/lib/helper';
 import {
   Tabs,
@@ -33,27 +31,82 @@ import {
   TabsTrigger,
   TabsContent
 } from '@/components/ui/tabs';
+import { usePackingInvoiceStore } from '@/store/usePackingInvoiceStore';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import { DatePicker } from '@/components/ui/date-picker';
+import moment from 'moment';
+import { cn } from '@/lib/utils';
 
 export default function PackingPage() {
   const { toast } = useToast();
   const { 
-    packInvoices, 
-    fetchPackInvoices, 
+    unpackedInvoices,
+    packedInvoices,
+    fetchUnpackedInvoices,
+    fetchPackedInvoices,
     packInvoice,
+    updatePackInvoiceImage,
     isLoading,
-    updatePackInvoiceImage
-  } = useInvoiceStore();
+    
+    // Pagination
+    unpackedCurrentPage,
+    unpackedTotalPages,
+    packedCurrentPage,
+    packedTotalPages,
+    itemsPerPage,
+    setUnpackedCurrentPage,
+    setPackedCurrentPage,
+    setItemsPerPage,
+    
+    // Search
+    unpackedSearchTerm,
+    packedSearchTerm,
+    setUnpackedSearchTerm,
+    setPackedSearchTerm,
+
+    // Date
+    unpackedSelectedDate,
+    setUnpackedSelectedDate,
+    packedSelectedDate,
+    setPackedSelectedDate,
+
+    // Regional code filters
+    unpackedSelectedRegionalCodes,
+    packedSelectedRegionalCodes,
+    availableRegionalCodes,
+    setUnpackedSelectedRegionalCodes,
+    setPackedSelectedRegionalCodes,
+    fetchAvailableRegionalCodes,
+    clearAllFilters
+  } = usePackingInvoiceStore();
 
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
-  const [unpackedSearchTerm, setUnpackedSearchTerm] = useState('');
-  const [packedSearchTerm, setPackedSearchTerm] = useState('');
+  const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchPackInvoices();
-  }, [fetchPackInvoices , packInvoice]);
+    fetchUnpackedInvoices();
+    fetchPackedInvoices();
+    fetchAvailableRegionalCodes();
+  }, [fetchUnpackedInvoices, fetchPackedInvoices, fetchAvailableRegionalCodes]);
 
   const handlePackInvoice = async (invoiceNumber: number) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       await packInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -73,6 +126,7 @@ export default function PackingPage() {
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
+      setLastInteractedInvoice(invoiceNumber);
       const file = event.target.files?.[0];
       if (!file) return;
 
@@ -80,7 +134,11 @@ export default function PackingPage() {
 
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const uploadedImage = await uploadFileToS3(compressedFile , invoiceNumber.toString());
+      //find invoice generated date
+
+      const invoiceGeneratedDate = unpackedInvoices.find(invoice => invoice.invoiceNumber === invoiceNumber)?.generatedDate;
+      const prefixKeyId = `packing/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const uploadedImage = await uploadFileToS3(compressedFile , prefixKeyId);
 
       updatePackInvoiceImage(invoiceNumber, uploadedImage.key);
 
@@ -103,19 +161,41 @@ export default function PackingPage() {
     }
   };
 
-  // Filter invoices based on search terms
-  const filteredUnpackedInvoices = packInvoices?.filter(invoice => 
-    invoice.packageTimestamp === null &&
-    invoice.invoiceNumber.toString().includes(unpackedSearchTerm.trim())
-  );
+  // Helper function to display pagination pages
+  const displayedPages = (currentPage: number, totalPages: number) => {
+    const delta = 1;
+    const range = [];
+    
+    for (
+      let i = Math.max(0, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
+      range.push(i);
+    }
 
-  const filteredPackedInvoices = packInvoices?.filter(invoice => 
-    invoice.packageTimestamp !== null &&
-    invoice.invoiceNumber.toString().includes(packedSearchTerm.trim())
-  );
+    if (range[0] > 0) {
+      if (range[0] > 1) {
+        range.unshift(-1);
+      }
+      range.unshift(0);
+    }
+
+    if (range[range.length - 1] < totalPages - 1) {
+      if (range[range.length - 1] < totalPages - 2) {
+        range.push(-1);
+      }
+      range.push(totalPages - 1);
+    }
+
+    return range;
+  };
 
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2'>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Invoice Packing</h1>
+      </div>
       <Tabs defaultValue="unpacked" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="unpacked">Unpacked</TabsTrigger>
@@ -125,15 +205,50 @@ export default function PackingPage() {
         <TabsContent value="unpacked">
           <Card>
             <CardHeader>
-              <CardTitle>Unpacked Invoices</CardTitle>
-              <div className="w-full sm:max-w-[300px] mt-2">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={unpackedSearchTerm}
-                  onChange={(e) => setUnpackedSearchTerm(e.target.value)}
-                  className="w-full mt-2"
-                />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Unpacked Invoices</CardTitle>
+                
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={unpackedSearchTerm}
+                      onChange={(e) => setUnpackedSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="flex flex-row gap-2">
+                    <DatePicker date={unpackedSelectedDate} setDate={setUnpackedSelectedDate} />
+                    {/* <Button
+                      variant={'outline'}
+                      disabled={!unpackedSelectedDate || moment(unpackedSelectedDate).isSame(moment(), 'day')}
+                      onClick={() => setUnpackedSelectedDate(undefined)}
+                    >Clear Date</Button> */}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={unpackedSelectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setUnpackedSelectedRegionalCodes}
+                      label="Regions"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        clearAllFilters();
+                      }}
+                      className="flex items-center gap-1 ml-auto"
+                      size="sm"
+                    >
+                      <FilterX className="h-4 w-4" />
+                      <span>Clear All</span>
+                    </Button>
+                  </div>
+                </div>
+
               </div>
             </CardHeader>
             <CardContent>
@@ -144,36 +259,43 @@ export default function PackingPage() {
                       <TableHead>Sr. No.</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Invoice No.</TableHead>
-                      <TableHead>Party Code</TableHead>
+                      <TableHead>Party Code</TableHead> 
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && packInvoices?.length === 0 ? (
+                    {isLoading && unpackedInvoices?.length === 0 ? (
                       <TableSkeleton rows={5} cols={8} />
-                    ) : filteredUnpackedInvoices?.length === 0 ? (
+                    ) : unpackedInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center">No invoices found</TableCell>
                       </TableRow>
                     ) : (
-                      filteredUnpackedInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}>
-                          <TableCell>{index + 1}</TableCell>
+                      unpackedInvoices?.map((invoice, index) => (
+                        <TableRow key={invoice.invoiceNumber}
+                          className={cn(
+                            "border-gray-400",
+                            lastInteractedInvoice === invoice.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
+                          )}
+                        >
+                          <TableCell>{(unpackedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.partyCode}</TableCell>
                           <TableCell>{invoice.medicalName}</TableCell>
                           <TableCell>{invoice.city}</TableCell>
+                          <TableCell>{invoice.regionalCode}</TableCell>
                           <TableCell>
                             <TakeImage
-                              invoice={invoice}
-                              uploadingImage={uploadingImage}
+                              imageKey={invoice.invoiceNumber}
                               handleImageUpload={handleImageUpload}
+                              isUploading={uploadingImage === invoice.invoiceNumber}
                               isDisabled={uploadingImage === invoice.invoiceNumber}
-                              showImages={[...invoice.image , ...invoice.packImage]}
+                              showImages={[...invoice.image, ...invoice.packImage]}
                               takeType='BOTH'
                             />
                           </TableCell>
@@ -192,6 +314,61 @@ export default function PackingPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* Pagination Controls */}
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => unpackedCurrentPage > 1 && setUnpackedCurrentPage(unpackedCurrentPage - 1)}
+                        className={unpackedCurrentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    {displayedPages(unpackedCurrentPage - 1, unpackedTotalPages).map((pageIndex, i) => (
+                      <PaginationItem key={i}>
+                        {pageIndex === -1 ? (
+                          <span className="px-4 py-2">...</span>
+                        ) : (
+                          <PaginationLink
+                            onClick={() => setUnpackedCurrentPage(pageIndex + 1)}
+                            isActive={unpackedCurrentPage === pageIndex + 1}
+                          >
+                            {pageIndex + 1}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => unpackedCurrentPage < unpackedTotalPages && setUnpackedCurrentPage(unpackedCurrentPage + 1)}
+                        className={unpackedCurrentPage >= unpackedTotalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    <div className="ml-4 border-l pl-4">
+                      <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={(value) => {
+                          setItemsPerPage(parseInt(value));
+                        }}
+                      >
+                        <SelectTrigger className="w-[100px] h-8">
+                          <SelectValue placeholder="Per page" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 / page</SelectItem>
+                          <SelectItem value="10">10 / page</SelectItem>
+                          <SelectItem value="20">20 / page</SelectItem>
+                          <SelectItem value="50">50 / page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -199,15 +376,50 @@ export default function PackingPage() {
         <TabsContent value="packed">
           <Card>
             <CardHeader>
-              <CardTitle>Packed Invoices</CardTitle>
-              <div className="w-full sm:max-w-[300px] mt-2">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={packedSearchTerm}
-                  onChange={(e) => setPackedSearchTerm(e.target.value)}
-                  className="w-full mt-2"
-                />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Packed Invoices</CardTitle>
+                
+                <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Search invoice number..."
+                      value={packedSearchTerm}
+                      onChange={(e) => setPackedSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="flex flex-row gap-2">
+                    <DatePicker date={packedSelectedDate} setDate={setPackedSelectedDate} />
+                    {/* <Button
+                      variant={'outline'}
+                      disabled={!packedSelectedDate || moment(packedSelectedDate).isSame(moment(), 'day')}
+                      onClick={() => setPackedSelectedDate(undefined)}
+                    >Clear Date</Button> */}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={packedSelectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setPackedSelectedRegionalCodes}
+                      label="Regions"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        clearAllFilters();
+                      }}
+                      className="flex items-center gap-1 ml-auto"
+                      size="sm"
+                    >
+                      <FilterX className="h-4 w-4" />
+                      <span>Clear All</span>
+                    </Button>
+                  </div>
+                </div>
+
               </div>
             </CardHeader>
             <CardContent>
@@ -221,29 +433,31 @@ export default function PackingPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Pack Time</TableHead>  
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && packInvoices?.length === 0 ? (
+                    {isLoading && packedInvoices?.length === 0 ? (
                       <TableSkeleton rows={5} cols={9} />
-                    ) : filteredPackedInvoices?.length === 0 ? (
+                    ) : packedInvoices?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center">No invoices found</TableCell>
                       </TableRow>
                     ) : (
-                      filteredPackedInvoices?.map((invoice, index) => (
+                      packedInvoices?.map((invoice, index) => (
                         <TableRow key={invoice.invoiceNumber}>
-                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{(packedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.partyCode}</TableCell>
                           <TableCell>{invoice.medicalName}</TableCell>
                           <TableCell>{invoice.city}</TableCell>
+                          <TableCell>{invoice.regionalCode}</TableCell>
                           <TableCell>
-                            <ShowImage invoice={invoice} images={[...invoice.image , ...invoice.packImage]} />  
+                            <ShowImage images={[...invoice.image, ...invoice.packImage]} />  
                           </TableCell>
                           <TableCell>
                             <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
@@ -259,6 +473,61 @@ export default function PackingPage() {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => packedCurrentPage > 1 && setPackedCurrentPage(packedCurrentPage - 1)}
+                        className={packedCurrentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    {displayedPages(packedCurrentPage - 1, packedTotalPages).map((pageIndex, i) => (
+                      <PaginationItem key={i}>
+                        {pageIndex === -1 ? (
+                          <span className="px-4 py-2">...</span>
+                        ) : (
+                          <PaginationLink
+                            onClick={() => setPackedCurrentPage(pageIndex + 1)}
+                            isActive={packedCurrentPage === pageIndex + 1}
+                          >
+                            {pageIndex + 1}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => packedCurrentPage < packedTotalPages && setPackedCurrentPage(packedCurrentPage + 1)}
+                        className={packedCurrentPage >= packedTotalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    <div className="ml-4 border-l pl-4">
+                      <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={(value) => {
+                          setItemsPerPage(parseInt(value));
+                        }}
+                      >
+                        <SelectTrigger className="w-[100px] h-8">
+                          <SelectValue placeholder="Per page" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 / page</SelectItem>
+                          <SelectItem value="10">10 / page</SelectItem>
+                          <SelectItem value="20">20 / page</SelectItem>
+                          <SelectItem value="50">50 / page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </PaginationContent>
+                </Pagination>
               </div>
             </CardContent>
           </Card>

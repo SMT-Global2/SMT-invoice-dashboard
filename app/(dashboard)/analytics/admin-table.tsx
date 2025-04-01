@@ -19,7 +19,7 @@ import useAnalyticsStore from '@/store/useAnalyticsStore';
 import { useEffect } from 'react';
 import { Capsule } from '@/components/capsule';
 import { Input } from "@/components/ui/input"
-import { Car, CheckCircle, CheckSquare, FileText, Package, Search, Store, Truck } from "lucide-react"
+import { Car, CheckCircle, CheckSquare, FileText, Package, Search, Store, Truck, X } from "lucide-react"
 import TableSkeleton from "@/components/table-skeleton"
 import {
   Pagination,
@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, X } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { InvoiceCard } from "./invoice-card"
@@ -137,24 +137,47 @@ export default function AdminInvoiceTable() {
       searchQuery: '',
       date: new Date().toISOString(),
       sortField: 'invoiceTimestamp',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
+      progressStage: 'all'
     });
     setPagination({ ...pagination, page: 0 });
   };
 
+  const calculateProgress = (invoice : any) => {
+    let stages = 0;
+    let completed = 0;
+    
+    stages++;
+    completed++;
+    
+    stages++;
+    if (invoice.checkStatus === 'CHECKED') completed++;
+    
+    stages++;
+    if (invoice.packageStatus === 'PACKED') completed++;
+    
+    stages += 2;
+    if (invoice.deliveryStatus === 'PICKED_UP') completed++;
+    if (invoice.deliveryStatus === 'DELIVERED') completed += 2;
+    
+    stages++;
+    if (invoice.billedStatus === 'BILLED') completed++;
+    
+    return Math.round((completed / stages) * 100);
+  };
+
   return (
-    <div className='space-y-4 overflow-hidden max-w-[100vw]'>
-
-
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
-          <CardTitle className="m-2">Invoice Details</CardTitle>
-          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2 sm:gap-4">
-            <div className="relative w-full sm:w-64 flex items-center">
+    <div className='w-full max-w-full overflow-x-hidden'>
+      <Card className="w-full">
+        <CardHeader className="flex flex-col space-y-4 pb-4">
+          <CardTitle className="text-xl md:text-2xl">Invoice Analytics</CardTitle>
+          
+          <div className="flex flex-col md:flex-row w-full gap-3">
+            <div className="relative w-full md:w-64 flex items-center">
               <Search className="absolute left-2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search invoices..."
-                className="pl-8 h-8 text-sm"
+                className="pl-8 h-9 text-sm"
                 value={filters.searchQuery}
                 onChange={(e) => {
                   setFilters({ ...filters, searchQuery: e.target.value });
@@ -168,7 +191,7 @@ export default function AdminInvoiceTable() {
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-full sm:w-[200px] h-8 justify-start text-left font-normal",
+                    "w-full md:w-[200px] h-9 justify-start text-left font-normal",
                     !filters.date && "text-muted-foreground"
                   )}
                 >
@@ -180,7 +203,7 @@ export default function AdminInvoiceTable() {
                 <Calendar
                   mode="single"
                   selected={filters.date ? new Date(filters.date) : undefined}
-                  className="w-[300px] sm:w-auto"
+                  className="w-[300px] md:w-auto"
                   onSelect={(date) => {
                     setFilters({
                       ...filters,
@@ -194,42 +217,68 @@ export default function AdminInvoiceTable() {
             </Popover>
 
             <Select
-              value={`${filters.sortField}-${filters.sortOrder}`}
+              value={filters.progressStage || 'all'}
               onValueChange={(value) => {
-                const [field, order] = value.split('-');
                 setFilters({
                   ...filters,
-                  sortField: field as any,
-                  sortOrder: order as 'asc' | 'desc'
+                  progressStage: value as any
                 });
                 setPagination({ ...pagination, page: 0 });
               }}
             >
-              <SelectTrigger className="w-auto gap-2 h-8">
-                <SelectValue placeholder="Sort by..." />
+              <SelectTrigger className="w-full md:w-auto h-9">
+                <SelectValue placeholder="Process Stage" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="invoiceTimestamp-desc">Latest First</SelectItem>
-                <SelectItem value="invoiceTimestamp-asc">Oldest First</SelectItem>
-                <SelectItem value="invoiceNumber-desc">Invoice Number (High to Low)</SelectItem>
-                <SelectItem value="invoiceNumber-asc">Invoice Number (Low to High)</SelectItem>
+                <SelectItem value="all">All Stages</SelectItem>
+                <SelectItem value="generated">Generated Only</SelectItem>
+                <SelectItem value="checked">Checked</SelectItem>
+                <SelectItem value="packed">Packed</SelectItem>
+                <SelectItem value="picked_up">Picked Up</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="billed">Billed</SelectItem>
+                <SelectItem value="incomplete">Incomplete (&lt; 100%)</SelectItem>
+                <SelectItem value="complete">Complete (100%)</SelectItem>
               </SelectContent>
             </Select>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearFilters}
-              className="h-8"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Clear Filters
-            </Button>
+            <div className="flex flex-row gap-2">
+              <Select
+                value={`${filters.sortField}-${filters.sortOrder}`}
+                onValueChange={(value) => {
+                  const [field, order] = value.split('-');
+                  setFilters({
+                    ...filters,
+                    sortField: field as any,
+                    sortOrder: order as 'asc' | 'desc'
+                  });
+                  setPagination({ ...pagination, page: 0 });
+                }}
+              >
+                <SelectTrigger className="w-full md:w-auto h-9">
+                  <SelectValue placeholder="Sort by..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="invoiceTimestamp-desc">Latest First</SelectItem>
+                  <SelectItem value="invoiceTimestamp-asc">Oldest First</SelectItem>
+                  <SelectItem value="invoiceNumber-desc">Invoice Number (High to Low)</SelectItem>
+                  <SelectItem value="invoiceNumber-asc">Invoice Number (Low to High)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="h-9"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
-
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-6 m-6">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 px-4 md:px-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">Generated</CardTitle>
@@ -307,87 +356,87 @@ export default function AdminInvoiceTable() {
               </p>
             </CardContent>
           </Card>
-
-
         </div>
 
-        <CardContent>
-          <div className="custom-scrollbar w-full border rounded-lg m-auto max-w-[100vw]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sr. No.</TableHead>
-                  <TableHead>
-                    <button
-                      className="flex items-center gap-1"
-                      onClick={() => handleSort('invoiceNumber')}
-                    >
-                      Invoice No.
-                      <SortIcon field="invoiceNumber" />
-                    </button>
-                  </TableHead>
-                  <TableHead>
-                    <button
-                      className="flex items-center gap-1"
-                      onClick={() => handleSort('invoiceTimestamp')}
-                    >
-                      Date
-                      <SortIcon field="invoiceTimestamp" />
-                    </button>
-                  </TableHead>
-                  <TableHead>Party Code</TableHead>
-                  <TableHead>Medical Name</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Generated</TableHead>
-                  <TableHead>Checked</TableHead>
-                  <TableHead>Packed</TableHead>
-                  <TableHead>Picked Up</TableHead>
-                  <TableHead>Delivered</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableSkeleton rows={5} cols={13} />
-                ) : allInvoices.invoices.length === 0 ? (
+        <CardContent className="pt-6 overflow-hidden">
+          <div className="overflow-auto w-full border rounded-lg">
+            <div className="w-full lg:min-w-[800px] xl:min-w-[1200px]">
+              <Table className="w-full">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center">
-                      No invoices found
-                    </TableCell>
+                    <TableHead className="w-12">Sr. No.</TableHead>
+                    <TableHead className="w-24">
+                      <button
+                        className="flex items-center gap-1"
+                        onClick={() => handleSort('invoiceNumber')}
+                      >
+                        Invoice No.
+                        <SortIcon field="invoiceNumber" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="w-24">
+                      <button
+                        className="flex items-center gap-1"
+                        onClick={() => handleSort('invoiceTimestamp')}
+                      >
+                        Date
+                        <SortIcon field="invoiceTimestamp" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="w-24">Party Code</TableHead>
+                    <TableHead className="w-36">Medical Name</TableHead>
+                    <TableHead className="w-24">City</TableHead>
+                    <TableHead className="w-24 text-center">Generated</TableHead>
+                    <TableHead className="w-24 text-center">Checked</TableHead>
+                    <TableHead className="w-24 text-center">Packed</TableHead>
+                    <TableHead className="w-24 text-center">Picked Up</TableHead>
+                    <TableHead className="w-24 text-center">Delivered</TableHead>
+                    <TableHead className="w-36">Last Updated</TableHead>
+                    <TableHead className="w-24">Type</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  allInvoices.invoices.map((invoice, index) => (
-                    <TableRow key={invoice.invoiceNumber}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{invoice.invoiceNumber}</TableCell>
-                      <TableCell>{new Date(invoice.invoiceTimestamp!).toLocaleDateString()}</TableCell>
-                      <TableCell>{invoice.partyCode}</TableCell>
-                      <TableCell>{invoice.party?.customerName}</TableCell>
-                      <TableCell>{invoice.party?.city}</TableCell>
-                      <TableCell><StatusBadge status={!!invoice.invoiceTimestamp} /></TableCell>
-                      <TableCell><StatusBadge status={!!invoice.checkTimestamp} /></TableCell>
-                      <TableCell><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
-                      <TableCell><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
-                      <TableCell><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
-                      <TableCell>{tweleHrFormatDateString(new Date(invoice.updatedAt))}</TableCell>
-                      <TableCell>
-                        <Capsule
-                          text={invoice.isOtc ? 'OTC' : 'Normal'}
-                          bgColor={invoice.isOtc ? 'bg-yellow-100' : 'bg-green-100'}
-                          textColor={invoice.isOtc ? 'text-yellow-800' : 'text-green-800'}
-                          showIcon='none'
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <InvoiceCard invoice={invoice} />
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableSkeleton rows={5} cols={13} />
+                  ) : allInvoices.invoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={13} className="text-center">
+                        No invoices found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    allInvoices.invoices.map((invoice, index) => (
+                      <TableRow key={invoice.invoiceNumber}>
+                        <TableCell className="text-center">{index + 1}</TableCell>
+                        <TableCell>{invoice.invoiceNumber}</TableCell>
+                        <TableCell>{new Date(invoice.invoiceTimestamp!).toLocaleDateString()}</TableCell>
+                        <TableCell>{invoice.partyCode}</TableCell>
+                        <TableCell className="truncate max-w-[140px]">{invoice.party?.customerName}</TableCell>
+                        <TableCell>{invoice.party?.city}</TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.invoiceTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.checkTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
+                        <TableCell>{tweleHrFormatDateString(new Date(invoice.updatedAt))}</TableCell>
+                        <TableCell>
+                          <Capsule
+                            text={invoice.isOtc ? 'OTC' : 'Normal'}
+                            bgColor={invoice.isOtc ? 'bg-yellow-100' : 'bg-green-100'}
+                            textColor={invoice.isOtc ? 'text-yellow-800' : 'text-green-800'}
+                            showIcon='none'
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <InvoiceCard invoice={invoice} />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           <div className="mt-4 flex justify-center">

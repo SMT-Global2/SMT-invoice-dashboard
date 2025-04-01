@@ -27,6 +27,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useUsersStore , User, UserSchema } from "@/store/useUsersStore"
+import { Department } from "@prisma/client"
+import { Badge } from "@/components/ui/badge"
+import { Check, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 export function EmployeeDialog() {
   const { selectedUser, setSelectedUser, createUser, updateUser } = useUsersStore()
@@ -43,7 +49,7 @@ export function EmployeeDialog() {
       phoneNumber: "",
       email: "",
       address: "",
-      department: "INVOICE_MANAGEMENT",
+      department: ["INVOICE_MANAGEMENT"],
       type: "USER",
     },
   })
@@ -59,7 +65,7 @@ export function EmployeeDialog() {
         phoneNumber: selectedUser.phoneNumber || "",
         email: selectedUser.email || "",
         address: selectedUser.address || "",
-        department: selectedUser.department || "INVOICE_MANAGEMENT",
+        department: selectedUser.department || ["INVOICE_MANAGEMENT"],
         type: selectedUser.type || "USER",
       })
     } else {
@@ -72,7 +78,7 @@ export function EmployeeDialog() {
         phoneNumber: "",
         email: "",
         address: "",
-        department: "INVOICE_MANAGEMENT",
+        department: ["INVOICE_MANAGEMENT"],
         type: "USER",
       })
     }
@@ -91,6 +97,13 @@ export function EmployeeDialog() {
       console.error("Failed to save employee:", error)
     }
   }
+
+  const departmentOptions = [
+    { label: "Receipt Management", value: Department.RECEIPT_MANAGEMENT },
+    { label: "Invoice Management", value: Department.INVOICE_MANAGEMENT },
+    { label: "Purchase Management", value: Department.PURCHASE_MANAGEMENT },
+    { label: "All Rounder", value: Department.ALL_ROUNDER },
+  ]
 
   return (
     <Dialog open={open} onOpenChange={() => setSelectedUser(null)}>
@@ -238,22 +251,97 @@ export function EmployeeDialog() {
                 name="department"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm">Department</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="INVOICE_MANAGEMENT">Invoice Management</SelectItem>
-                        <SelectItem value="RECEIPT_MANAGEMENT">Receipt Management</SelectItem>
-                        <SelectItem value="ALL_ROUNDER">All-Rounder</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel className="text-sm">Departments</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value?.length && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value?.length
+                              ? `${field.value.length} department(s) selected`
+                              : "Select departments"}
+                            <X
+                              className={cn(
+                                "ml-2 h-4 w-4 shrink-0 opacity-50",
+                                field.value?.length > 0 ? "block" : "hidden"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                field.onChange([])
+                              }}
+                            />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search departments..." />
+                          <CommandEmpty>No department found.</CommandEmpty>
+                          <CommandGroup>
+                            {departmentOptions.map((option) => {
+                              const isSelected = field.value?.includes(option.value)
+                              return (
+                                <CommandItem
+                                  key={option.value}
+                                  value={option.value}
+                                  onSelect={() => {
+                                    if (isSelected) {
+                                      field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== option.value
+                                        )
+                                      )
+                                    } else {
+                                      field.onChange([
+                                        ...(field.value || []),
+                                        option.value,
+                                      ])
+                                    }
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      isSelected ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {option.label}
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {field.value?.map((dept) => {
+                        let variant: "default" | "destructive" | "outline" | "secondary" = "outline";
+                        if (dept === "INVOICE_MANAGEMENT") variant = "secondary";
+                        if (dept === "RECEIPT_MANAGEMENT") variant = "default";
+                        if (dept === "PURCHASE_MANAGEMENT") variant = "destructive";
+                        if (dept === "ALL_ROUNDER") variant = "outline";
+                        
+                        return (
+                          <Badge key={dept} variant={variant} className="mb-1 rounded-full text-xs px-2 py-0.5 font-normal">
+                            {departmentOptions.find(opt => opt.value === dept)?.label}
+                            <X
+                              className="ml-1 h-3 w-3 cursor-pointer"
+                              onClick={() => {
+                                field.onChange(
+                                  field.value?.filter(value => value !== dept)
+                                )
+                              }}
+                            />
+                          </Badge>
+                        );
+                      })}
+                    </div>
                     <FormMessage className="text-xs" />
                   </FormItem>
                 )}
@@ -263,7 +351,7 @@ export function EmployeeDialog() {
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm">Type</FormLabel>
+                    <FormLabel className="text-sm">User Type</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -284,16 +372,17 @@ export function EmployeeDialog() {
               />
             </div>
 
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-end gap-2 pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => setSelectedUser(null)}
-                className="bg-background h-8 text-sm"
               >
                 Cancel
               </Button>
-              <Button type="submit" className="h-8 text-sm">Save</Button>
+              <Button type="submit">
+                {selectedUser?.id ? "Update" : "Create"} Employee
+              </Button>
             </div>
           </form>
         </Form>

@@ -32,6 +32,7 @@ export function PartyDialog() {
       code: "",
       customerName: "",
       city: "",
+      regionalCode: "",
     },
   })
 
@@ -41,12 +42,14 @@ export function PartyDialog() {
         code: selectedParty.code || "",
         customerName: selectedParty.customerName || "",
         city: selectedParty.city || "",
+        regionalCode: selectedParty.regionalCode || "",
       })
     } else {
       form.reset({
         code: "",
         customerName: "",
         city: "",
+        regionalCode: "",
       })
     }
   }, [selectedParty, form])
@@ -111,6 +114,23 @@ export function PartyDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm">City</FormLabel>
+                  <FormControl>
+                    <Input 
+                      className="bg-background" 
+                      {...field} 
+                      value={field.value || ''} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="regionalCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm">Regional Code</FormLabel>
                   <FormControl>
                     <Input 
                       className="bg-background" 

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import moment from "moment";
-import { CheckStatus, DeliveryStatus, PackageStatus } from "@prisma/client";
+import { CheckStatus, DeliveryStatus, PackageStatus, PaymodeMode } from "@prisma/client";
 import { findOrCreateDayStart } from "../startNo/helper";
 
 const invoiceSchema = z.object({
@@ -11,7 +11,8 @@ const invoiceSchema = z.object({
     partyCode: z.string().nonempty('Party code is required'),
     image: z.array(z.string()),
     isOtc: z.boolean().default(true),
-    generatedDate: z.string().datetime()
+    generatedDate: z.string().datetime(),
+    paymodeMode: z.nativeEnum(PaymodeMode)
 });
 
 export async function POST(req: Request) {
@@ -100,7 +101,7 @@ export async function POST(req: Request) {
 
                 const newMax = Math.max(validatedData.invoiceNumber , maxInvoiceNumber?.invoiceEndNo || 0)
                 //Update max and create invoice
-                await prismaTxn.dayStart.update({
+                await prismaTxn.dayStartInvoice.update({
                     where: {
                         date: moment().format('YYYY-MM-DD')
                     },
@@ -115,6 +116,7 @@ export async function POST(req: Request) {
                         generatedDate: validatedData.generatedDate,
                         invoiceTimestamp: moment().toDate(),
                         invoiceUsername: session.user.username,
+                        paymodeMode: validatedData.paymodeMode,
                         ...data
                     }
                 })

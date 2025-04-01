@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import moment from "moment";
 import { findOrCreateDayStart } from "../startNo/helper";
+import { PaymodeMode } from "@prisma/client";
 
 const invoiceSchema = z.object({
     invoiceNumber: z.number(),
     partyCode: z.string().nonempty('Party code is required'),
+    paymodeMode: z.nativeEnum(PaymodeMode),
     image: z.array(z.string()).nonempty('Atleast one image is required'),
     isOtc: z.boolean().default(false),
     generatedDate: z.string().datetime(),
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
 
             const newMax = Math.max(validatedData.invoiceNumber , maxInvoiceNumber?.invoiceEndNo || 0)
             //Update max and create invoice
-            await prismaTxn.dayStart.update({
+            await prismaTxn.dayStartInvoice.update({
                 where: {
                     date: moment().format('YYYY-MM-DD')
                 },

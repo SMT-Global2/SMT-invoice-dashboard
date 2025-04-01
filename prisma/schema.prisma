@@ -17,7 +17,7 @@ model User {
   phoneNumber   String
   email         String?
   address       String?
-  department    Department
+  department    Department[]
   type          UserType  @default(USER)
 
   // invoice       Invoice[] @relation("InvoiceToUser")
@@ -35,19 +35,77 @@ model PartyCode {
     code         String    @unique
     customerName String?
     city         String?
+    regionalCode String?
 
     invoice Invoice[]
+    deliveryMemo DeliveryMemo[]
+    expiry Expiry[]
+    receipt Receipt[]
 
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
 }
 
+model AgencyCode {
+    id           String    @id @map("_id") @default(auto()) @db.ObjectId
+    code         String    @unique
+    companyName  String?
+    shortName    String?
+
+    inventory Inventory[]
+
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+}
+
+model Expiry {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+
+  generatedDate     DateTime
+  voucherNumber     String
+  image             String[]
+
+  partyCode         String    
+  party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
+
+  expiryDate        DateTime
+  expiryUsername    String
+  expiryTimestamp   DateTime
+  
+  creditNoteNumber      String?
+  creditNoteUsername    String?
+  creditNoteTimestamp   DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt  
+}
+
+model DeliveryMemo {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  dmNumber          Int    @unique
+  generatedDate     DateTime
+
+  partyCode         String    
+  party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
+
+  goodsCollectedUsername   String?
+  goodsCollectedTimestamp  DateTime?
+
+  goodsCheckedUsername   String?
+  goodsCheckedTimestamp  DateTime?
+
+  image             String[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
 
 model Invoice {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
   invoiceNumber     Int    @unique
   generatedDate     DateTime
 
+  paymodeMode       PaymodeMode
   partyCode         String    
   party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
 
@@ -80,15 +138,136 @@ model Invoice {
   deliveredLocationLink     String?
   deliveryStatus            DeliveryStatus @default(NOT_DELIVERED)
 
+  billedUsername            String?
+  billedTimestamp           DateTime?
+  billedStatus              BilledStatus @default(NOT_BILLED)
+  // billedBy                  User? @relation("BilledToUser",fields: [billedUsername], references: [username] , onDelete: NoAction)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
 
-model DayStart {
+model Inventory {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  generatedDate     DateTime
+
+  //Need for creating Inventory
+  agencyCode        String
+  agency            AgencyCode  @relation(fields: [agencyCode], references: [code] , onDelete: NoAction)
+  invoiceNumber     Int
+  invoiceDate       DateTime
+  orderNumber       Int
+  orderDate         DateTime
+  inventoryCheckUsername   String?
+  inventoryCheckTimestamp  DateTime?
+
+  
+  //Will be rows used input in 2nd table
+  voucherNumber     Int?
+  inventoryVoucherUsername   String?
+  inventoryVoucherTimestamp  DateTime?
+  image             String[]
+
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt  
+}
+
+
+model Statement {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+
+  fileUrl            String
+  reports            Report[]
+  uploadedUsername   String?
+  uploadedTimestamp  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Report {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+
+  title             String
+  tableData         Json
+  images            String[]
+  saved             Boolean   @default(false)
+  savedTimestamp    DateTime?
+  savedUsername     String?
+
+  statementId       String    @db.ObjectId
+  statement         Statement  @relation(fields: [statementId], references: [id] , onDelete: NoAction)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+type CurrencyBills {
+  500 Int @default(0)
+  200 Int @default(0)
+  100 Int @default(0)
+  50  Int @default(0)
+  20  Int @default(0)
+  10  Int @default(0)
+}
+
+type Cheque {
+  number String?
+  bank String?
+  date DateTime?
+  amount Int?
+}
+
+model Receipt {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+
+  generatedDate     DateTime
+  amount            Int
+  remarks           String?
+
+  receiptUsername   String?
+  receiptTimestamp  DateTime?
+
+  paymentMethod     PaymentMethod @default(NONE)
+
+  receiptNumber     Int?
+  currencyBills     CurrencyBills?
+  
+  cheque            Cheque?
+
+  partyCode         String    
+  party             PartyCode  @relation(fields: [partyCode], references: [code] , onDelete: NoAction)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+
+
+model DayStartInvoice {
   id             String    @id @map("_id") @default(auto()) @db.ObjectId
   date           String    @unique
   invoiceStartNo Int
   invoiceEndNo   Int?
+}
+
+model DayStartDeliveryMemo {
+  id             String    @id @map("_id") @default(auto()) @db.ObjectId
+  date           String    @unique
+  invoiceStartNo Int
+  invoiceEndNo   Int?
+}
+
+enum PaymodeMode {
+  CASH
+  CREDIT
+}
+
+enum PaymentMethod {
+  NONE
+  CASH
+  CHEQUE
 }
 
 enum UserType {
@@ -99,6 +278,7 @@ enum UserType {
 enum Department {
   RECEIPT_MANAGEMENT
   INVOICE_MANAGEMENT
+  PURCHASE_MANAGEMENT
   ALL_ROUNDER
 }
 
@@ -116,4 +296,14 @@ enum DeliveryStatus {
   NOT_DELIVERED
   PICKED_UP
   DELIVERED
+}
+
+enum BilledStatus {
+  NOT_BILLED
+  BILLED
+}
+
+enum DayStartType {
+  INVOICE
+  DELIVERY_MEMO
 }

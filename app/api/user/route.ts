@@ -37,7 +37,7 @@ const UserSchema = z.object({
   phoneNumber: z.string().min(1),
   type: z.enum(['ADMIN', 'USER']),
   password: z.string().min(1),
-  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]),
+  department: z.array(z.nativeEnum(Department)),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
 });
@@ -79,9 +79,16 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.create({
       data: {
-        ...validatedData,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        username: validatedData.username,
+        phoneNumber: validatedData.phoneNumber,
+        type: validatedData.type,
         password: validatedData.password,
         visiblePassword: visiblePassword,
+        department: validatedData.department,
+        email: validatedData.email || undefined,
+        address: validatedData.address || undefined,
        },
     });
 
@@ -101,7 +108,7 @@ const UserUpdateSchema = z.object({
   phoneNumber: z.string().min(1),
   type: z.enum(['ADMIN', 'USER']),
   password: z.string().optional().or(z.literal("")),
-  department: z.enum([Department.ALL_ROUNDER , Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]),
+  department: z.array(z.nativeEnum(Department)),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
 });
@@ -136,8 +143,16 @@ export async function PUT(request: NextRequest) {
     const user = await prisma.user.update({
       where: { id },
       data: {
-        ...validatedData,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        username: validatedData.username,
+        phoneNumber: validatedData.phoneNumber,
+        type: validatedData.type,
+        password: validatedData.password,
         visiblePassword: visiblePassword,
+        department: validatedData.department,
+        email: validatedData.email || undefined,
+        address: validatedData.address || undefined,
       },
     });
 

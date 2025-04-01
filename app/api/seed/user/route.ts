@@ -14,8 +14,6 @@ export async function GET(request: Request) {
     if(password !== process.env.SEED_PASSWORD) {
       return Response.json({error: 'Invalid password'}, {status: 400})
     }
-    
-    console.log(password)
 
     const data = await prisma.user.createMany({
       data: userSeed.map((item) => ({
