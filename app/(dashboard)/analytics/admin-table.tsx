@@ -44,7 +44,6 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { InvoiceCard } from "./invoice-card"
 import { tweleHrFormatDateString } from '@/lib/helper';
-import { BankNote } from "lucide-react"
 
 export default function AdminInvoiceTable() {
   const {
@@ -144,7 +143,7 @@ export default function AdminInvoiceTable() {
     setPagination({ ...pagination, page: 0 });
   };
 
-  const calculateProgress = (invoice) => {
+  const calculateProgress = (invoice : any) => {
     let stages = 0;
     let completed = 0;
     
@@ -222,7 +221,7 @@ export default function AdminInvoiceTable() {
               onValueChange={(value) => {
                 setFilters({
                   ...filters,
-                  progressStage: value
+                  progressStage: value as any
                 });
                 setPagination({ ...pagination, page: 0 });
               }}
