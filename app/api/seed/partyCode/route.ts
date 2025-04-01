@@ -17,9 +17,10 @@ export async function GET(request: Request) {
 
     const data = await prisma.partyCode.createMany({
       data: partyCodeSeed.map((item) => ({
-        code: item.CODE,
-        customerName: item["CUSTOMER NAME"] ?? null,
-        city: item?.City ?? null,
+        code: item.code,
+        customerName: item.customerName,
+        city: item.city,
+        regionalCode: item.regionalCode,
       }))
     })
     return Response.json({data})
