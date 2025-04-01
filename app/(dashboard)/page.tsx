@@ -13,6 +13,7 @@ import {
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { useSession } from "next-auth/react"
+import { Loader2 } from "lucide-react"
 
 // Reusable tile component
 interface DashboardTileProps {
@@ -76,9 +77,21 @@ const TileGroup = ({ title, children }: TileGroupProps) => {
 export default function DashboardPage() {
   // const session = await getServerSession(authOptions);
   const session = useSession()
+  
+  if (session.status === "loading") {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+  
   const userRoles = [session?.data?.user?.type, ...(session?.data?.user?.department ?? [])]
     .filter((role): role is UserType | Department => role !== undefined);
-  
+    
   return (
     <div className="w-full overflow-hidden">
       <div className="space-y-8">
