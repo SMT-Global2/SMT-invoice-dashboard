@@ -62,17 +62,12 @@ export async function GET(request: Request) {
     
     // Convert to array format for the chart
     const trendData = Array.from(dailyData.entries()).map(([date, data]) => {
-      // Generate estimated items and orders based on invoice count
-      // Using reasonable estimates since we don't have these fields in the database
-      const estimatedItems = data.invoiceCount * 5; // Assume average 5 items per invoice
-      const estimatedOrders = Math.ceil(data.invoiceCount * 1.5); // Assume average 1.5 orders per invoice
-      
       return {
         date,
         invoiceCount: data.invoiceCount,
         invoices: data.invoiceCount, // Alias for consistency with UI
-        items: estimatedItems,
-        orders: estimatedOrders
+        items: data.invoiceCount, // Use actual invoice count
+        orders: data.invoiceCount // Use actual invoice count
       };
     });
     

@@ -115,7 +115,7 @@ export function PartyCodeSelector({
                     value === party.code ? "opacity-100" : "opacity-0"
                   )}
                 />
-                {party.code} - {party?.customerName}
+                {party.code} - {party?.customerName} - {party?.city}
               </CommandItem>
             ))}
           </CommandGroup>

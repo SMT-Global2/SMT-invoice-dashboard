@@ -41,6 +41,10 @@ interface DeliveryInvoiceState {
   deliveredSelectedRegionalCodes: string[]
   availableRegionalCodes: string[]
   
+  //Printing state
+  toDeliverInvoicesForPrinting: DeliveryInvoiceData[]
+  fetchToDeliverInvoicesForPrinting: () => Promise<void>
+  
   // Pagination state
   toDeliverPage: number
   inTransitPage: number
@@ -302,6 +306,66 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
               regionalCode: item?.party?.regionalCode || '-',
             })),
             toDeliverTotalPages: totalPages || 1,
+            isLoading: false 
+          });
+        } catch (error) {
+          set({ error: 'Failed to fetch to-deliver invoices', isLoading: false });
+        }
+      },
+
+      fetchToDeliverInvoicesForPrinting: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          const fetchInvoicesForPrinting = async () => {
+            const url = new URL('/api/invoice/deliver/to-deliver', window.location.origin);
+            const date = get().toDeliverSelectedDate;
+            
+            if (date) {
+              url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
+            }
+            
+            // Add pagination parameters
+            url.searchParams.set('page', '1');
+            url.searchParams.set('limit', '1000000');
+            
+            // Add search parameter
+            const searchTerm = get().toDeliverSearchTerm;
+            if (searchTerm) {
+              url.searchParams.set('search', searchTerm);
+            }
+            
+            // Add regional code filter parameters
+            const regionalCodes = get().toDeliverSelectedRegionalCodes;
+            if (regionalCodes.length > 0) {
+              url.searchParams.set('regionalCodes', JSON.stringify(regionalCodes));
+            }
+            
+            const response = await fetch(url.toString());
+            const { data, totalPages } = await response.json();
+
+            const proccesedData = data.map((item: any) => ({
+              ...item,
+              medicalName: item?.party?.customerName || '-',
+              city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
+            }));
+
+            //Sort Data first regional code and then city and then invoice number
+            proccesedData.sort((a: any, b: any) => {
+              if (a.regionalCode !== b.regionalCode) {
+                return a.regionalCode.localeCompare(b.regionalCode);
+              }
+              if (a.city !== b.city) {
+                return a.city.localeCompare(b.city);
+              }
+              return a.invoiceNumber.localeCompare(b.invoiceNumber);
+            });
+            
+            return proccesedData;
+          };
+
+          set({ 
+            toDeliverInvoicesForPrinting: await fetchInvoicesForPrinting(),
             isLoading: false 
           });
         } catch (error) {

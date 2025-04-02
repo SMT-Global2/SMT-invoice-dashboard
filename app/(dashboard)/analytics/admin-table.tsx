@@ -214,12 +214,14 @@ export default function AdminInvoiceTable() {
               </PopoverContent>
             </Popover>
             
-            <RegionalCodeFilter
-              selectedRegionalCodes={filters.selectedRegionalCodes}
-              availableRegionalCodes={availableRegionalCodes}
-              setSelectedRegionalCodes={setSelectedRegionalCodes}
-              label="Regions"
-            />
+            <div className='max-w-[200px]'>
+              <RegionalCodeFilter
+                selectedRegionalCodes={filters.selectedRegionalCodes}
+                availableRegionalCodes={availableRegionalCodes}
+                setSelectedRegionalCodes={setSelectedRegionalCodes}
+                label="Regions"
+              />
+            </div>
 
             <Select
               value={filters.progressStage || 'all'}

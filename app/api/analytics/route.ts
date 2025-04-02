@@ -240,11 +240,11 @@ export async function GET(request: Request) {
 
     // Get the count of processed items and orders based on invoice count
     // Since we don't have totalItems and totalOrders fields in schema
-    const processedItems = totalGenerated * 5; // Estimate 5 items per invoice
-    const totalOrders = Math.ceil(totalGenerated * 1.5); // Estimate 1.5 orders per invoice
+    const processedItems = totalGenerated; // Use actual invoice count
+    const totalOrders = totalGenerated; // Use actual invoice count
     
-    const previousProcessedItems = previousTotalInvoices * 5;
-    const previousTotalOrders = Math.ceil(previousTotalInvoices * 1.5);
+    const previousProcessedItems = previousTotalInvoices;
+    const previousTotalOrders = previousTotalInvoices;
 
     // Calculate total active users from all roles
     // Use Set to avoid counting the same user multiple times
