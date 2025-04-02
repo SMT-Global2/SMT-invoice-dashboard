@@ -74,6 +74,17 @@ export async function GET(request: NextRequest) {
         }
     }
 
+    let orderBy : any = {
+        packageTimestamp: 'asc'
+    }
+    if(regionalCodesParam){
+        orderBy = {
+            party: {
+                regionalCode: 'asc'
+            }
+        }
+    }
+
     const [totalCount, data] = await Promise.all([
         prisma.invoice.count({
             where: {
@@ -95,9 +106,7 @@ export async function GET(request: NextRequest) {
             include: {
                 party: true,
             },
-            orderBy: {
-                pickupTimestamp: 'asc'
-            },
+            orderBy: orderBy,
             skip,
             take: limit
         })
