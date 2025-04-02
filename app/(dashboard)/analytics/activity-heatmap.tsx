@@ -6,7 +6,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchActivityData } from "./api";
+import useAnalyticsStore from "@/store/useAnalyticsStore";
 
 interface ActivityHeatmapProps {
   title?: string;
@@ -23,6 +23,7 @@ export function ActivityHeatmap({
   title = "Activity Heatmap",
   description = "Hourly activity patterns across weekdays"
 }: ActivityHeatmapProps) {
+  const { fetchActivityData } = useAnalyticsStore();
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -52,7 +53,7 @@ export function ActivityHeatmap({
     };
 
     loadData();
-  }, [date, activityType]);
+  }, [date, activityType, fetchActivityData]);
 
   // Function to determine cell color based on value
   const getCellColor = (value: number) => {

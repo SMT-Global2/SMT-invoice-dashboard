@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { fetchAnalyticsData } from "./api";
+import useAnalyticsStore from "@/store/useAnalyticsStore";
 
 interface StatsCardData {
   title: string;
@@ -18,6 +18,7 @@ interface StatsCardData {
 }
 
 export function StatsCards() {
+  const { fetchAnalyticsData } = useAnalyticsStore();
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -77,7 +78,7 @@ export function StatsCards() {
     };
 
     loadData();
-  }, [date]);
+  }, [date, fetchAnalyticsData]);
 
   return (
     <div className="space-y-4">

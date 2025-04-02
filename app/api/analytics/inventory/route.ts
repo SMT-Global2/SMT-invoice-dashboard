@@ -84,6 +84,11 @@ export async function GET(request: Request) {
       })
     ]);
 
+    // Calculate efficiency (percentage of invoices that have been checked)
+    const efficiency = totalInventoryCount > 0 
+      ? Math.round((checkedInventories / totalInventoryCount) * 100) 
+      : 0;
+
     // Group inventories by agency
     const inventoryByAgency = await prisma.inventory.groupBy({
       by: ['agencyCode'],
@@ -106,60 +111,30 @@ export async function GET(request: Request) {
         select: { companyName: true, shortName: true }
       });
 
+      // Calculate percentage of total
+      const percentage = totalInventoryCount > 0 
+        ? (agency._count.id / totalInventoryCount) * 100 
+        : 0;
+
       return {
-        agencyCode: agency.agencyCode,
-        companyName: agencyDetails?.companyName || agency.agencyCode,
-        shortName: agencyDetails?.shortName,
-        count: agency._count.id
+        name: agencyDetails?.companyName || agency.agencyCode,
+        count: agency._count.id,
+        percentage: Math.round(percentage * 10) / 10 // Round to 1 decimal place
       };
     });
 
-    const inventoryByAgencyWithDetails = await Promise.all(agencyDetailsPromises);
+    const agencies = await Promise.all(agencyDetailsPromises);
 
-    // Get inventory trend over time
-    const startDate = moment(fromDate);
-    const endDate = moment(toDate);
-    const dateRange = [];
-    
-    // Generate date range
-    while (startDate.isSameOrBefore(endDate, 'day')) {
-      dateRange.push(startDate.format('YYYY-MM-DD'));
-      startDate.add(1, 'day');
-    }
-
-    // Group inventories by day
-    const inventoryTrend = await Promise.all(
-      dateRange.map(async (date) => {
-        const dayStart = moment(date).startOf('day').toDate();
-        const dayEnd = moment(date).endOf('day').toDate();
-        
-        const count = await prisma.inventory.count({
-          where: {
-            generatedDate: {
-              gte: dayStart,
-              lte: dayEnd
-            }
-          }
-        });
-        
-        return {
-          date: moment(date).format('MMM DD'),
-          count
-        };
-      })
-    );
-
-    // Return all data
+    // Format response to match the interface
     return NextResponse.json({
-      data: {
-        totalInventoryCount,
-        checkedInventories,
-        uncheckedInventories,
-        voucheredInventories,
-        pendingVoucherInventories,
-        inventoryByAgency: inventoryByAgencyWithDetails,
-        inventoryTrend
-      }
+      metrics: {
+        total: totalInventoryCount,
+        checked: checkedInventories,
+        vouchered: voucheredInventories,
+        incomplete: pendingVoucherInventories,
+        efficiency: efficiency
+      },
+      agencies
     });
 
   } catch (error) {

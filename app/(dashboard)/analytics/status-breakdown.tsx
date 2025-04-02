@@ -6,7 +6,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { fetchAnalyticsData } from "./api";
+import useAnalyticsStore from "@/store/useAnalyticsStore";
 
 interface StatusBreakdownProps {
   title?: string;
@@ -23,6 +23,7 @@ export function StatusBreakdown({
   title = "Invoice Status Breakdown",
   description = "Distribution of invoices by current status"
 }: StatusBreakdownProps) {
+  const { fetchAnalyticsData } = useAnalyticsStore();
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -76,7 +77,7 @@ export function StatusBreakdown({
     };
 
     loadData();
-  }, [date]);
+  }, [date, fetchAnalyticsData]);
 
   // Custom tooltip formatter
   const CustomTooltip = ({ active, payload }: any) => {

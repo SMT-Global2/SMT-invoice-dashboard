@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     const sortField = searchParams.get('sortField') || 'invoiceTimestamp'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
     const progressStage = searchParams.get('progressStage') || 'all'
+    const regionalCodesParam = searchParams.get('regionalCodes')
 
     // Build where clause
     let where: any = {
@@ -57,6 +58,26 @@ export async function GET(request: Request) {
           }
         }] : [])
       ]
+    }
+
+    // Add regional codes filter if provided
+    let regionalCodesFilter = {}
+    if (regionalCodesParam) {
+      try {
+        const regionalCodes = JSON.parse(regionalCodesParam)
+        if (Array.isArray(regionalCodes) && regionalCodes.length > 0) {
+          regionalCodesFilter = {
+            party: {
+              regionalCode: {
+                in: regionalCodes
+              }
+            }
+          }
+          where.AND.push(regionalCodesFilter)
+        }
+      } catch (error) {
+        console.error('Error parsing regional codes:', error)
+      }
     }
 
     // Add process stage filter

@@ -1,23 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Check, X, Filter, Search, Earth } from 'lucide-react';
-import { Badge } from './ui/badge';
+import * as React from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { Label } from './ui/label';
-import { Separator } from './ui/separator';
-import { Command, CommandGroup, CommandItem, CommandList, CommandInput, CommandEmpty } from './ui/command';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface RegionalCodeFilterProps {
   selectedRegionalCodes: string[];
   availableRegionalCodes: string[];
-  setSelectedRegionalCodes: (codes: string[]) => void;
+  setSelectedRegionalCodes: (values: string[]) => void;
   label?: string;
 }
 
@@ -25,114 +29,80 @@ export function RegionalCodeFilter({
   selectedRegionalCodes,
   availableRegionalCodes,
   setSelectedRegionalCodes,
-  label = 'Regional Codes'
+  label = "Select regional codes",
 }: RegionalCodeFilterProps) {
-  const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [open, setOpen] = React.useState(false);
 
   const toggleRegionalCode = (code: string) => {
-    if (selectedRegionalCodes.includes(code)) {
-      setSelectedRegionalCodes(selectedRegionalCodes.filter(c => c !== code));
-    } else {
-      setSelectedRegionalCodes([...selectedRegionalCodes, code]);
-    }
+    setSelectedRegionalCodes(
+      selectedRegionalCodes.includes(code)
+        ? selectedRegionalCodes.filter((c) => c !== code)
+        : [...selectedRegionalCodes, code]
+    );
   };
-
-  const clearAllSelectedCodes = () => {
-    setSelectedRegionalCodes([]);
-    setOpen(false);
-  };
-
-  // Filter the available codes based on search query
-  const filteredCodes = searchQuery 
-    ? availableRegionalCodes.filter(code => 
-        code.toLowerCase().includes(searchQuery.toLowerCase()))
-    : availableRegionalCodes;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="h-9 flex items-center gap-1 min-w-[100px] w-full justify-center"
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="min-w-[200px] justify-between"
         >
-          <Earth className="h-3.5 w-3.5" />
-          <span>{label}</span>
-          {selectedRegionalCodes.length > 0 && (
-            <Badge 
-              variant="secondary" 
-              className="rounded-full ml-1 px-1 font-normal text-xs"
-            >
-              {selectedRegionalCodes.length}
-            </Badge>
-          )}
+          {selectedRegionalCodes.length > 0
+            ? `${selectedRegionalCodes.length} selected`
+            : label}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0" align="start" side="bottom">
-        <div className="p-2 flex items-center justify-between">
-          <Label className="font-medium">Filter by region</Label>
-          {selectedRegionalCodes.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 px-2 text-xs"
-              onClick={clearAllSelectedCodes}
-            >
-              Clear all
-              <X className="ml-1 h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        <Separator />
+      <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput 
-            placeholder="Search regions..." 
-            value={searchQuery}
-            onValueChange={setSearchQuery}
-            className="border-none focus:ring-0"
-          />
-          <CommandList className="max-h-[280px] overflow-auto">
-            <CommandEmpty>No matching regions found.</CommandEmpty>
-            <CommandGroup>
-              {filteredCodes.map(code => (
-                <CommandItem
-                  key={code}
-                  onSelect={() => toggleRegionalCode(code)}
-                  className="flex items-center cursor-pointer"
-                >
-                  <div 
-                    className={cn(
-                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
-                      selectedRegionalCodes.includes(code) 
-                        ? "bg-primary border-primary text-primary-foreground" 
-                        : "border-muted-foreground"
-                    )}
-                  >
-                    {selectedRegionalCodes.includes(code) && (
-                      <Check className="h-3 w-3" />
-                    )}
-                  </div>
-                  <span>{code}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
+          <CommandInput placeholder="Search regions..." />
+          <CommandEmpty>No regional code found.</CommandEmpty>
+          <CommandGroup>
+            {availableRegionalCodes.map((code) => (
+              <CommandItem
+                key={code}
+                value={code}
+                onSelect={() => toggleRegionalCode(code)}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    selectedRegionalCodes.includes(code)
+                      ? "opacity-100"
+                      : "opacity-0"
+                  )}
+                />
+                {code}
+              </CommandItem>
+            ))}
+          </CommandGroup>
         </Command>
+        
         {selectedRegionalCodes.length > 0 && (
-          <div className="border-t p-2">
-            <div className="flex flex-wrap gap-1 items-center">
-              <Label className="text-xs text-muted-foreground mr-2">Selected:</Label>
-              {selectedRegionalCodes.map(code => (
-                <Badge key={code} variant="secondary" className="flex items-center gap-1">
-                  {code}
-                  <X 
-                    className="h-3 w-3 cursor-pointer" 
-                    onClick={() => toggleRegionalCode(code)}
-                  />
-                </Badge>
-              ))}
-            </div>
+          <div className="border-t p-2 flex flex-wrap gap-1">
+            {selectedRegionalCodes.map((code) => (
+              <Badge
+                key={code}
+                variant="secondary"
+                className="cursor-pointer"
+                onClick={() => toggleRegionalCode(code)}
+              >
+                {code}
+                <span className="ml-1 text-xs">×</span>
+              </Badge>
+            ))}
+            {selectedRegionalCodes.length > 1 && (
+              <Badge
+                variant="outline"
+                className="cursor-pointer text-xs"
+                onClick={() => setSelectedRegionalCodes([])}
+              >
+                Clear all
+              </Badge>
+            )}
           </div>
         )}
       </PopoverContent>

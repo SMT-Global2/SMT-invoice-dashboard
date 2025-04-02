@@ -6,7 +6,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { fetchAnalyticsData } from "./api";
+import useAnalyticsStore from "@/store/useAnalyticsStore";
 
 interface TrendChartProps {
   title?: string;
@@ -20,6 +20,7 @@ interface TrendData {
 }
 
 export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
+  const { fetchTrendData } = useAnalyticsStore();
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -32,10 +33,10 @@ export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
     const loadData = async () => {
       setLoading(true);
       try {
-        const analyticsData = await fetchAnalyticsData(date);
+        const analyticsData = await fetchTrendData(date);
         
         // Format the trend data
-        setData(analyticsData.trend || []);
+        setData(analyticsData.trendData || []);
       } catch (error) {
         console.error('Error fetching trend data:', error);
       } finally {
@@ -44,7 +45,7 @@ export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
     };
 
     loadData();
-  }, [date]);
+  }, [date, fetchTrendData]);
 
   // Custom tooltip formatter
   const CustomTooltip = ({ active, payload, label }: any) => {
