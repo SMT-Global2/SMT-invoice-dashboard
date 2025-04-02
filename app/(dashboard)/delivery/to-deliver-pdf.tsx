@@ -117,7 +117,7 @@ export const toDeliverPrintContent = async ({
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Packages to be Delivered - ${currentDate}</title>
+          <title>&nbsp;</title>
           <style>
             @page {
               size: A4 portrait;
@@ -287,10 +287,9 @@ export const toDeliverPrintContent = async ({
               <div class="title-section">
                 <div>
                   <h1 class="title">Packages to be Delivered</h1>
-                  <p class="company">Medical Distribution System</p>
                   <p class="date">Generated on: ${currentDate}</p>
                 </div>
-                <div class="logo">SMT</div>
+                <div class="logo">Sanjivan Medico Traders</div>
               </div>
               <div class="filters">
                 ${filterDisplay}
