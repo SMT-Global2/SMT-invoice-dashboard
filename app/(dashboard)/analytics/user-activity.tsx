@@ -7,7 +7,7 @@ import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
-import { fetchAnalyticsData } from "./api";
+import useAnalyticsStore from "@/store/useAnalyticsStore";
 
 interface UserActivityProps {
   title?: string;
@@ -28,6 +28,7 @@ export function UserActivity({
   title = "User Activity",
   description = "User contribution by invoice status"
 }: UserActivityProps) {
+  const { fetchUserActivityData } = useAnalyticsStore();
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -49,10 +50,10 @@ export function UserActivity({
     const loadData = async () => {
       setLoading(true);
       try {
-        const analyticsData = await fetchAnalyticsData(date);
+        const analyticsData = await fetchUserActivityData(date);
         
         // Format the user activity data
-        setData(analyticsData.userActivity || []);
+        setData(analyticsData.userActivities || []);
       } catch (error) {
         console.error('Error fetching user activity data:', error);
       } finally {
@@ -61,7 +62,7 @@ export function UserActivity({
     };
 
     loadData();
-  }, [date]);
+  }, [date, fetchUserActivityData]);
 
   // Sort data based on selected criterion
   const sortedData = [...data].sort((a, b) => {

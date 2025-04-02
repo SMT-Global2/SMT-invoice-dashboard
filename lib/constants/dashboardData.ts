@@ -168,7 +168,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/expiry',
         icon: TimerOff,
         description: 'Expiry Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT]
+        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]
       },
       {
         id: 'statement',

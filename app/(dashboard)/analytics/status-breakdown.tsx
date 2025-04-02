@@ -6,7 +6,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { fetchAnalyticsData } from "./api";
+import useAnalyticsStore from "@/store/useAnalyticsStore";
 
 interface StatusBreakdownProps {
   title?: string;
@@ -23,6 +23,7 @@ export function StatusBreakdown({
   title = "Invoice Status Breakdown",
   description = "Distribution of invoices by current status"
 }: StatusBreakdownProps) {
+  const { fetchAnalyticsData } = useAnalyticsStore();
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -30,6 +31,7 @@ export function StatusBreakdown({
   
   const [data, setData] = useState<StatusData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalValue, setTotalValue] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -67,7 +69,11 @@ export function StatusBreakdown({
         ];
         
         // Filter out zero values for better visualization
-        setData(statusData.filter(item => item.value > 0));
+        const filteredData = statusData.filter(item => item.value > 0);
+        setData(filteredData);
+        
+        // Calculate total for percentage calculations
+        setTotalValue(filteredData.reduce((sum, item) => sum + item.value, 0));
       } catch (error) {
         console.error('Error fetching status breakdown data:', error);
       } finally {
@@ -76,7 +82,7 @@ export function StatusBreakdown({
     };
 
     loadData();
-  }, [date]);
+  }, [date, fetchAnalyticsData]);
 
   // Custom tooltip formatter
   const CustomTooltip = ({ active, payload }: any) => {
@@ -86,7 +92,7 @@ export function StatusBreakdown({
         <div className="bg-background border rounded-md shadow-sm p-2 text-xs">
           <p className="font-medium" style={{ color: data.color }}>{data.name}</p>
           <p>{`Count: ${data.value}`}</p>
-          <p>{`Percentage: ${((data.value / data.reduce((sum: number, item: StatusData) => sum + item.value, 0)) * 100).toFixed(1)}%`}</p>
+          <p>{`Percentage: ${((data.value / totalValue) * 100).toFixed(1)}%`}</p>
         </div>
       );
     }

@@ -44,10 +44,13 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { InvoiceCard } from "./invoice-card"
 import { tweleHrFormatDateString } from '@/lib/helper';
+import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import { FilterX } from 'lucide-react';
 
 export default function AdminInvoiceTable() {
   const {
     fetchAnalytics,
+    fetchAvailableRegionalCodes,
     allInvoices,
     analytics,
     isLoading,
@@ -55,12 +58,19 @@ export default function AdminInvoiceTable() {
     setPagination,
     filters,
     setFilters,
-    totalPages
+    totalPages,
+    availableRegionalCodes,
+    setSelectedRegionalCodes,
+    clearAllFilters
   } = useAnalyticsStore()
 
   useEffect(() => {
     fetchAnalytics()
   }, [fetchAnalytics, pagination.page, pagination.limit, filters])
+  
+  useEffect(() => {
+    fetchAvailableRegionalCodes()
+  }, [fetchAvailableRegionalCodes])
 
   const displayedPages = () => {
     const currentPage = pagination.page
@@ -129,18 +139,6 @@ export default function AdminInvoiceTable() {
       });
       setPagination({ ...pagination, page: 0 });
     }
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      ...filters,
-      searchQuery: '',
-      date: new Date().toISOString(),
-      sortField: 'invoiceTimestamp',
-      sortOrder: 'desc',
-      progressStage: 'all'
-    });
-    setPagination({ ...pagination, page: 0 });
   };
 
   const calculateProgress = (invoice : any) => {
@@ -215,6 +213,15 @@ export default function AdminInvoiceTable() {
                 />
               </PopoverContent>
             </Popover>
+            
+            <div className='max-w-[200px]'>
+              <RegionalCodeFilter
+                selectedRegionalCodes={filters.selectedRegionalCodes}
+                availableRegionalCodes={availableRegionalCodes}
+                setSelectedRegionalCodes={setSelectedRegionalCodes}
+                label="Regions"
+              />
+            </div>
 
             <Select
               value={filters.progressStage || 'all'}
@@ -268,10 +275,10 @@ export default function AdminInvoiceTable() {
 
               <Button
                 variant="outline"
-                onClick={clearFilters}
-                className="h-9"
+                onClick={clearAllFilters}
+                className="h-9 flex items-center gap-1"
               >
-                <X className="h-4 w-4 mr-2" />
+                <FilterX className="h-4 w-4" />
                 Clear
               </Button>
             </div>
@@ -386,6 +393,7 @@ export default function AdminInvoiceTable() {
                     <TableHead className="w-24">Party Code</TableHead>
                     <TableHead className="w-36">Medical Name</TableHead>
                     <TableHead className="w-24">City</TableHead>
+                    <TableHead className="w-24">Regional Code</TableHead>
                     <TableHead className="w-24 text-center">Generated</TableHead>
                     <TableHead className="w-24 text-center">Checked</TableHead>
                     <TableHead className="w-24 text-center">Packed</TableHead>
@@ -414,6 +422,7 @@ export default function AdminInvoiceTable() {
                         <TableCell>{invoice.partyCode}</TableCell>
                         <TableCell className="truncate max-w-[140px]">{invoice.party?.customerName}</TableCell>
                         <TableCell>{invoice.party?.city}</TableCell>
+                        <TableCell>{invoice.party?.regionalCode}</TableCell>
                         <TableCell className="text-center"><StatusBadge status={!!invoice.invoiceTimestamp} /></TableCell>
                         <TableCell className="text-center"><StatusBadge status={!!invoice.checkTimestamp} /></TableCell>
                         <TableCell className="text-center"><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>

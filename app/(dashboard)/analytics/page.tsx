@@ -8,7 +8,6 @@ import { StatusBreakdown } from "./status-breakdown";
 import { UserActivity } from "./user-activity";
 import { TopParties } from "./top-parties";
 import { ActivityHeatmap } from "./activity-heatmap";
-import { InventoryMetrics } from "./inventory-metrics";
 import { UserPerformance } from "./user-performance";
 import AdminInvoiceTable from "./admin-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,14 +42,11 @@ export default function AnalyticsPage() {
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             <StatusBreakdown />
             <UserActivity />
-            <TopParties />
           </div>
+          <TopParties />
           
           <ActivityHeatmap />
 
-          <div className="grid grid-cols-1 gap-6">
-            <InventoryMetrics />
-          </div>
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">

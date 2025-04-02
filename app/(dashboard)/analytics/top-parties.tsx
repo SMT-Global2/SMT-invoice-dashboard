@@ -8,7 +8,7 @@ import { DateRange } from "react-day-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Medal } from "lucide-react";
-import { fetchPartiesData } from "./api";
+import useAnalyticsStore from "@/store/useAnalyticsStore";
 
 interface TopPartiesProps {
   title?: string;
@@ -27,6 +27,7 @@ export function TopParties({
   title = "Top Parties",
   description = "Most active agencies and third parties"
 }: TopPartiesProps) {
+  const { fetchPartiesData } = useAnalyticsStore();
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -60,7 +61,7 @@ export function TopParties({
     };
 
     loadData();
-  }, [date]);
+  }, [date, fetchPartiesData]);
 
   // Render medal or rank number
   const renderRanking = (ranking: number) => {
