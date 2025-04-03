@@ -67,7 +67,7 @@ const receiptFormSchema = z.object({
   generatedDate: z.date(),
   currencyBills: currencyBillsSchema.optional().nullable(),
   cheque: chequeSchema.optional().nullable(),
-  receiptNumber: z.number().optional(),
+  receiptNumber: z.number().optional().nullable(),
 }).refine((data) => {
   return true;
 }, {
@@ -626,6 +626,7 @@ export function ReceiptDialog({
                           min="1"
                           placeholder="Enter receipt number"
                           {...field}
+                          value={field.value ?? ''}
                           onWheel={(e) => (e.target as HTMLInputElement).blur()}
                           onChange={(e) => {
                             const value = parseInt(e.target.value) || 0;

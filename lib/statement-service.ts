@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import * as XLSX from 'xlsx';
 
 // Type definitions
 export type FinancialEntry = {
@@ -20,7 +21,7 @@ export type Report = {
   contactInfo?: string;
   creditDays?: string;
   entries: FinancialEntry[];
-  total?: {
+  total: {
     debits: number;
     partAdjustment: number;
     balance: number;
@@ -35,9 +36,11 @@ export type Statement = {
   reports: Report[];
 };
 
+type ExcelRow = string[];
+
 /**
- * Process a financial statement file
- * Parses the specific text format for outstanding reports
+ * Process a financial statement Excel file
+ * Parses the Excel format for outstanding reports
  */
 export const statementService = {
   loadStatements: async (file: File): Promise<Statement[]> => {
@@ -47,12 +50,314 @@ export const statementService = {
       reader.onload = (event) => {
         try {
           if (event.target?.result) {
-            const result = event.target.result as string;
+            const data = event.target.result as ArrayBuffer;
+            const workbook = XLSX.read(data, { type: 'array' });
             
-            // Parse the text file
-            const statement = parseOutstandingReport(result, file.name);
+            // Check for sheet name - try 'micropro Report' first, then fallback to first sheet
+            const sheetName = workbook.SheetNames.includes('micropro Report') 
+                ? 'micropro Report' 
+                : workbook.SheetNames[0];
             
-            if (!statement.reports.length) {
+            if (!sheetName) {
+              throw new Error('No sheets found in the Excel file');
+            }
+            
+            console.log('Using sheet:', sheetName);
+            const sheet = workbook.Sheets[sheetName];
+            
+            // Get the raw data as array of arrays
+            const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+            
+            console.log('Raw Excel Data (first 10 rows):', rawData.slice(0, 10));
+            
+            // Extract report date (look for date pattern in first few rows)
+            let reportDate = '';
+            for (let i = 0; i < Math.min(5, rawData.length); i++) {
+              if (rawData[i] && rawData[i][0]) {
+                const dateMatch = String(rawData[i][0]).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                if (dateMatch) {
+                  reportDate = dateMatch[0];
+                  break;
+                }
+              }
+            }
+            
+            // Initialize statement
+            const statement: Statement = {
+              id: uuidv4(),
+              name: file.name.replace(/\.[^/.]+$/, ''),
+              reportDate,
+              reports: []
+            };
+            
+            // Process all data rows
+            let currentParty: Report | null = null;
+            
+            for (let i = 0; i < rawData.length; i++) {
+              const row = rawData[i];
+              
+              // Skip empty rows
+              if (!row || row.length === 0) continue;
+              
+              // Try to detect party headers - they might be in different formats
+              // Common patterns: contains party code and Days
+              if (row[0] && typeof row[0] === 'string') {
+                const rowText = row[0].toString();
+                console.log(`Row ${i}: ${rowText}`);
+                
+                // Pattern 1: Looks like a party code followed by name
+                // More flexible party header detection - any row that looks like it has a party code
+                // and is not a transaction row (JV, BP, etc.)
+                if (rowText && !['JV', 'BP', 'DC', 'TOTAL'].includes(rowText) && 
+                    (rowText.includes('Days') || /^[A-Z0-9]{2,6}\s/.test(rowText) || rowText.match(/^[A-Z0-9]+[\s,]/))) {
+                    
+                  console.log('Found potential party header:', rowText);
+                  
+                  // If we have a previous party, add it to the statement
+                  if (currentParty && currentParty.entries.length > 0) {
+                    statement.reports.push(currentParty);
+                  }
+                  
+                  // Try different patterns to extract party information
+                  // Pattern 1: CODE NAME,LOCATION (CONTACT) (Days : XX)
+                  // Pattern 2: CODE NAME,LOCATION - (CONTACT) (Days : XX)
+                  // Pattern 3: CODE NAME,LOCATION
+                  // Pattern 4: Just the party code and name (no days or contact)
+                  let partyCode = '';
+                  let partyName = '';
+                  let contactInfo = '';
+                  let creditDays = '';
+                  
+                  // Improved pattern matching for party headers
+                  console.log('Attempting to parse party header:', rowText);
+                  
+                  // First, specifically extract the code at the beginning (alphanumeric characters)
+                  const codeMatch = rowText.match(/^([A-Z0-9]+[\w-]*)/i);
+                  if (codeMatch) {
+                    // Extract the party code
+                    partyCode = codeMatch[1].trim();
+                    console.log('Extracted party code:', partyCode);
+                    
+                    // Remove the code from the text to get the rest
+                    let restText = rowText.substring(partyCode.length).trim();
+                    
+                    // Try to extract contact info (anything in parentheses that's not days)
+                    const contactMatches = restText.match(/\(([^)]*Days[^)]*)\)/ig);
+                    const nonDaysMatches = restText.match(/\(([^)]*(?!Days)[^)]*)\)/ig);
+                    
+                    if (contactMatches && contactMatches.length > 0) {
+                      // This pattern contains "Days", likely the credit days
+                      const daysMatch = contactMatches[0].match(/Days\s*:\s*(\d+)/i);
+                      if (daysMatch) {
+                        creditDays = daysMatch[1];
+                      }
+                    }
+                    
+                    if (nonDaysMatches && nonDaysMatches.length > 0) {
+                      // This is likely the contact info
+                      const contactText = nonDaysMatches[0];
+                      contactInfo = contactText.replace(/[()]/g, '').trim();
+                    }
+                    
+                    // Extract party name by removing code, contact info and days info
+                    partyName = restText
+                      .replace(/\([^)]*Days[^)]*\)/ig, '') // Remove days part
+                      .replace(/\([^)]*\)/g, '')           // Remove contact part
+                      .replace(/,\s*$/, '')                 // Remove trailing commas
+                      .trim();
+                    
+                    console.log('Extracted party components:', {
+                      partyCode,
+                      partyName,
+                      contactInfo,
+                      creditDays
+                    });
+                  } else {
+                    // Fallback to regex approach if code couldn't be extracted
+                    let partyMatch = rowText.match(/^([A-Z0-9]+[\w-]*)\s+(.+?)(?:\s*-\s*)?(?:\((.+?)\))?\s*(?:\(Days\s*:\s*(\d+)\))?$/i);
+                    
+                    if (!partyMatch) {
+                      // Try another pattern focusing on comma separation
+                      partyMatch = rowText.match(/^([A-Z0-9]+[\w-]*)\s+([^(]+)(?:\((.+?)\))?\s*(?:\(Days\s*:\s*(\d+)\))?$/i);
+                    }
+                    
+                    if (partyMatch) {
+                      console.log('Party matched with regex:', partyMatch);
+                      partyCode = partyMatch[1].trim();
+                      
+                      // Get the full party name without the code
+                      partyName = partyMatch[2].trim();
+                      
+                      // Clean up the party name (remove trailing commas)
+                      partyName = partyName.replace(/,\s*$/, '');
+                      
+                      if (partyMatch[3]) contactInfo = partyMatch[3].trim();
+                      if (partyMatch[4]) creditDays = partyMatch[4].trim();
+                    }
+                  }
+                  
+                  console.log('Extracted party info:', { partyCode, partyName, contactInfo, creditDays });
+                  
+                  // Create party object if we have at least a code
+                  if (partyCode) {
+                    if (!partyName) partyName = partyCode; // Use code as name if name not found
+                    
+                    currentParty = {
+                      partyCode,
+                      partyName,
+                      contactInfo,
+                      creditDays,
+                      entries: [],
+                      total: {
+                        debits: 0,
+                        partAdjustment: 0,
+                        balance: 0,
+                        discountNarration: ''
+                      }
+                    };
+                  }
+                  continue;
+                }
+              }
+              
+              // Process transaction rows - now try to match transaction rows more flexibly
+              if (currentParty && row[0]) {
+                const transType = String(row[0]).trim();
+                
+                // Check if this looks like a transaction row (expanded list of transaction types)
+                // Add more transaction types to the list and make detection more flexible
+                if (['JV', 'BP', 'DB', 'CR', 'SL', 'PR', 'SP', 'DN', 'CN', 'CZ', 'SR', 'PY', 'RT', 'AE', 'CP', 'CD', 'BJ', 'SB', 'RV', 'I'].includes(transType) || 
+                    /^[A-Z]{1,3}$/.test(transType)) { // Also match any 1-3 uppercase letters as a fallback
+                  console.log(`Processing transaction type ${transType} with values:`, row);
+                  
+                  try {
+                    // Map values to the correct columns based on the standard Excel format we've observed
+                    // This approach uses direct column indices based on the known structure
+                    let voucherNumber = '';
+                    let debits = 0;
+                    let partAdjustment = 0;
+                    let balance = 0;
+                    let balanceCarryForward = 0;
+                    let days = 0;
+                    let discountNarration = '';
+                    
+                    // Column 4 is usually VoucherNo
+                    if (row[4] !== undefined && row[4] !== null) {
+                      voucherNumber = String(row[4]).trim();
+                    }
+                    
+                    // Special handling for 'I' type transactions - check for 'INV' type in column 3
+                    if (transType === 'I' && row[3] !== undefined && row[3] !== null) {
+                      const voucherType = String(row[3]).trim();
+                      if (voucherType === 'INV') {
+                        // For 'I' type with 'INV', include the type in the voucher number
+                        voucherNumber = `${voucherType} ${voucherNumber}`;
+                      }
+                    }
+                    
+                    // Column 5 is Debits
+                    if (row[5] !== undefined && row[5] !== null) {
+                      debits = parseNumberSafe(row[5]);
+                    }
+                    
+                    // Column 6 is Part Adj.
+                    if (row[6] !== undefined && row[6] !== null) {
+                      partAdjustment = parseNumberSafe(row[6]);
+                    }
+                    
+                    // Column 7 is Balance
+                    if (row[7] !== undefined && row[7] !== null) {
+                      balance = parseNumberSafe(row[7]);
+                    }
+                    
+                    // Column 8 is Balance C/f
+                    if (row[8] !== undefined && row[8] !== null) {
+                      balanceCarryForward = parseNumberSafe(row[8]);
+                    }
+                    
+                    // Column 9 is Days
+                    if (row[9] !== undefined && row[9] !== null) {
+                      days = parseNumberSafe(row[9]);
+                    }
+                    
+                    // Column 10 is Disc.
+                    if (row[10] !== undefined && row[10] !== null) {
+                      discountNarration = String(row[10]).trim();
+                    }
+                    
+                    // Column 11 is Narration (alternative location)
+                    if (!discountNarration && row[11] !== undefined && row[11] !== null) {
+                      discountNarration = String(row[11]).trim();
+                    }
+                    
+                    console.log('Extracted transaction values:', {
+                      voucherNumber,
+                      debits,
+                      partAdjustment,
+                      balance,
+                      balanceCarryForward,
+                      days,
+                      discountNarration
+                    });
+                    
+                    // Handle the date in column 1
+                    let voucherDate = '';
+                    if (row[1] !== undefined && row[1] !== null) {
+                      if (typeof row[1] === 'number') {
+                        // Excel stores dates as days since 1900-01-01 (with a leap year bug)
+                        const excelEpoch = new Date(1899, 11, 30);
+                        const msPerDay = 24 * 60 * 60 * 1000;
+                        const date = new Date(excelEpoch.getTime() + row[1] * msPerDay);
+                        voucherDate = date.toLocaleDateString();
+                      } else if (typeof row[1] === 'string') {
+                        // Try to parse various date formats
+                        if (row[1].includes('-')) {
+                          // Format like "31-Mar-21"
+                          voucherDate = row[1];
+                        } else {
+                          voucherDate = String(row[1]);
+                        }
+                      }
+                    }
+                    
+                    // Build the entry with the mapped values
+                    const entry: FinancialEntry = {
+                      dc: transType,
+                      voucherDate,
+                      voucherNumber,
+                      debits,
+                      partAdjustment,
+                      balance,
+                      balanceCarryForward,
+                      days,
+                      discountNarration
+                    };
+                    
+                    // Ensure we have at least some valid data before adding the entry
+                    if (voucherNumber || debits > 0 || balance > 0) {
+                      currentParty.entries.push(entry);
+                      
+                      // Update party totals
+                      currentParty.total.debits += entry.debits;
+                      currentParty.total.partAdjustment += entry.partAdjustment;
+                      currentParty.total.balance = entry.balanceCarryForward || entry.balance;
+                    }
+                  } catch (err) {
+                    console.error('Error processing transaction row:', err);
+                  }
+                }
+              }
+            }
+            
+            // Add the last party if exists
+            if (currentParty && currentParty.entries.length > 0) {
+              statement.reports.push(currentParty);
+            }
+            
+            console.log('Final statement reports count:', statement.reports.length);
+            console.log('Final statement:', statement);
+            
+            if (statement.reports.length === 0) {
               throw new Error('No valid statement data found in the file');
             }
             
@@ -60,16 +365,18 @@ export const statementService = {
           } else {
             throw new Error('Failed to read the file');
           }
-        } catch (error) {
+        } catch (error: any) {
+          console.error('Error processing file:', error);
           reject(error);
         }
       };
       
-      reader.onerror = () => {
+      reader.onerror = (event) => {
+        console.error('File reader error:', event);
         reject(new Error('Error reading the file'));
       };
       
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
     });
   },
 };
@@ -464,4 +771,21 @@ function ensurePartyTotal(report: Report) {
   }
   
   return report;
+}
+
+// Helper function to safely parse numbers from various formats
+function parseNumberSafe(value: any): number {
+  if (value === undefined || value === null) return 0;
+  
+  // If it's already a number, return it
+  if (typeof value === 'number') return value;
+  
+  // If it's a string, try to parse it
+  if (typeof value === 'string') {
+    // Remove currency symbols, commas, and other non-numeric characters
+    const cleanValue = value.replace(/[^0-9.-]/g, '');
+    return parseFloat(cleanValue) || 0;
+  }
+  
+  return 0;
 } 

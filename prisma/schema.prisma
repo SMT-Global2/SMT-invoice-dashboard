@@ -177,30 +177,55 @@ model Inventory {
 model Statement {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
 
-  fileUrl            String
-  reports            Report[]
-  uploadedUsername   String?
-  uploadedTimestamp  DateTime?
+  name              String
+  originalName      String
+  uploadDate        DateTime  @default(now())
+  statementDate     DateTime
+  
+  fileUrl           String?
+  reportSections    ReportSection[]
+  
+  uploadedUsername  String?
+  uploadedTimestamp DateTime?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  fileContent      Bytes?    // For storing the actual Excel file
+  fileType         String?   // For storing the MIME type
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
-model Report {
+model ReportSection {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
 
-  title             String
-  tableData         Json
-  images            String[]
-  saved             Boolean   @default(false)
+  partyCode         String
+  partyName         String
+  location          String?
+  contact           String?
+  creditDays        String?
+  
+  data              Json
+  
+  // Saved data
+  isSaved           Boolean   @default(false)
   savedTimestamp    DateTime?
   savedUsername     String?
+  
+  // Image data
+  images            String[]
+  
+  // Location data
+  latitude          Float?
+  longitude         Float?
+  address           String?
+
+  imageUrls         String[]  // For storing actual image URLs instead of base64
 
   statementId       String    @db.ObjectId
-  statement         Statement  @relation(fields: [statementId], references: [id] , onDelete: NoAction)
+  statement         Statement  @relation(fields: [statementId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 type CurrencyBills {
