@@ -618,7 +618,11 @@ const ChequeDetails: React.FC<ChequeDetailsProps> = ({ receipts }) => {
                             </View>
                             <View style={styles.chequeInfoRow}>
                                 <Text style={styles.chequeLabel}>Party:</Text>
-                                <Text style={styles.chequeValue}>{receipt.party?.customerName || receipt.partyCode}</Text>
+                                <Text style={styles.chequeValue}>{receipt.party?.customerName || 'N/A'}</Text>
+                            </View>
+                            <View style={styles.chequeInfoRow}>
+                                <Text style={styles.chequeLabel}>Party Code:</Text>
+                                <Text style={styles.chequeValue}>{receipt.party?.code}</Text>
                             </View>
                             <View style={styles.chequeAmountRow}>
                                 <Text style={styles.chequeAmountLabel}>Amount:</Text>

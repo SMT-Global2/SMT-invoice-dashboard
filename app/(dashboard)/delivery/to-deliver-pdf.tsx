@@ -1,10 +1,10 @@
 import moment from "moment-timezone";
 import { DeliveryInvoiceData } from "@/store/useDeliveryInvoiceStore";
 // Assuming you might still want toast notifications on error
-// import { toast } from "@/components/ui/use-toast"; 
+// import { toast } from "@/components/ui/use-toast";
 
 interface ToDeliverPrintContentProps {
-    toDeliverInvoices: DeliveryInvoiceData[];
+    toDeliverInvoices: DeliveryInvoiceData[]; // Re-added based on potential usage, adjust if not needed
     toDeliverSelectedDate: Date | undefined;
     toDeliverSearchTerm: string;
     toDeliverSelectedRegionalCodes: string[];
@@ -16,6 +16,7 @@ type FetchToDeliverInvoicesForPrintingProps = {
   toDeliverSelectedRegionalCodes: string[];
 }
 
+// fetchToDeliverInvoicesForPrinting remains the same as in your original code
 export const fetchToDeliverInvoicesForPrinting = async ({
   toDeliverSelectedDate,
   toDeliverSearchTerm,
@@ -24,68 +25,98 @@ export const fetchToDeliverInvoicesForPrinting = async ({
   try {
     const fetchInvoicesForPrinting = async () => {
       const url = new URL('/api/invoice/deliver/to-deliver', window.location.origin);
-      
+
       if (toDeliverSelectedDate) {
         url.searchParams.set('date', moment(toDeliverSelectedDate).format('YYYY-MM-DD'));
       }
-      
+
       // Add pagination parameters
       url.searchParams.set('page', '1');
-      url.searchParams.set('limit', '1000000');
-      
+      url.searchParams.set('limit', '1000000'); // Fetch all for printing
+
       // Add search parameter
       if (toDeliverSearchTerm) {
         url.searchParams.set('search', toDeliverSearchTerm);
       }
-      
+
       // Add regional code filter parameters
       if (toDeliverSelectedRegionalCodes.length > 0) {
         url.searchParams.set('regionalCodes', JSON.stringify(toDeliverSelectedRegionalCodes));
       }
-      
+
       const response = await fetch(url.toString());
-      const { data, totalPages } = await response.json();
+      if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const responseData = await response.json();
+      const data = responseData.data; // Assuming structure is { data: [...], totalPages: ... }
+
+       if (!Array.isArray(data)) {
+        console.error("API did not return an array in the 'data' field:", responseData);
+        throw new Error("Invalid data format received from API.");
+      }
+
 
       const proccesedData = data.map((item: any) => ({
         ...item,
         medicalName: item?.party?.customerName || '-',
         city: item?.party?.city || '-',
         regionalCode: item?.party?.regionalCode || '-',
+         // Ensure necessary fields exist for sorting and display
+        invoiceNumber: item.invoiceNumber ?? 0,
+        generatedDate: item.generatedDate ?? new Date(0).toISOString(),
+        partyCode: item.partyCode ?? '-',
+        paymodeMode: item.paymodeMode ?? '-',
       }));
 
       //Sort Data first regional code and then city and then invoice number
       proccesedData.sort((a: any, b: any) => {
-        if (a.regionalCode !== b.regionalCode) {
-          return a.regionalCode.localeCompare(b.regionalCode);
-        }
-        if (a.city !== b.city) {
-          return a.city.localeCompare(b.city);
-        }
-        return a.invoiceNumber - b.invoiceNumber;
+        const regionalCompare = (a.regionalCode || '').localeCompare(b.regionalCode || '');
+        if (regionalCompare !== 0) return regionalCompare;
+
+        const cityCompare = (a.city || '').localeCompare(b.city || '');
+        if (cityCompare !== 0) return cityCompare;
+
+        // Assuming invoiceNumber is numeric; adjust if it's a string
+        return (a.invoiceNumber || 0) - (b.invoiceNumber || 0);
       });
-      
+
       return proccesedData;
     };
 
     return await fetchInvoicesForPrinting();
   } catch (error) {
     console.error("Error fetching invoices for printing:", error);
-    throw error;
+    // Consider adding user feedback here, e.g., using toast
+    // toast({ variant: 'destructive', title: 'Error Fetching Data', description: 'Could not load invoices for printing.' });
+    throw error; // Re-throw so the caller knows an error occurred
   }
 };
 
 
 export const toDeliverPrintContent = async ({
+    // Pass fetched data directly or fetch inside if preferred
+    // toDeliverInvoices, // Option 1: Pass pre-fetched data
     toDeliverSelectedDate,
     toDeliverSearchTerm,
     toDeliverSelectedRegionalCodes
-}: ToDeliverPrintContentProps) => {
+}: Omit<ToDeliverPrintContentProps, 'toDeliverInvoices'>) => { // Adjust props if fetching inside
 
-    const toDeliverInvoices = await fetchToDeliverInvoicesForPrinting({
-      toDeliverSelectedDate,
-      toDeliverSearchTerm,
-      toDeliverSelectedRegionalCodes
-    });
+    // --- Option 2: Fetch data inside this function (as originally shown) ---
+    let toDeliverInvoices: DeliveryInvoiceData[] = [];
+    try {
+         toDeliverInvoices = await fetchToDeliverInvoicesForPrinting({
+            toDeliverSelectedDate,
+            toDeliverSearchTerm,
+            toDeliverSelectedRegionalCodes
+        });
+    } catch (error) {
+        console.error("Failed to prepare print content due to data fetching error.");
+        // Optional: Show toast notification here if configured
+         // toast({ variant: 'destructive', title: 'Print Error', description: 'Could not load data for printing.' });
+        return; // Stop execution if data fetching fails
+    }
+    // --- End Option 2 ---
 
     // --- 1. Generate the HTML Content First ---
     const currentDate = new Date().toLocaleDateString('en-GB', {
@@ -109,22 +140,24 @@ export const toDeliverPrintContent = async ({
         ? filterParts.join(' ')
         : '<span class="filter-item filter-none">No filters applied</span>';
 
-    // Calculate total pages roughly (optional, for display in footer if needed, might be complex for accurate breaking)
-    // const itemsPerPage = 30; // Estimate - adjust based on typical content height
-    // const totalPages = Math.ceil(toDeliverInvoices.length / itemsPerPage) || 1;
-
     const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>&nbsp;</title>
+          <title> </title>
           <style>
             @page {
               size: A4 portrait;
               margin: 1cm; /* Standard margin */
+               @bottom-right { /* CSS Page Numbering */
+                    content: "Page " counter(page) " of " counter(pages);
+                    font-size: 10px; /* Increased font size */
+                    color: #555;
+                    padding-top: 5px; /* Add some space */
+              }
             }
             *, *::before, *::after {
-                box-sizing: border-box; /* Better layout consistency */
+                box-sizing: border-box;
             }
             html {
                 margin: 0;
@@ -132,23 +165,24 @@ export const toDeliverPrintContent = async ({
             }
             body {
               font-family: Arial, Helvetica, sans-serif;
-              margin: 0; /* Reset body margin */
-              padding: 0; /* Reset body padding */
+              margin: 0;
+              padding: 0;
               color: #333;
-              background: white; /* Ensure background for print */
+              background: white;
+              font-size: 13px; /* Increased base font size */
             }
             .print-container {
               max-width: 100%;
               margin: 0 auto;
               padding: 0;
-              break-before: avoid; /* Prevent a break right before the container */
-              page-break-before: avoid; /* Legacy syntax */
+              break-before: avoid;
+              page-break-before: avoid;
             }
             .header {
-              padding-bottom: 8px;
-              margin-bottom: 15px; /* Slightly reduce margin */
+              padding-bottom: 10px; /* Increased padding */
+              margin-bottom: 18px; /* Increased margin */
               border-bottom: 2px solid #2563eb;
-              break-inside: avoid; /* Try to keep header together */
+              break-inside: avoid;
               page-break-inside: avoid;
             }
             .title-section {
@@ -157,37 +191,37 @@ export const toDeliverPrintContent = async ({
               align-items: flex-start;
             }
             .title {
-              font-size: 20px; /* Slightly smaller */
+              font-size: 22px; /* Increased font size */
               font-weight: bold;
               color: #2563eb;
-              margin: 0 0 4px 0;
+              margin: 0 0 5px 0; /* Adjusted margin */
             }
             .company {
-              font-size: 13px;
+              font-size: 14px; /* Increased font size */
               font-weight: normal;
               margin: 0;
             }
             .date {
-              font-size: 11px;
+              font-size: 12px; /* Increased font size */
               color: #666;
-              margin: 3px 0;
+              margin: 4px 0; /* Adjusted margin */
             }
             .logo {
               text-align: right;
-              font-size: 22px; /* Slightly smaller */
+              font-size: 24px; /* Increased font size */
               font-weight: bold;
               color: #2563eb;
               letter-spacing: 1px;
             }
             .filters {
-              margin: 10px 0; /* Slightly reduce margin */
-              font-size: 11px;
+              margin: 12px 0; /* Increased margin */
+              font-size: 12px; /* Increased font size */
             }
             .filter-item {
               display: inline-block;
-              padding: 2px 6px;
-              margin-right: 6px;
-              margin-bottom: 4px; /* Allow wrapping */
+              padding: 3px 7px; /* Adjusted padding */
+              margin-right: 7px; /* Adjusted margin */
+              margin-bottom: 5px;
               background-color: #f3f4f6;
               border-radius: 4px;
               border-left: 3px solid #2563eb;
@@ -198,83 +232,73 @@ export const toDeliverPrintContent = async ({
             .table-container {
               width: 100%;
               margin: 0 auto;
-              /* page-break-inside: avoid; /* Let table rows break naturally if needed */
             }
             table {
               width: 100%;
               border-collapse: collapse;
-              font-size: 10px;
-              margin-bottom: 15px;
-              table-layout: auto; /* Let browser decide column widths */
+              font-size: 12px; /* Increased table font size */
+              margin-bottom: 18px; /* Increased margin */
+              table-layout: auto;
               break-inside: auto;
               page-break-inside: auto;
             }
             thead {
-                display: table-header-group; /* Crucial for repeating header on new pages */
+                display: table-header-group;
             }
             th {
               background-color: #2563eb;
               color: white;
               font-weight: bold;
               text-align: left;
-              padding: 6px 8px; /* Slightly smaller padding */
+              padding: 7px 9px; /* Increased padding */
               border: 1px solid #ddd;
+              font-size: 12px; /* Explicitly set header font size */
             }
             tbody tr {
-               /* Ensure rows try not to break across pages */
                break-inside: avoid;
                page-break-inside: avoid;
             }
             td {
-              padding: 5px 8px; /* Slightly smaller padding */
+              padding: 6px 9px; /* Increased padding */
               border: 1px solid #ddd;
               text-align: left;
-              word-wrap: break-word; /* Prevent long text overflow */
+              word-wrap: break-word;
+              vertical-align: top; /* Align text to top for consistency */
             }
             tr:nth-child(even) {
               background-color: #f8fafc;
             }
             .summary {
-              margin-top: 15px;
+              margin-top: 18px; /* Increased margin */
               text-align: right;
-              font-size: 11px;
+              font-size: 12px; /* Increased font size */
               font-weight: bold;
-              break-before: avoid; /* Don't start a new page just for summary */
+              break-before: avoid;
               page-break-before: avoid;
             }
             .summary-box {
               display: inline-block;
-              padding: 6px 12px;
+              padding: 7px 14px; /* Increased padding */
               background-color: #f3f4f6;
               border-radius: 4px;
               box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             }
-            .footer {
-              margin-top: 20px; /* Reduced margin */
-              padding-top: 8px;
+            .footer { /* Footer might be less relevant with CSS page numbers */
+              margin-top: 25px;
+              padding-top: 10px;
               border-top: 1px solid #ddd;
               display: flex;
               justify-content: space-between;
-              font-size: 9px;
+              font-size: 10px; /* Increased font size */
               color: #666;
-              /* Position at bottom - tricky without complex JS page counting */
-              /* Consider using @page { @bottom-center { content: "Page " counter(page); } } */
-            }
-            /* Optional: Page numbering via CSS */
-            @page {
-              @bottom-right {
-                content: "Page " counter(page) " of " counter(pages);
-                font-size: 9px;
-                color: #666;
-              }
             }
             .signature-line {
-              margin-top: 40px; /* Reduced margin */
+              margin-top: 45px;
               border-top: 1px solid #aaa;
               width: 180px;
-              padding-top: 4px;
+              padding-top: 5px;
               text-align: center;
-              font-size: 9px;
+              font-size: 10px; /* Increased font size */
               color: #333;
               break-before: avoid;
               page-break-before: avoid;
@@ -302,10 +326,10 @@ export const toDeliverPrintContent = async ({
                   <tr>
                     <th>Sr. No.</th>
                     <th>Date</th>
-                    <th>Invoice No.</th>
                     <th>Party Code</th>
                     <th>Medical Name</th>
                     <th>City</th>
+                    <th>Invoice No.</th> <!-- MOVED HERE -->
                     <th>Regional Code</th>
                     <th>Payment Mode</th>
                   </tr>
@@ -314,16 +338,26 @@ export const toDeliverPrintContent = async ({
                   ${toDeliverInvoices.map((invoice, index) => `
                     <tr>
                       <td>${index + 1}</td>
-                      <td>${new Date(invoice.generatedDate!).toLocaleDateString()}</td>
-                      <td>${invoice.invoiceNumber}</td>
-                      <td>${invoice.partyCode}</td>
-                      <td>${invoice.medicalName}</td>
-                      <td>${invoice.city}</td>
-                      <td>${invoice.regionalCode}</td>
-                      <td>${invoice.paymodeMode}</td>
+                      <td>${invoice.generatedDate ? new Date(invoice.generatedDate).toLocaleDateString() : '-'}</td>
+                      <td>${invoice.partyCode ?? '-'}</td>
+                      <td>${invoice.medicalName ?? '-'}</td>
+                      <td>${invoice.city ?? '-'}</td>
+                      <td>${invoice.invoiceNumber ?? '-'}</td> <!-- MOVED HERE -->
+                      <td>${invoice.regionalCode ?? '-'}</td>
+                      <td>${invoice.paymodeMode ?? '-'}</td>
                     </tr>
                   `).join('')}
-                  ${/* Add empty rows if needed to push footer down on last page */ ''}
+                  <!-- ADDED EMPTY ROW AT THE END -->
+                  <tr>
+                    <td> </td>
+                    <td> </td>
+                    <td> </td>
+                    <td> </td>
+                    <td> </td>
+                    <td> </td>
+                    <td> </td>
+                    <td> </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -334,12 +368,26 @@ export const toDeliverPrintContent = async ({
               </div>
             </div>
 
+            <!-- Optional Footer Content (if needed beyond page numbers) -->
+            <!--
+            <div class="footer">
+               <span>Generated by System</span>
+               <span></span> // Placeholder for right side if needed
+            </div>
+            -->
+            <!-- Optional Signature Line -->
+            <!--
+            <div class="signature-line">
+                Receiver's Signature
+            </div>
+            -->
+
           </div>
         </body>
         </html>
     `;
 
-    // --- 2. Create iframe and set up printing ---
+    // --- 2. Create iframe and set up printing (Code remains the same) ---
     const printFrame = document.createElement('iframe');
     printFrame.style.position = 'absolute';
     printFrame.style.top = '-9999px';
@@ -358,59 +406,40 @@ export const toDeliverPrintContent = async ({
         }
     };
 
-    // Use onload event for better timing
     printFrame.onload = () => {
         console.log("iframe loaded, preparing to print");
         try {
             const frameWindow = printFrame.contentWindow;
             if (frameWindow) {
-                // Give one last micro-task tick for rendering finalization (optional but sometimes helps)
                 setTimeout(() => {
                     console.log("Calling print...");
-                    frameWindow.focus(); // Focus is important
-                    frameWindow.print(); // Trigger print dialog
-
-                    // Set up cleanup after print command is issued
-                    // Using a timeout as 'onafterprint' support can be inconsistent
-                    // and the print dialog is modal anyway.
-                    cleanupTimeout = setTimeout(cleanup, 1500); // Cleanup after 1.5 seconds
-
-                }, 50); // Short delay after load
+                    frameWindow.focus();
+                    frameWindow.print();
+                    cleanupTimeout = setTimeout(cleanup, 1500);
+                }, 50);
             } else {
                 throw new Error("Could not get iframe content window.");
             }
         } catch (error) {
             console.error("Print Error:", error);
-            // toast({ // Uncomment if using toast
-            //     variant: 'destructive',
-            //     title: 'Print Error',
-            //     description: 'Something went wrong initiating the print process. Please try again.',
-            // });
-            cleanup(); // Clean up on error too
+            // toast({ variant: 'destructive', title: 'Print Error', description: 'Could not initiate print.' });
+            cleanup();
         }
     };
 
-    // Handle potential errors loading the iframe content itself
      printFrame.onerror = (event, source, lineno, colno, error) => {
         console.error("iframe loading error:", error);
-        // toast({ // Uncomment if using toast
-        //   variant: 'destructive',
-        //   title: 'Print Setup Error',
-        //   description: 'Could not prepare the document for printing.',
-        // });
+        // toast({ variant: 'destructive', title: 'Print Setup Error', description: 'Could not prepare document.' });
         cleanup();
     };
 
-    // --- 3. Append iframe and set content using srcdoc ---
+    // --- 3. Append iframe and set content using srcdoc (Code remains the same) ---
     document.body.appendChild(printFrame);
-    // Setting srcdoc is generally preferred over document.write
-    printFrame.srcdoc = htmlContent; 
+    printFrame.srcdoc = htmlContent;
     console.log("iframe appended, srcdoc set.");
 
-
-    // Fallback cleanup: If onload doesn't fire for some reason after a while
     cleanupTimeout = setTimeout(() => {
         console.warn("iframe onload fallback cleanup triggered.");
         cleanup();
-    }, 5000); // 5 seconds timeout as a safety net
+    }, 5000);
 };

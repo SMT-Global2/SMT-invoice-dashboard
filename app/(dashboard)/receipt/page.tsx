@@ -151,7 +151,7 @@ export default function ReceiptPage() {
     <div className="mx-auto py-6 space-y-6">
       
       <div className="flex flex-row md:flex-row justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Receipt Management</h1>
+        <h1 className="text-xl font-bold">Receipt Management</h1>
         <div className="flex flex-col md:flex-row gap-2">
 
           {selectedDate && 
