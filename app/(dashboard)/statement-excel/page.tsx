@@ -203,7 +203,7 @@ export default function StatementExcelPage() {
     
     const fetchStatementDetails = async (statementId: string) => {
       try {
-        const response = await fetch(`/api/statement-excel/${statementId}`);
+        const response = await fetch(`/api/statement-excel/oper?id=${statementId}`);
         const data = await response.json();
         
         if (!response.ok) {
@@ -246,7 +246,7 @@ export default function StatementExcelPage() {
 
   const handleFileDelete = async (fileId: string) => {
     try {
-      const response = await fetch(`/api/statement-excel/${fileId}`, {
+      const response = await fetch(`/api/statement-excel/oper?id=${fileId}`, {
         method: 'DELETE',
       });
 

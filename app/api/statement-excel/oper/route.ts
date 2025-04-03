@@ -20,11 +20,12 @@ interface ExtendedStatement {
 }
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  req: NextRequest
 ) {
   try {
-    const id = params.id;
+    console.log("req", req);
+
+    const id = req.nextUrl.searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'Statement ID is required' }, { status: 400 });
@@ -105,7 +106,6 @@ export async function GET(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -113,7 +113,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const id = params.id;
+    const id = req.nextUrl.searchParams.get('id');
+
 
     if (!id) {
       return NextResponse.json({ error: 'Statement ID is required' }, { status: 400 });
