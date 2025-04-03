@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Camera, CameraOff, Loader2, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { ShowImage } from "./show-image";
+import { ShowImage } from "./show-image-two";
 
 
 type TakeType = 'BOTH' | 'CAMERA' | 'UPLOAD'

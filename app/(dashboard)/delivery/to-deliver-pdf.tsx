@@ -332,6 +332,7 @@ export const toDeliverPrintContent = async ({
                     <th>Invoice No.</th> <!-- MOVED HERE -->
                     <th>Regional Code</th>
                     <th>Payment Mode</th>
+                    <th>Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -345,10 +346,11 @@ export const toDeliverPrintContent = async ({
                       <td>${invoice.invoiceNumber ?? '-'}</td> <!-- MOVED HERE -->
                       <td>${invoice.regionalCode ?? '-'}</td>
                       <td>${invoice.paymodeMode ?? '-'}</td>
+                      <td>${'&nbsp;&nbsp;'}</td>
                     </tr>
                   `).join('')}
-                  <!-- ADDED EMPTY ROW AT THE END -->
                   <tr>
+                    <td> </td>
                     <td> </td>
                     <td> </td>
                     <td> </td>
