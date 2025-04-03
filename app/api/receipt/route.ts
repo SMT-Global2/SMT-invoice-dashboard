@@ -100,8 +100,8 @@ export async function GET(req: NextRequest) {
     
     // Parse query parameters
     const queryParsed = getQuerySchema.safeParse({
-      page: url.searchParams.get("page"),
-      limit: url.searchParams.get("limit"),
+      page: url.searchParams.get("page") ?? 1,
+      limit: url.searchParams.get("limit") ?? 10,
       search: url.searchParams.get("search"),
       date: url.searchParams.get("date"),
       paymentMethod: url.searchParams.get("paymentMethod"),

@@ -2,15 +2,17 @@
 
 export const tweleHrFormatDateString = (date: string | Date): string => {
   const dateObj = new Date(date);
-  return dateObj.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const year = dateObj.getFullYear();
+  const hours = dateObj.getHours();
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert to 12-hour format, handle midnight (0) as 12
+
+  return `${day}/${month}/${year}, ${hours12}:${minutes} ${ampm}`;
 };
+
 
 const heic2anyPromise = import('heic2any').then((mod) => mod.default);
 

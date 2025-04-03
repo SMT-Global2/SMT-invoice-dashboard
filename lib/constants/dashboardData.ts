@@ -173,7 +173,7 @@ export const dashboardCategories: DashboardCategory[] = [
       {
         id: 'statement',
         title: 'Statement',
-        href: '/statement',
+        href: '/statement-excel',
         icon: FileCheck,
         description: 'Statement Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.RECEIPT_MANAGEMENT, Department.INVOICE_MANAGEMENT]

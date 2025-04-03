@@ -94,7 +94,6 @@ export function ToDeliverTable() {
   const handlePrintInvoices = async () => {
     try {
       await toDeliverPrintContent({
-        toDeliverInvoices: toDeliverInvoicesForPrinting,
         toDeliverSelectedDate,
         toDeliverSearchTerm,
         toDeliverSelectedRegionalCodes

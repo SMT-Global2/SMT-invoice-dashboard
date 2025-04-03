@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       party: true,
     },
     orderBy: {
-      generatedDate: 'desc'
+      dmNumber: 'asc'
     },
   });
 

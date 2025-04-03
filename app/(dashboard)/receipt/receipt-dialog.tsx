@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { PartyCodeSelector } from '@/components/party-code-selector';
+import { BankSelector } from '@/components/bank-selector';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { CurrencyBills, PaymentMethod, ReceiptData } from '@/store/useReceiptStore';
@@ -66,9 +67,9 @@ const receiptFormSchema = z.object({
   generatedDate: z.date(),
   currencyBills: currencyBillsSchema.optional().nullable(),
   cheque: chequeSchema.optional().nullable(),
-  receiptNumber: z.number().optional(),
+  receiptNumber: z.number().optional().nullable(),
 }).refine((data) => {
-    return true;
+  return true;
 }, {
   message: "Currency bills required for CASH payment or Cheque details required for CHEQUE payment",
   path: ["paymentMethod"],
@@ -89,7 +90,7 @@ interface ReceiptDialogProps {
 const useCurrencyCalculator = (currencyBills: CurrencyBills | null | undefined) => {
   return React.useMemo(() => {
     if (!currencyBills) return 0;
-    
+
     const denominationMultipliers = {
       '500': 500,
       '200': 200,
@@ -107,24 +108,24 @@ const useCurrencyCalculator = (currencyBills: CurrencyBills | null | undefined) 
 
 // Update the currency field controller to maintain focus
 const createCurrencyFieldController = (
-  form: UseFormReturn<ReceiptFormValues>, 
+  form: UseFormReturn<ReceiptFormValues>,
   denomination: keyof CurrencyBills,
   forceUpdate: () => void
 ) => {
   const value = form.watch(`currencyBills.${denomination}`);
-  
+
   return {
     value,
     handleChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       try {
         // Get target input element for later focus management
         const inputElement = e.target;
-        
+
         // Get the new value
         const newValue = Math.max(0, parseInt(e.target.value) || 0);
-        
+
         // Get current bills and ensure all values are numbers
-        const currentBills = { 
+        const currentBills = {
           ...(form.getValues('currencyBills') || {}),
           '500': form.getValues('currencyBills.500') || 0,
           '200': form.getValues('currencyBills.200') || 0,
@@ -133,13 +134,13 @@ const createCurrencyFieldController = (
           '20': form.getValues('currencyBills.20') || 0,
           '10': form.getValues('currencyBills.10') || 0,
         };
-        
+
         // Update field without triggering re-render
-        form.setValue(`currencyBills.${denomination}`, newValue, { 
-          shouldValidate: false, 
-          shouldDirty: true 
+        form.setValue(`currencyBills.${denomination}`, newValue, {
+          shouldValidate: false,
+          shouldDirty: true
         });
-        
+
         // Schedule an update for the main object for validation
         setTimeout(() => {
           // Update the whole object for cross-field validation
@@ -149,7 +150,7 @@ const createCurrencyFieldController = (
           }, {
             shouldValidate: true
           });
-          
+
           // Force an update without affecting inputs
           forceUpdate();
         }, 0);
@@ -170,7 +171,7 @@ export function ReceiptDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forceRender, setForceRender] = useState(0);
-  
+
   // Force update function
   const forceUpdate = useCallback(() => {
     setForceRender(prev => prev + 1);
@@ -208,14 +209,14 @@ export function ReceiptDialog({
     },
     mode: "onChange",
   });
-  
+
   // Get the payment method watch to conditionally render fields
   const paymentMethod = form.watch('paymentMethod');
   const currencyBills = form.watch('currencyBills');
-  
+
   // Calculate total amount from currency bills
   const calculatedTotal = useCurrencyCalculator(currencyBills);
-  
+
   // Pre-calculate all currency field controllers with forceUpdate
   const currencyControllers = React.useMemo(() => {
     const denominations = ['500', '200', '100', '50', '20', '10'] as const;
@@ -224,19 +225,19 @@ export function ReceiptDialog({
       ...createCurrencyFieldController(form, denomination, forceUpdate)
     }));
   }, [form, forceUpdate, forceRender]); // Add forceRender to dependencies
-  
+
   // Handle party code selection
   const handlePartyCodeChange = (party: any) => {
     form.setValue("partyCode", party.code, { shouldValidate: true });
     form.setValue("medicalName", party.customerName || '');
     form.setValue("city", party.city || '');
   };
-  
+
   // Form submission
   const onSubmit = async (values: ReceiptFormValues) => {
     try {
       setIsSubmitting(true);
-      
+
       // Prepare data for submission based on payment method
       const data: any = {
         partyCode: values.partyCode,
@@ -246,15 +247,15 @@ export function ReceiptDialog({
         generatedDate: values.generatedDate
       };
 
-      if(values.paymentMethod === 'NONE') {
+      if (values.paymentMethod === 'NONE') {
         throw new Error('Payment method is required');
       }
-      
+
       if (values.paymentMethod === 'CASH') {
         data.currencyBills = values.currencyBills;
         data.cheque = null;
 
-        if(!values.receiptNumber) {
+        if (!values.receiptNumber) {
           throw new Error('Receipt number is required');
         }
 
@@ -285,7 +286,7 @@ export function ReceiptDialog({
           variant: 'default'
         });
       }
-      
+
       // Explicitly reset form to clear all values
       form.reset({
         partyCode: '',
@@ -299,7 +300,7 @@ export function ReceiptDialog({
         cheque: null,
         receiptNumber: undefined
       });
-      
+
       // Close the dialog
       onClose();
     } catch (error) {
@@ -313,18 +314,18 @@ export function ReceiptDialog({
       setIsSubmitting(false);
     }
   };
-  
+
   // Initialize form when receiptItem changes
   useEffect(() => {
     // When the dialog opens
     if (isOpen) {
       if (receiptItem && dialogType === 'edit') {
         const paymentMethod = receiptItem.paymentMethod;
-        
+
         // Set appropriate values based on payment method
         let currencyBills = null;
         let cheque = null;
-        
+
         if (paymentMethod === 'CASH') {
           // Ensure all currency bill values are properly populated with their default values
           currencyBills = {
@@ -335,7 +336,7 @@ export function ReceiptDialog({
             '20': receiptItem.currencyBills?.['20'] || 0,
             '10': receiptItem.currencyBills?.['10'] || 0,
           };
-          
+
         } else if (paymentMethod === 'CHEQUE') {
           cheque = receiptItem.cheque ? {
             ...receiptItem.cheque,
@@ -347,7 +348,7 @@ export function ReceiptDialog({
             amount: receiptItem.amount
           };
         }
-        
+
         form.reset({
           partyCode: receiptItem.partyCode,
           medicalName: receiptItem.party?.customerName || '',
@@ -392,7 +393,7 @@ export function ReceiptDialog({
       });
     }
   }, [isOpen, receiptItem, dialogType, form]);
-  
+
   // Cleanup when component unmounts
   useEffect(() => {
     // Return cleanup function
@@ -412,7 +413,7 @@ export function ReceiptDialog({
       });
     };
   }, []); // Empty dependency array since this only runs on mount/unmount
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
@@ -425,7 +426,7 @@ export function ReceiptDialog({
           remarks: '',
           paymentMethod: 'NONE',
           generatedDate: new Date(),
-          currencyBills: null,
+        currencyBills: null,
           cheque: null,
           receiptNumber: undefined
         });
@@ -438,194 +439,307 @@ export function ReceiptDialog({
             {dialogType === 'edit' ? 'Edit Receipt' : 'Add New Receipt'}
           </DialogTitle>
         </DialogHeader>
-        
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Party Code */}
-              <FormField
-                control={form.control}
-                name="partyCode"
-                render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-center gap-2">
-                    <FormLabel className="text-right">Party Code</FormLabel>
-                    <div className="col-span-3">
-                      <PartyCodeSelector
-                        value={field.value}
-                        onChange={handlePartyCodeChange}
-                        placeholder="Enter party code"
-                      />
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Read-only Party Info */}
-              <div className="grid grid-cols-4 items-center gap-2">
-                <div className="text-right text-sm font-medium">Medical Name</div>
-                <div className="col-span-3">
-                  <Input
-                    value={form.watch('medicalName') || ''}
-                    readOnly
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-4 items-center gap-2">
-                <div className="text-right text-sm font-medium">City</div>
-                <div className="col-span-3">
-                  <Input
-                    value={form.watch('city') || ''}
-                    readOnly
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-              </div>
-              
-              {/* Date */}
-              <FormField
-                control={form.control}
-                name="generatedDate"
-                render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-center gap-2">
-                    <FormLabel className="text-right">Date</FormLabel>
-                    <div className="col-span-3 relative">
-                      <DatePicker
-                        date={field.value}
-                        setDate={field.onChange}
-                      />
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Amount - Moved above Payment Method */}
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-center gap-2">
-                    <FormLabel className="text-right">Amount</FormLabel>
-                    <div className="col-span-3">
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value);
-                          field.onChange(value);
-                        }}
-                      />
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Remarks - Moved above Payment Method */}
-              <FormField
-                control={form.control}
-                name="remarks"
-                render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-start gap-2">
-                    <FormLabel className="text-right pt-2">Remarks</FormLabel>
-                    <div className="col-span-3">
-                      <Textarea
-                        {...field}
-                        placeholder="Enter any remarks (optional)"
-                        rows={3}
-                      />
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Payment Method */}
-              <FormField
-                control={form.control}
-                name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-center gap-2">
-                    <FormLabel className="text-right text-sm">Payment Method</FormLabel>
-                    <div className="col-span-3">
-                      <Select 
-                        value={field.value} 
-                        onValueChange={(value) => {
-                          field.onChange(value as PaymentMethod);
-                          
-                          // Reset the related fields when changing payment method
-                          if (value === 'CASH') {
-                            form.setValue('currencyBills', {
-                              '500': receiptItem?.currencyBills?.['500'] || 0,
-                              '200': 0,
-                              '100': 0,
-                              '50': 0,
-                              '20': 0,
-                              '10': 0,
-                            });
-                            // Reset cheque when switching to CASH
-                            form.setValue('cheque', null);
-                            // Keep or initialize receipt number for CASH
-                            form.setValue('receiptNumber', receiptItem?.receiptNumber || undefined);
-                          } else if (value === 'CHEQUE') {
-                            form.setValue('cheque', {
-                              number: '',
-                              bank: '',
-                              date: new Date(),
-                              amount: 0 // Initialize with 0 instead of current amount
-                            });
-                            // Reset currencyBills when switching to CHEQUE
-                            form.setValue('currencyBills', null);
-                            // Clear receipt number for non-CASH methods
-                            form.setValue('receiptNumber', undefined);
-                          } else if (value === 'NONE') {
-                            // Reset both fields when switching to NONE
-                            form.setValue('currencyBills', null);
-                            form.setValue('cheque', null);
-                            // Clear receipt number for non-CASH methods
-                            form.setValue('receiptNumber', undefined);
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="NONE">Select payment method</SelectItem>
-                          <SelectItem value="CASH">Cash</SelectItem>
-                          <SelectItem value="CHEQUE">Cheque</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
 
-              {/* Cash Payment Fields */}
-              {paymentMethod === 'CASH' && (
-                <div className="rounded-md mx-auto border-t pt-3 ">
-                  <h3 className="text-lg font-semibold">Cash Denominations</h3>
-                  
-                  {/* Receipt Number Input */}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Party Code */}
+            <FormField
+              control={form.control}
+              name="partyCode"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">Party Code</FormLabel>
+                  <div className="col-span-3">
+                    <PartyCodeSelector
+                      value={field.value}
+                      onChange={handlePartyCodeChange}
+                      placeholder="Enter party code"
+                    />
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* Read-only Party Info */}
+            <div className="grid grid-cols-4 items-center gap-2">
+              <div className="text-right text-sm font-medium">Medical Name</div>
+              <div className="col-span-3">
+                <Input
+                  value={form.watch('medicalName') || ''}
+                  readOnly
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-2">
+              <div className="text-right text-sm font-medium">City</div>
+              <div className="col-span-3">
+                <Input
+                  value={form.watch('city') || ''}
+                  readOnly
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+            </div>
+
+            {/* Date */}
+            <FormField
+              control={form.control}
+              name="generatedDate"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">Date</FormLabel>
+                  <div className="col-span-3 relative">
+                    <DatePicker
+                      date={field.value}
+                      setDate={field.onChange}
+                    />
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* Amount - Moved above Payment Method */}
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">Amount</FormLabel>
+                  <div className="col-span-3">
+                    <Input
+                      type="number"
+                      {...field}
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        field.onChange(value);
+                      }}
+                    />
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* Remarks - Moved above Payment Method */}
+            <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-start gap-2">
+                  <FormLabel className="text-right pt-2">Remarks</FormLabel>
+                  <div className="col-span-3">
+                    <Textarea
+                      {...field}
+                      placeholder="Enter any remarks (optional)"
+                      rows={3}
+                    />
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* Payment Method */}
+            <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right text-sm">Payment Method</FormLabel>
+                  <div className="col-span-3">
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value as PaymentMethod);
+
+                        // Reset the related fields when changing payment method
+                        if (value === 'CASH') {
+                          form.setValue('currencyBills', {
+                            '500': receiptItem?.currencyBills?.['500'] || 0,
+                            '200': 0,
+                            '100': 0,
+                            '50': 0,
+                            '20': 0,
+                            '10': 0,
+                          });
+                          // Reset cheque when switching to CASH
+                          form.setValue('cheque', null);
+                          // Keep or initialize receipt number for CASH
+                          form.setValue('receiptNumber', receiptItem?.receiptNumber || undefined);
+                        } else if (value === 'CHEQUE') {
+                          form.setValue('cheque', {
+                            number: '',
+                            bank: '',
+                            date: new Date(),
+                            amount: 0 // Initialize with 0 instead of current amount
+                          });
+                          // Reset currencyBills when switching to CHEQUE
+                          form.setValue('currencyBills', null);
+                          // Clear receipt number for non-CASH methods
+                          form.setValue('receiptNumber', undefined);
+                        } else if (value === 'NONE') {
+                          // Reset both fields when switching to NONE
+                          form.setValue('currencyBills', null);
+                          form.setValue('cheque', null);
+                          // Clear receipt number for non-CASH methods
+                          form.setValue('receiptNumber', undefined);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">Select payment method</SelectItem>
+                        <SelectItem value="CASH">Cash</SelectItem>
+                        <SelectItem value="CHEQUE">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* Cash Payment Fields */}
+            {paymentMethod === 'CASH' && (
+              <div className="rounded-md mx-auto border-t pt-3 ">
+                <h3 className="text-lg font-semibold">Cash Denominations</h3>
+
+                {/* Receipt Number Input */}
+                <FormField
+                  control={form.control}
+                  name="receiptNumber"
+                  render={({ field }) => (
+                    <FormItem className="grid grid-cols-4 items-center gap-2 mb-3">
+                      <FormLabel className="text-right">Receipt Number</FormLabel>
+                      <FormControl className="col-span-3">
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Enter receipt number"
+                          {...field}
+                          value={field.value ?? ''}
+                          onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 0;
+                            field.onChange(value < 0 ? 0 : value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-3">
+                  {currencyControllers.map(({ denomination, value, handleChange }) => (
+                    <div key={denomination} className="grid grid-cols-4 items-center gap-2">
+                      <div className="text-right font-medium">₹{denomination} Notes</div>
+                      <div className="col-span-3">
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={value ?? 0}
+                          onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 py-2 text-right font-semibold text-primary border-t">
+                  Calculated Total: {formatCurrency(calculatedTotal)}
+                  <div className="text-sm text-muted-foreground mt-1">
+                    (This is just a calculation and does not affect the form amount)
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* Cheque Payment Fields - Updated styling for consistency */}
+            {paymentMethod === 'CHEQUE' && (
+              <div className="rounded-md mx-auto border-t pt-3">
+                <h3 className="text-lg font-semibold mb-2">Cheque Details</h3>
+
+                <div className="space-y-4">
+                  {/* Cheque Number */}
                   <FormField
                     control={form.control}
-                    name="receiptNumber"
+                    name="cheque.number"
                     render={({ field }) => (
-                      <FormItem className="grid grid-cols-4 items-center gap-2 mb-3">
-                        <FormLabel className="text-right">Receipt Number</FormLabel>
+                      <FormItem className="grid grid-cols-4 items-center gap-2">
+                        <FormLabel className="text-right">Cheque Number</FormLabel>
+                        <FormControl className="col-span-3">
+                          <Input {...field} placeholder="Enter cheque number" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Bank Name */}
+                  <FormField
+                    control={form.control}
+                    name="cheque.bank"
+                    render={({ field }) => (
+                      <FormItem className="grid grid-cols-4 items-center gap-2 w-full">
+                        <FormLabel className="text-right">Bank Name</FormLabel>
+                        <FormControl className="col-span-3">
+                          <BankSelector
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Enter or select bank name"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Cheque Date - Fixed UI with margin and z-index */}
+                  <FormField
+                    control={form.control}
+                    name="cheque.date"
+                    render={({ field }) => (
+                      <FormItem className="grid grid-cols-4 items-center gap-2">
+                        <FormLabel className="text-right">Cheque Date</FormLabel>
+                        <div className="mt-2">
+                          <DatePicker
+                            date={field.value}
+                            setDate={field.onChange}
+                          />
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Cheque Amount - Now a separate editable input */}
+                  <FormField
+                    control={form.control}
+                    name="cheque.amount"
+                    render={({ field }) => (
+                      <FormItem className="grid grid-cols-4 items-center gap-2">
+                        <FormLabel className="text-right">Cheque Amount</FormLabel>
                         <FormControl className="col-span-3">
                           <Input
                             type="number"
-                            min="1"
-                            placeholder="Enter receipt number"
+                            placeholder="Enter amount"
                             {...field}
+                            onWheel={(e) => (e.target as HTMLInputElement).blur()}
                             onChange={(e) => {
-                              const value = parseInt(e.target.value) || 0;
+                              const value = parseFloat(e.target.value) || 0;
                               field.onChange(value < 0 ? 0 : value);
                             }}
                           />
@@ -634,137 +748,36 @@ export function ReceiptDialog({
                       </FormItem>
                     )}
                   />
-                  
-                  <div className="space-y-3">
-                    {currencyControllers.map(({ denomination, value, handleChange }) => (
-                      <div key={denomination} className="grid grid-cols-4 items-center gap-2">
-                        <div className="text-right font-medium">₹{denomination} Notes</div>
-                        <div className="col-span-3">
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            value={value ?? 0}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-4 py-2 text-right font-semibold text-primary border-t">
-                    Calculated Total: {formatCurrency(calculatedTotal)}
-                    <div className="text-sm text-muted-foreground mt-1">
-                      (This is just a calculation and does not affect the form amount)
-                    </div>
-                  </div>
-                  
                 </div>
-              )}
-              
-              {/* Cheque Payment Fields - Updated styling for consistency */}
-              {paymentMethod === 'CHEQUE' && (
-                <div className="rounded-md mx-auto border-t pt-3">
-                  <h3 className="text-lg font-semibold mb-2">Cheque Details</h3>
-                  
-                  <div className="space-y-4">
-                    {/* Cheque Number */}
-                    <FormField
-                      control={form.control}
-                      name="cheque.number"
-                      render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-2">
-                          <FormLabel className="text-right">Cheque Number</FormLabel>
-                          <FormControl className="col-span-3">
-                            <Input {...field} placeholder="Enter cheque number" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {/* Bank Name */}
-                    <FormField
-                      control={form.control}
-                      name="cheque.bank"
-                      render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-2">
-                          <FormLabel className="text-right">Bank Name</FormLabel>
-                          <FormControl className="col-span-3">
-                            <Input {...field} placeholder="Enter bank name" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {/* Cheque Date - Fixed UI with margin and z-index */}
-                    <FormField
-                      control={form.control}
-                      name="cheque.date"
-                      render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-2">
-                          <FormLabel className="text-right">Cheque Date</FormLabel>
-                          <div className="mt-2">
-                            <DatePicker
-                              date={field.value}
-                              setDate={field.onChange}
-                            />
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {/* Cheque Amount - Now a separate editable input */}
-                    <FormField
-                      control={form.control}
-                      name="cheque.amount"
-                      render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-2">
-                          <FormLabel className="text-right">Cheque Amount</FormLabel>
-                          <FormControl className="col-span-3">
-                            <Input
-                              type="number"
-                              placeholder="Enter amount"
-                              {...field}
-                              onChange={(e) => {
-                                const value = parseFloat(e.target.value) || 0;
-                                field.onChange(value < 0 ? 0 : value);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save'
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  form.reset();
+                  onClose();
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
-} 
+}
