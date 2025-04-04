@@ -80,7 +80,7 @@ export function ActivityHeatmap({
           <CardDescription>{description}</CardDescription>
         </div>
         <div className="flex items-center gap-4">
-          <Select value={activityType} onValueChange={setActivityType}>
+          {/* <Select value={activityType} onValueChange={setActivityType}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select activity type" />
             </SelectTrigger>
@@ -92,7 +92,7 @@ export function ActivityHeatmap({
               <SelectItem value="delivered">Delivery</SelectItem>
               <SelectItem value="billed">Billing</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
           <DatePickerWithRange date={date} setDate={setDate} />
         </div>
       </CardHeader>

@@ -113,6 +113,7 @@ export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
                   fill="#8884d8"
                   fillOpacity={0.6}
                 />
+                {/* 
                 <Area
                   type="monotone"
                   dataKey="items"
@@ -121,8 +122,8 @@ export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
                   stroke="#82ca9d"
                   fill="#82ca9d"
                   fillOpacity={0.6}
-                />
-                <Area
+                /> */}
+                {/* <Area
                   type="monotone"
                   dataKey="orders"
                   name="Orders"
@@ -130,7 +131,7 @@ export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
                   stroke="#ffc658"
                   fill="#ffc658"
                   fillOpacity={0.6}
-                />
+                /> */}
               </AreaChart>
             </ResponsiveContainer>
           </div>
