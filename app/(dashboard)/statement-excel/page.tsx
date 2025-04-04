@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, FileUp, Table as TableIcon, Loader2, ChevronDown, ChevronRight, Phone, MapPin, Clock, Building2, Trash2, Edit2, Check, X, Camera, CameraOff, Upload, Download, Save, FileDown, Eye } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { format } from 'date-fns';
+// Import moment-timezone instead of date-fns
+import moment from 'moment-timezone';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -35,10 +34,11 @@ import {
 } from "@/components/ui/dialog";
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import { TakeImage } from '@/components/take-image-two';
 import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 import StatementPDF from './statement-pdf';
 import { FileUpload } from '@/components/file-upload';
+import { TakeImage } from '@/components/take-image';
+import { compressImage, convertImage, uploadFileToS3, getS3BucketUrl } from '@/lib/helper';
 
 interface ExcelData {
   [key: string]: string | number;
@@ -54,7 +54,7 @@ interface PartySection {
 }
 
 interface SavedData {
-  imageUrl: string | string[] | null;
+  images : string[];
   location: { lat: number; lng: number } | null;
   timestamp: Date | null;
   address: string | null;
@@ -70,12 +70,6 @@ interface StatementFile {
   savedParties?: Record<string, SavedData>;
 }
 
-interface UploadResponse {
-  partySections: PartySection[];
-  headers: string[];
-  totalParties: number;
-}
-
 export default function StatementExcelPage() {
   const [files, setFiles] = useState<StatementFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<StatementFile | null>(null);
@@ -86,14 +80,10 @@ export default function StatementExcelPage() {
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [editingFileName, setEditingFileName] = useState<string>('');
   const [selectedPDFSection, setSelectedPDFSection] = useState<PartySection | null>(null);
-  const [capturedImages, setCapturedImages] = useState<Record<string, string | string[]>>({});
+  const [capturedImages, setCapturedImages] = useState<Record<string, string[]>>({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isSaving, setIsSaving] = useState<string | null>(null);
-  const [isCameraOpen, setIsCameraOpen] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<StatementFile | null>(null);
@@ -103,6 +93,8 @@ export default function StatementExcelPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [imageKeys, setImageKeys] = useState<Record<string, string[]>>({});
 
   // Memoize filtered files to prevent unnecessary re-renders
   const filteredFiles = useMemo(() => {
@@ -110,14 +102,15 @@ export default function StatementExcelPage() {
       try {
         const statementDate = new Date(file.statementDate);
         const selectedDateValue = new Date(selectedDate);
-        
+
         // Check if dates are valid
         if (isNaN(statementDate.getTime()) || isNaN(selectedDateValue.getTime())) {
           console.warn('Invalid date encountered:', { statementDate, selectedDate });
           return false;
         }
-        
-        return format(statementDate, 'yyyy-MM-dd') === format(selectedDateValue, 'yyyy-MM-dd');
+
+        // Use moment for comparison
+        return moment(statementDate).format('YYYY-MM-DD') === moment(selectedDateValue).format('YYYY-MM-DD');
       } catch (error) {
         console.error('Error comparing dates:', error);
         return false;
@@ -128,7 +121,7 @@ export default function StatementExcelPage() {
   const handleFilesSelected = (selectedFiles: File[]) => {
     setSelectedFile(null);
     setExpandedParties(new Set());
-    
+
     // Handle multiple files
     selectedFiles.forEach(file => {
       handleUpload(file);
@@ -137,7 +130,7 @@ export default function StatementExcelPage() {
 
   const handleUpload = async (file: File) => {
     setIsLoading(true);
-    
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('selectedDate', selectedDate.toISOString());
@@ -200,16 +193,16 @@ export default function StatementExcelPage() {
     if (selectedFile?.id === file.id) {
       return; // No need to do anything if clicking the same file
     }
-    
+
     const fetchStatementDetails = async (statementId: string) => {
       try {
         const response = await fetch(`/api/statement-excel/oper?id=${statementId}`);
         const data = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(data.error || 'Failed to fetch statement details');
         }
-        
+
         // Create a complete statement file with all data
         const completeFile: StatementFile = {
           id: data.id,
@@ -220,15 +213,15 @@ export default function StatementExcelPage() {
           headers: data.headers || [],
           savedParties: data.savedParties || {}
         };
-        
+
         // Clear search term and filters when changing files
         setSearchTerm('');
         setShowSavedOnly(false);
         setSelectedFile(completeFile);
-        
+
         // All party statements collapsed by default
         setExpandedParties(new Set());
-        
+
         // Reset pagination when changing files
         setCurrentPage(1);
       } catch (error) {
@@ -240,7 +233,7 @@ export default function StatementExcelPage() {
         });
       }
     };
-    
+
     fetchStatementDetails(file.id);
   };
 
@@ -279,12 +272,13 @@ export default function StatementExcelPage() {
   const handleFileRename = (fileId: string) => {
     // Remove any extension from the new name if user added one
     const newName = removeFileExtension(editingFileName);
-    
-    setFiles(prev => prev.map(f => 
+
+    setFiles(prev => prev.map(f =>
       f.id === fileId ? { ...f, name: newName } : f
     ));
+
     setEditingFileId(null);
-    
+
     // Update selected file if it's being renamed
     if (selectedFile?.id === fileId) {
       setSelectedFile(prev => prev ? { ...prev, name: newName } : null);
@@ -304,9 +298,9 @@ export default function StatementExcelPage() {
         if (!section) return false;
 
         const searchLower = searchTerm.toLowerCase();
-        
+
         // Check party details
-        const matchesPartyDetails = 
+        const matchesPartyDetails =
           section.partyCode?.toLowerCase().includes(searchLower) ||
           section.partyName?.toLowerCase().includes(searchLower) ||
           section.location?.toLowerCase().includes(searchLower);
@@ -314,8 +308,8 @@ export default function StatementExcelPage() {
         if (matchesPartyDetails) return true;
 
         // Check transaction data
-        return section.data?.some(row => 
-          Object.values(row || {}).some(value => 
+        return section.data?.some(row =>
+          Object.values(row || {}).some(value =>
             String(value || '').toLowerCase().includes(searchLower)
           )
         );
@@ -324,8 +318,8 @@ export default function StatementExcelPage() {
 
     // Apply saved filter if enabled
     if (showSavedOnly) {
-      filtered = filtered.filter(section => 
-        selectedFile.savedParties && 
+      filtered = filtered.filter(section =>
+        selectedFile.savedParties &&
         selectedFile.savedParties[section.partyCode]
       );
     }
@@ -345,139 +339,63 @@ export default function StatementExcelPage() {
     });
   };
 
-  // Add a function to check if a section should be visible
-  const isSectionVisible = (section: PartySection) => {
-    if (!selectedFile) return false;
-
-    const matchesSearch = !searchTerm || 
-      section.partyCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      section.partyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      section.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      section.data?.some(row => 
-        Object.values(row || {}).some(value => 
-          String(value || '').toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
-
-    const matchesSaved = !showSavedOnly || 
-      (selectedFile.savedParties && selectedFile.savedParties[section.partyCode]);
-
-    return matchesSearch && matchesSaved;
-  };
-
-  // Functions to handle camera
-  const openCamera = async (partyCode: string) => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' },
-        audio: false 
-      });
-      
-      setStream(mediaStream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-        };
-      }
-      
-      setIsCameraOpen(partyCode);
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      toast({
-        title: "Camera Access Denied",
-        description: "Opening file uploader instead.",
-      });
-      
-      // Fall back to file upload
-      openFileUploader(partyCode);
-    }
-  };
-
-  const closeCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setIsCameraOpen(null);
-  };
-
-  const captureImage = () => {
-    if (videoRef.current && canvasRef.current && isCameraOpen) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      // Draw current video frame to canvas
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Convert canvas to data URL
-        const imageDataUrl = canvas.toDataURL('image/jpeg');
-        
-        // Save captured image
-        setCapturedImages(prev => ({
-          ...prev,
-          [isCameraOpen]: imageDataUrl
-        }));
-        
-        // Close camera after capturing
-        closeCamera();
-      }
-    }
-  };
-
-  // New function to handle image file upload
-  const openFileUploader = (partyCode: string) => {
-    if (fileInputRef.current) {
-      fileInputRef.current.setAttribute('data-party-code', partyCode);
-      fileInputRef.current.click();
-    }
-  };
-  
   // Update the handleImageUpload function
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
+  const handleImageUpload = (imageKey: number | string) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const partyCode = imageKey.toString();
+
+      // Set uploading state for the specific party
+      setUploadingImage(partyCode);
+
+      // Convert and compress the image
+      const changedFile = await convertImage(file);
+      const compressedFile = await compressImage(changedFile);
       
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setCapturedImages(prev => {
-            const partyCode = fileInputRef.current?.getAttribute('data-party-code');
-            if (!partyCode) return prev;
-            
-            const currentImages = prev[partyCode];
-            const newImage = event.target!.result as string;
-            
-            return {
-              ...prev,
-              [partyCode]: currentImages
-                ? Array.isArray(currentImages)
-                  ? [...currentImages, newImage]
-                  : [currentImages, newImage]
-                : [newImage]
-            };
-          });
-        }
-      };
+      // Create a unique key for S3 upload
+      const prefixKeyId = `statement/${selectedFile?.id}/party#${partyCode}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
       
-      reader.readAsDataURL(file);
-    });
-    
-    e.target.value = '';
-  };
-  
-  // Function to view saved image
-  const viewImage = (imageUrl: string) => {
-    setPreviewImage(imageUrl);
+      // Upload the file to S3
+      const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
+
+      // Update UI state to show the uploaded image URL
+      setCapturedImages(prev => {
+        // Ensure currentImages is always an array using type assertion
+        const currentImages = prev[partyCode] as string[] || [];
+        return {
+          ...prev,
+          [partyCode]: [...currentImages, uploadedImage.key]
+        };
+      });
+
+      // Save image reference to local state to be used when saving
+      setImageKeys(prev => {
+        const currentKeys = prev[partyCode] || [];
+        return {
+          ...prev,
+          [partyCode]: [...currentKeys, uploadedImage.key]
+        };
+      });
+
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to upload image. Please try again.',
+        duration: 2000,
+      });
+    } finally {
+      setUploadingImage(null);
+      e.target.value = '';
+    }
   };
 
   // Function to get current location
@@ -487,12 +405,12 @@ export default function StatementExcelPage() {
         reject(new Error("Geolocation is not supported by your browser"));
         return;
       }
-      
+
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          
+
           // Get address using reverse geocoding
           try {
             const response = await fetch(
@@ -516,22 +434,22 @@ export default function StatementExcelPage() {
   // Function to handle save
   const handleSave = async (partyCode: string) => {
     if (!selectedFile) return;
-    
+
     setIsSaving(partyCode);
-    
+
     try {
       // Get current location
       const locationData = await getCurrentLocation();
-      
+
       // Prepare data for API call
       const saveData = {
         statementId: selectedFile.id,
         partyCode: partyCode,
-        images: capturedImages[partyCode] || [],
+        images : capturedImages[partyCode] || [],
         location: locationData,
         address: await getAddressFromCoordinates(locationData.lat, locationData.lng)
       };
-      
+
       // Send data to API
       const response = await fetch('/api/statement-excel/save', {
         method: 'POST',
@@ -540,26 +458,26 @@ export default function StatementExcelPage() {
         },
         body: JSON.stringify(saveData),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'Save failed');
       }
-      
+
       // Update local state
       const updatedSavedParties = {
         ...(selectedFile.savedParties || {}), // Ensure savedParties exists
         [partyCode]: {
-          imageUrl: capturedImages[partyCode] || null,
+          images: capturedImages[partyCode] || [],
           location: locationData,
           timestamp: new Date(),
           address: saveData.address
         }
       };
-      
+
       // Update files list with proper state management
-      setFiles(prev => 
+      setFiles(prev =>
         prev.map(file => {
           if (file.id === selectedFile.id) {
             return {
@@ -570,7 +488,7 @@ export default function StatementExcelPage() {
           return file;
         })
       );
-      
+
       // Update selected file
       setSelectedFile(prevFile => {
         if (!prevFile) return prevFile;
@@ -579,7 +497,7 @@ export default function StatementExcelPage() {
           savedParties: updatedSavedParties
         };
       });
-      
+
       toast({
         title: "Success",
         description: "Statement saved successfully",
@@ -599,30 +517,37 @@ export default function StatementExcelPage() {
   // Function to reset saved data
   const handleReset = async (partyCode: string) => {
     if (!selectedFile) return;
-    
+
     try {
       // Call reset API
       const response = await fetch(`/api/statement-excel/save?statementId=${selectedFile.id}&partyCode=${partyCode}`, {
         method: 'DELETE',
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'Reset failed');
       }
-      
+
       // Remove captured image
       setCapturedImages(prev => {
         const newImages = { ...prev };
         delete newImages[partyCode];
         return newImages;
       });
-      
+
+      // Remove image keys
+      setImageKeys(prev => {
+        const newKeys = { ...prev };
+        delete newKeys[partyCode];
+        return newKeys;
+      });
+
       // Update local state with proper null checks
       const newSavedParties = { ...(selectedFile.savedParties || {}) };
       delete newSavedParties[partyCode];
-      
+
       // Update files list with proper state management
       setFiles(prev => prev.map(file => {
         if (file.id === selectedFile.id) {
@@ -633,7 +558,7 @@ export default function StatementExcelPage() {
         }
         return file;
       }));
-      
+
       // Update selected file reference with proper state management
       setSelectedFile(prevFile => {
         if (!prevFile) return prevFile;
@@ -642,16 +567,16 @@ export default function StatementExcelPage() {
           savedParties: newSavedParties
         };
       });
-      
+
       toast({
-        title: "Reset Successfully",
-        description: "Party statement data has been reset",
+        title: "Success",
+        description: "Statement reset successfully",
       });
     } catch (error) {
       console.error('Error resetting statement:', error);
       toast({
         title: "Error",
-        description: "Failed to reset statement data",
+        description: "Failed to reset statement",
         variant: "destructive",
       });
     }
@@ -662,25 +587,22 @@ export default function StatementExcelPage() {
     window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
   };
 
-  // Function to format time in 12-hour format
+  // Function to format time in 12-hour format using moment
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    // Use moment for formatting
+    return moment(date).format('h:mm A');
   };
 
   // Function to generate PDF
   const generatePDF = (section: PartySection) => {
     try {
       if (!selectedFile) return;
-      
+
       // Check if this party data has been saved
       const savedData = selectedFile.savedParties?.[section.partyCode];
-      
+
       setSelectedPDFSection(section);
-      
+
       return (
         <PDFViewer width="100%" height="600px">
           <StatementPDF
@@ -706,7 +628,7 @@ export default function StatementExcelPage() {
   // Helper function to calculate totals
   const calculateTotal = (data: ExcelData[], column: string): number => {
     if (!data || !Array.isArray(data)) return 0;
-    
+
     return data.reduce((sum, row) => {
       if (row[column] === undefined || row[column] === null) return sum;
       const value = parseFloat(String(row[column]).replace(/,/g, ''));
@@ -765,6 +687,7 @@ export default function StatementExcelPage() {
       const formatExcelDate = (serialDate: number) => {
         if (!serialDate) return '';
         const date = new Date((serialDate - 25569) * 86400 * 1000);
+        // Using native toLocaleDateString for this specific Excel conversion is fine
         return date.toLocaleDateString('en-GB', {
           day: '2-digit',
           month: 'short',
@@ -777,7 +700,7 @@ export default function StatementExcelPage() {
         if (value === undefined || value === null || value === '') return '';
         const num = parseFloat(value);
         if (isNaN(num)) return value;
-        
+
         // Always show 2 decimal places for numeric columns
         if ([5, 6, 7, 8, 9, 10].includes(columnIndex)) {
           return num.toFixed(2);
@@ -787,20 +710,20 @@ export default function StatementExcelPage() {
 
       // These are the exact Excel header titles in correct order
       const excelHeaders = [
-        "DC", "Voucher Date", "*", "Voucherser", "Voucher No.", 
-        "Debits", "Part Adj.", "Balance", "Balance C/f", 
+        "DC", "Voucher Date", "*", "Voucherser", "Voucher No.",
+        "Debits", "Part Adj.", "Balance", "Balance C/f",
         "Days", "Disc.", "Narration", "Adj"
       ];
 
       // Format cell value based on column type and row type
       const formatCellValue = (value: any, columnIndex: number, row: any) => {
         if (value === undefined || value === null) return '';
-        
+
         // Handle date column (index 1)
         if (columnIndex === 1 && !isNaN(value)) {
           return formatExcelDate(value);
         }
-        
+
         // Handle special case for "*" column
         if (columnIndex === 2 && row.col0 === 'I') {
           return '*';
@@ -834,8 +757,8 @@ export default function StatementExcelPage() {
             <thead className="bg-muted/50">
               <tr>
                 {excelHeaders.map((header, index) => (
-                  <th 
-                    key={index} 
+                  <th
+                    key={index}
                     className="text-left p-2 text-sm font-medium border-b border-r border-border/40 whitespace-nowrap"
                   >
                     {header}
@@ -846,7 +769,7 @@ export default function StatementExcelPage() {
             <tbody>
               {/* Regular rows */}
               {regularRows.map((row, rowIndex) => (
-                <tr 
+                <tr
                   key={rowIndex}
                   className={rowIndex % 2 === 0 ? "bg-muted/5" : ""}
                 >
@@ -857,18 +780,18 @@ export default function StatementExcelPage() {
                     // Special handling for Disc. column
                     if (colIndex === 10) {
                       return (
-                        <td 
-                          key={colIndex} 
+                        <td
+                          key={colIndex}
                           className="p-2 text-sm border-r border-border/30 whitespace-nowrap border-l first:border-l-0"
                         >
                           {formatNumber(value, colIndex)}
                         </td>
                       );
                     }
-                    
+
                     return (
-                      <td 
-                        key={colIndex} 
+                      <td
+                        key={colIndex}
                         className="p-2 text-sm border-r border-border/30 whitespace-nowrap border-l first:border-l-0"
                       >
                         {formatCellValue(value, colIndex, row)}
@@ -917,7 +840,7 @@ export default function StatementExcelPage() {
     if (itemsPerPage === 'all') {
       return filteredSections;
     }
-    
+
     const startIndex = (currentPage - 1) * Number(itemsPerPage);
     const endIndex = startIndex + Number(itemsPerPage);
     return filteredSections.slice(startIndex, endIndex);
@@ -937,19 +860,19 @@ export default function StatementExcelPage() {
         console.log(`Fetching statements for date: ${selectedDate.toISOString()}`);
         const response = await fetch(`/api/statement-excel/get-by-date?date=${selectedDate.toISOString()}`);
         const data = await response.json();
-        
+
         if (response.status === 401) {
           // Handle unauthorized access
           window.location.href = '/login';
           return;
         }
-        
+
         if (!response.ok) {
           throw new Error(data.error || 'Failed to fetch statements');
         }
-        
+
         console.log(`Received ${data.length} statements for date: ${selectedDate.toISOString()}`);
-        
+
         // Convert API response to StatementFile format
         const formattedFiles: StatementFile[] = data.map((statement: any) => ({
           id: statement.id,
@@ -967,7 +890,7 @@ export default function StatementExcelPage() {
           headers: [],
           savedParties: statement.savedParties || {}
         }));
-        
+
         setFiles(formattedFiles);
       } catch (error) {
         console.error('Error fetching statements:', error);
@@ -986,83 +909,12 @@ export default function StatementExcelPage() {
         setIsLoadingStatements(false);
       }
     };
-    
+
     fetchStatements();
   }, [selectedDate, toast]);
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Hidden canvas for capturing images */}
-      <canvas ref={canvasRef} className="hidden" />
-      
-      {/* Hidden file input for image upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleImageUpload}
-      />
-      
-      {/* Camera Dialog */}
-      <Dialog open={!!isCameraOpen} onOpenChange={() => isCameraOpen && closeCamera()}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Capture Image</DialogTitle>
-            <DialogDescription>
-              Take a photo for the party statement
-            </DialogDescription>
-          </DialogHeader>
-          <div className="relative aspect-[4/3] bg-muted rounded-md overflow-hidden">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex justify-center gap-4">
-            <Button variant="outline" onClick={closeCamera}>
-              <CameraOff className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <Button onClick={captureImage}>
-              <Camera className="h-4 w-4 mr-2" />
-              Capture
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Image Preview Dialog */}
-      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Image Preview</DialogTitle>
-          </DialogHeader>
-          <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
-            {previewImage && (
-              <img
-                src={previewImage}
-                alt="Statement Preview"
-                className="w-full h-full object-contain"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* PDF Preview Dialog */}
-      <Dialog>
-        <DialogContent className="max-w-7xl w-full">
-          <DialogHeader>
-            <DialogTitle>Statement PDF Preview</DialogTitle>
-          </DialogHeader>
-          {selectedFile && selectedPDFSection && generatePDF(selectedPDFSection)}
-        </DialogContent>
-      </Dialog>
-      
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -1081,7 +933,8 @@ export default function StatementExcelPage() {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  {/* Use moment for date formatting */}
+                  {selectedDate ? moment(selectedDate).format("LL") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -1109,8 +962,8 @@ export default function StatementExcelPage() {
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             <div className="flex flex-col gap-4 h-full border rounded-lg p-4">
-              <div 
-                className="flex items-center justify-between cursor-pointer md:cursor-default" 
+              <div
+                className="flex items-center justify-between cursor-pointer md:cursor-default"
                 onClick={() => {
                   // Only trigger on mobile
                   if (window.innerWidth < 768) {
@@ -1121,21 +974,21 @@ export default function StatementExcelPage() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-medium">Upload New Statement</h3>
                 </div>
-                
-                <ChevronDown 
+
+                <ChevronDown
                   className={cn(
                     "h-4 w-4 md:hidden transition-transform duration-200",
                     isUploadExpanded ? "transform rotate-180" : ""
-                  )} 
+                  )}
                 />
               </div>
-              
+
               <div className={cn(
-                "md:block", 
+                "md:block",
                 isUploadExpanded ? "block" : "hidden"
               )}>
                 <div className="flex-grow flex flex-col">
-                  <FileUpload 
+                  <FileUpload
                     onFilesSelected={handleFilesSelected}
                     isLoading={isLoading}
                     acceptTypes=".xlsx,.xls"
@@ -1149,8 +1002,8 @@ export default function StatementExcelPage() {
             </div>
 
             <div className="flex flex-col gap-4 h-full border rounded-lg p-4">
-              <div 
-                className="flex items-center justify-between cursor-pointer md:cursor-default" 
+              <div
+                className="flex items-center justify-between cursor-pointer md:cursor-default"
                 onClick={() => {
                   // Only trigger on mobile
                   if (window.innerWidth < 768) {
@@ -1164,17 +1017,17 @@ export default function StatementExcelPage() {
                     ({filteredFiles.length})
                   </span>
                 </div>
-                
-                <ChevronDown 
+
+                <ChevronDown
                   className={cn(
                     "h-4 w-4 md:hidden transition-transform duration-200",
                     isRecentStatementsExpanded ? "transform rotate-180" : ""
-                  )} 
+                  )}
                 />
               </div>
 
               <div className={cn(
-                "md:block", 
+                "md:block",
                 isRecentStatementsExpanded ? "block" : "hidden"
               )}>
                 {isLoadingStatements ? (
@@ -1201,7 +1054,8 @@ export default function StatementExcelPage() {
                   <div className="flex-grow flex flex-col items-center justify-center py-8 text-center bg-muted/5">
                     <TableIcon className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      No statements uploaded on {format(selectedDate, "PPP")}
+                      {/* Use moment for date formatting */}
+                      No statements uploaded on {moment(selectedDate).format("LL")}
                     </p>
                   </div>
                 ) : (
@@ -1211,8 +1065,8 @@ export default function StatementExcelPage() {
                         key={file.id}
                         className={cn(
                           "flex flex-col p-3 rounded-lg border transition-colors cursor-pointer",
-                          selectedFile?.id === file.id 
-                            ? "border-primary bg-primary/5" 
+                          selectedFile?.id === file.id
+                            ? "border-primary bg-primary/5"
                             : "hover:border-primary/50"
                         )}
                         onClick={() => handleFileSelect(file)}
@@ -1298,7 +1152,8 @@ export default function StatementExcelPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Upload className="h-3 w-3" />
-                            <span>{format(new Date(file.uploadDate), "dd MMM yyyy, h:mm a")}</span>
+                            {/* Use moment for date formatting */}
+                            <span>{moment(file.uploadDate).format('DD MMM YYYY, h:mm A')}</span>
                           </div>
                         </div>
                       </div>
@@ -1362,8 +1217,8 @@ export default function StatementExcelPage() {
                   <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg">
                     <TableIcon className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      {showSavedOnly 
-                        ? searchTerm 
+                      {showSavedOnly
+                        ? searchTerm
                           ? 'No saved statements match your search.'
                           : 'No saved statements found.'
                         : searchTerm
@@ -1376,6 +1231,11 @@ export default function StatementExcelPage() {
                   <>
                     {/* Statement listing */}
                     {paginatedSections.map((section) => {
+                      const savedPartyData = selectedFile.savedParties?.[section.partyCode];
+                      const hasSavedTimestamp = savedPartyData?.timestamp;
+
+                      console.log({savedPartyData})
+
                       return (
                         <Card key={section.partyCode} className={cn(
                           "mb-4 overflow-hidden",
@@ -1414,21 +1274,21 @@ export default function StatementExcelPage() {
                                         <Clock className="h-3 w-3 flex-shrink-0" />
                                         <span>{section.creditDays} days credit</span>
                                       </div>
-                                      
+
                                       {/* Show timestamp if saved */}
-                                      {selectedFile.savedParties && selectedFile.savedParties[section.partyCode]?.timestamp && (
+                                      {hasSavedTimestamp && (
                                         <div className="flex items-center gap-1 text-green-600 font-medium">
                                           <Clock className="h-3 w-3 flex-shrink-0" />
-                                          <span>
-                                            {formatTime(new Date(selectedFile.savedParties[section.partyCode].timestamp!))}
-                                          </span>
+                                          {/* Use formatTime which now uses moment */}
+                                          <span>{formatTime(new Date(savedPartyData.timestamp!))}</span>
                                         </div>
                                       )}
                                     </div>
                                   </div>
                                   <div className="flex items-center">
                                     <Badge variant="outline" className="text-xs mr-2 hidden sm:inline-flex">
-                                      {section.data.filter(row => row.DC !== 'Total').length} transactions
+                                      {/* Filter out potential total row before counting */}
+                                      {section.data.filter(row => !String(row.col4 || '').toLowerCase().includes('total')).length} transactions
                                     </Badge>
                                     <div className="bg-primary/10 p-2 rounded-full">
                                       <ChevronDown
@@ -1441,18 +1301,18 @@ export default function StatementExcelPage() {
                                   </div>
                                 </div>
                               </button>
-                              
+
                               {/* Action buttons in the header */}
                               <div className="flex items-center gap-1.5 mt-2 sm:mt-0 whitespace-nowrap">
                                 {/* Location Button */}
-                                {selectedFile.savedParties && selectedFile.savedParties[section.partyCode]?.location && (
+                                {savedPartyData?.location && (
                                   <Button
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
                                     onClick={() => openLocation(
-                                      selectedFile.savedParties![section.partyCode].location!.lat,
-                                      selectedFile.savedParties![section.partyCode].location!.lng
+                                      savedPartyData.location!.lat,
+                                      savedPartyData.location!.lng
                                     )}
                                   >
                                     <MapPin className="h-3.5 w-3.5" />
@@ -1463,62 +1323,19 @@ export default function StatementExcelPage() {
                                 <div>
                                   <TakeImage
                                     imageKey={section.partyCode}
-                                    handleImageUpload={(e: React.ChangeEvent<HTMLInputElement>, partyCode: string) => {
-                                      const files = e.target.files;
-                                      if (!files || files.length === 0) return;
-                                      
-                                      Array.from(files).forEach(file => {
-                                        const reader = new FileReader();
-                                        
-                                        reader.onload = (event) => {
-                                          if (event.target?.result) {
-                                            setCapturedImages(prev => {
-                                              const currentImages = prev[partyCode];
-                                              const newImage = event.target!.result as string;
-                                              
-                                              return {
-                                                ...prev,
-                                                [partyCode]: currentImages
-                                                  ? Array.isArray(currentImages)
-                                                    ? [...currentImages, newImage]
-                                                    : [currentImages, newImage]
-                                                  : [newImage]
-                                              };
-                                            });
-                                          }
-                                        };
-                                        
-                                        reader.readAsDataURL(file);
-                                      });
-                                      
-                                      e.target.value = '';
-                                    }}
-                                    isUploading={false}
-                                    isDisabled={!!isCameraOpen}
-                                    showImages={[
-                                      ...(Array.isArray(capturedImages[section.partyCode]) 
-                                        ? capturedImages[section.partyCode] as string[]
-                                        : typeof capturedImages[section.partyCode] === 'string'
-                                          ? [capturedImages[section.partyCode] as string]
-                                          : []),
-                                      ...(selectedFile.savedParties?.[section.partyCode]?.imageUrl 
-                                        ? Array.isArray(selectedFile.savedParties[section.partyCode].imageUrl)
-                                          ? selectedFile.savedParties[section.partyCode].imageUrl as string[]
-                                          : typeof selectedFile.savedParties[section.partyCode].imageUrl === 'string'
-                                            ? [selectedFile.savedParties[section.partyCode].imageUrl as string]
-                                            : []
-                                        : [])
-                                    ].filter((img): img is string => typeof img === 'string')}
+                                    handleImageUpload={handleImageUpload}
+                                    isUploading={uploadingImage === section.partyCode}
+                                    isDisabled={uploadingImage === section.partyCode || savedPartyData !== undefined}
+                                    showImages={
+                                      Array.from(new Set([...(capturedImages[section.partyCode] || []), ...(savedPartyData?.images || [])]))
+                                    }
                                     takeType="BOTH"
-                                    isSaved={!!selectedFile.savedParties?.[section.partyCode]}
-                                    dialogTitle={`${section.partyName} - ${format(new Date(), 'dd/MM/yyyy')}`}
-                                    fileName={`${removeFileExtension(selectedFile.name)}#${section.partyCode}_${section.partyName}`}
                                   />
                                 </div>
 
                                 {/* Save/Reset Button */}
                                 <div>
-                                  {selectedFile.savedParties && selectedFile.savedParties[section.partyCode] ? (
+                                  {savedPartyData ? (
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
                                         <Button
@@ -1567,20 +1384,20 @@ export default function StatementExcelPage() {
                                 </div>
 
                                 {/* PDF Button */}
-                                {selectedFile.savedParties && selectedFile.savedParties[section.partyCode] && (
+                                {savedPartyData && (
                                   <div>
                                     <PDFDownloadLink
                                       document={
                                         <StatementPDF
                                           section={section}
-                                          fileName={`${section.partyCode}-${format(new Date(), 'yyyy-MM-dd')}`}
+                                          fileName={`${section.partyCode}-${moment().format('YYYY-MM-DD')}`}
                                           totalDebits={calculateTotal(section.data, 'col5')}
                                           totalAdjustments={calculateTotal(section.data, 'col6')}
                                           outstandingBalance={calculateTotal(section.data, 'col7')}
                                           totalDiscount={calculateTotal(section.data, 'col10')}
                                         />
                                       }
-                                      fileName={`${section.partyCode}-${format(new Date(), 'yyyy-MM-dd')}.pdf`}
+                                      fileName={`${section.partyCode}-${moment().format('YYYY-MM-DD')}.pdf`}
                                     >
                                       {({ loading }) => (
                                         <Button
@@ -1605,13 +1422,13 @@ export default function StatementExcelPage() {
                               </div>
                             </div>
                           </CardHeader>
-                          
+
                           {expandedParties.has(section.partyCode) && (
                             <CardContent className="p-0">
                               <div className="p-4 border-t border-border/40">
                                 {section.data && (Array.isArray(section.data) || typeof section.data === 'object') ? (
                                   renderTransactionTable(
-                                    Array.isArray(section.data) ? section.data : [section.data], 
+                                    Array.isArray(section.data) ? section.data : [section.data],
                                     selectedFile?.headers
                                   )
                                 ) : (
@@ -1683,13 +1500,13 @@ export default function StatementExcelPage() {
                             >
                               1
                             </Button>
-                            
+
                             {currentPage > 3 && (
                               <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
                                 ...
                               </Button>
                             )}
-                            
+
                             {currentPage > 2 && (
                               <Button
                                 variant="outline"
@@ -1700,7 +1517,7 @@ export default function StatementExcelPage() {
                                 {currentPage - 1}
                               </Button>
                             )}
-                            
+
                             {currentPage !== 1 && currentPage !== totalPages && (
                               <Button
                                 variant="default"
@@ -1710,7 +1527,7 @@ export default function StatementExcelPage() {
                                 {currentPage}
                               </Button>
                             )}
-                            
+
                             {currentPage < totalPages - 1 && (
                               <Button
                                 variant="outline"
@@ -1721,13 +1538,13 @@ export default function StatementExcelPage() {
                                 {currentPage + 1}
                               </Button>
                             )}
-                            
+
                             {currentPage < totalPages - 2 && (
                               <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
                                 ...
                               </Button>
                             )}
-                            
+
                             {totalPages > 1 && (
                               <Button
                                 variant="outline"
@@ -1772,4 +1589,4 @@ export default function StatementExcelPage() {
       </Card>
     </div>
   );
-} 
+}
