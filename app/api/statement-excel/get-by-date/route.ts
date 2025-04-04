@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import moment from 'moment-timezone';
 
 // Define a more complete type that includes our custom fields
 interface ExtendedStatement {
@@ -36,20 +37,17 @@ export async function GET(req: NextRequest) {
 
     console.log("Received date parameter:", dateParam);
 
-    // Parse the date
-    const date = new Date(dateParam);
+    // Parse the date using moment
+    const date = moment(dateParam);
     
     // Ensure date is valid
-    if (isNaN(date.getTime())) {
+    if (!date.isValid()) {
       return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
     }
 
     // Format the date to match the format stored in the database (start and end of day)
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const startDate = date.clone().startOf('day').toDate();
+    const endDate = date.clone().endOf('day').toDate();
 
     console.log("Querying statements between:", startDate, "and", endDate);
 
