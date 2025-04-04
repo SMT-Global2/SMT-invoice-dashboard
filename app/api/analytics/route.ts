@@ -26,12 +26,28 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || ''
     const from = searchParams.get('from') || ''
     const to = searchParams.get('to') || ''
+    const date = searchParams.get('date') || ''
     const regionalCodesParam = searchParams.get('regionalCodes')
+    const progressStage = searchParams.get('progressStage') || 'all'
+    const sortField = searchParams.get('sortField') || 'invoiceTimestamp'
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
   
     // Build where clause for date filtering
     let dateFilter: any = {};
     
-    if (from && to) {
+    if (date) {
+      // If specific date is provided, use it (priority over from/to)
+      const selectedDate = new Date(date);
+      const nextDay = new Date(selectedDate);
+      nextDay.setDate(selectedDate.getDate() + 1);
+      
+      dateFilter = {
+        invoiceTimestamp: {
+          gte: selectedDate,
+          lt: nextDay
+        }
+      };
+    } else if (from && to) {
       dateFilter = {
         invoiceTimestamp: {
           gte: new Date(from),

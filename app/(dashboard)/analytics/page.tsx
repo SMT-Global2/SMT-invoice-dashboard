@@ -27,9 +27,9 @@ export default function AnalyticsPage() {
 
       <Tabs defaultValue="dashboards" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
+          <TabsTrigger value="table">Invoices Table</TabsTrigger>
           <TabsTrigger value="dashboards">Invoice Analytics</TabsTrigger>
           <TabsTrigger value="users">User Performance</TabsTrigger>
-          <TabsTrigger value="table">Invoices Table</TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboards" className="space-y-6">

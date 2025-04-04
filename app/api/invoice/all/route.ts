@@ -30,6 +30,7 @@ export async function GET(request: Request) {
     const sortOrder = searchParams.get('sortOrder') || 'desc'
     const progressStage = searchParams.get('progressStage') || 'all'
     const regionalCodesParam = searchParams.get('regionalCodes')
+    const fetchAll = searchParams.get('fetchAll') === 'true'
 
     // Build where clause
     let where: any = {
@@ -133,7 +134,17 @@ export async function GET(request: Request) {
         break
     }
 
-    const [total, invoices] = await Promise.all([
+    // For analytics, fetch counts of invoices by status
+    const [
+      total, 
+      invoices,
+      totalChecked,
+      totalPacked,
+      totalPickedUp,
+      totalDelivered,
+      totalBilled,
+      totalOTC
+    ] = await Promise.all([
       prisma.invoice.count({ where }),
       prisma.invoice.findMany({
         where,
@@ -145,6 +156,42 @@ export async function GET(request: Request) {
         orderBy: {
           [sortField]: sortOrder
         } as any
+      }),
+      prisma.invoice.count({ 
+        where: {
+          ...where,
+          checkStatus: CheckStatus.CHECKED
+        }
+      }),
+      prisma.invoice.count({ 
+        where: {
+          ...where,
+          packageStatus: PackageStatus.PACKED
+        }
+      }),
+      prisma.invoice.count({ 
+        where: {
+          ...where,
+          deliveryStatus: DeliveryStatus.PICKED_UP
+        }
+      }),
+      prisma.invoice.count({ 
+        where: {
+          ...where,
+          deliveryStatus: DeliveryStatus.DELIVERED
+        }
+      }),
+      prisma.invoice.count({ 
+        where: {
+          ...where,
+          billedStatus: BilledStatus.BILLED
+        }
+      }),
+      prisma.invoice.count({ 
+        where: {
+          ...where,
+          isOtc: true
+        }
       })
     ])
 
@@ -153,7 +200,16 @@ export async function GET(request: Request) {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
+      filteredAnalytics: {
+        totalGenerated: total,
+        totalChecked,
+        totalPacked,
+        totalPickedUp,
+        totalDelivered,
+        totalBilled,
+        totalOTC
+      }
     })
 
   } catch (error) {

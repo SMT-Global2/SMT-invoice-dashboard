@@ -53,6 +53,7 @@ export default function AdminInvoiceTable() {
     fetchAvailableRegionalCodes,
     allInvoices,
     analytics,
+    filteredAnalytics,
     isLoading,
     pagination,
     setPagination,
@@ -244,8 +245,8 @@ export default function AdminInvoiceTable() {
                 <SelectItem value="picked_up">Picked Up</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
                 <SelectItem value="billed">Billed</SelectItem>
-                <SelectItem value="incomplete">Incomplete (&lt; 100%)</SelectItem>
-                <SelectItem value="complete">Complete (100%)</SelectItem>
+                {/* <SelectItem value="incomplete">Incomplete (&lt; 100%)</SelectItem>
+                <SelectItem value="complete">Complete (100%)</SelectItem> */}
               </SelectContent>
             </Select>
 
@@ -292,9 +293,15 @@ export default function AdminInvoiceTable() {
               <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{analytics.totalGenerated}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalGenerated 
+                  : analytics.totalGenerated}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                Invoices Generated
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered Invoices' 
+                  : 'Invoices Generated'}
               </p>
             </CardContent>
           </Card>
@@ -305,9 +312,15 @@ export default function AdminInvoiceTable() {
               <CheckCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{analytics.totalChecked}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalChecked 
+                  : analytics.totalChecked}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                Invoices Checked
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered Checked' 
+                  : 'Invoices Checked'}
               </p>
             </CardContent>
           </Card>
@@ -318,9 +331,15 @@ export default function AdminInvoiceTable() {
               <Package className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{analytics.totalPacked}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalPacked 
+                  : analytics.totalPacked}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                Invoices Packed
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered Packed' 
+                  : 'Invoices Packed'}
               </p>
             </CardContent>
           </Card>
@@ -331,9 +350,15 @@ export default function AdminInvoiceTable() {
               <Truck className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{analytics.totalPickedUp}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalPickedUp 
+                  : analytics.totalPickedUp}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                Invoices Picked Up
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered Picked Up' 
+                  : 'Invoices Picked Up'}
               </p>
             </CardContent>
           </Card>
@@ -344,9 +369,15 @@ export default function AdminInvoiceTable() {
               <Truck className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{analytics.totalDelivered}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalDelivered 
+                  : analytics.totalDelivered}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                Invoices Delivered
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered Delivered' 
+                  : 'Invoices Delivered'}
               </p>
             </CardContent>
           </Card>
@@ -357,9 +388,15 @@ export default function AdminInvoiceTable() {
               <Store className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{analytics.totalOTC}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalOTC 
+                  : analytics.totalOTC}
+              </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                Invoices OTC
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered OTC' 
+                  : 'Invoices OTC'}
               </p>
             </CardContent>
           </Card>
@@ -399,6 +436,7 @@ export default function AdminInvoiceTable() {
                     <TableHead className="w-24 text-center">Packed</TableHead>
                     <TableHead className="w-24 text-center">Picked Up</TableHead>
                     <TableHead className="w-24 text-center">Delivered</TableHead>
+                    <TableHead className="w-24 text-center">Billed</TableHead>
                     <TableHead className="w-36">Last Updated</TableHead>
                     <TableHead className="w-24">Type</TableHead>
                     <TableHead className="w-24">Actions</TableHead>
@@ -406,10 +444,10 @@ export default function AdminInvoiceTable() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableSkeleton rows={5} cols={13} />
+                    <TableSkeleton rows={5} cols={14} />
                   ) : allInvoices.invoices.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center">
+                      <TableCell colSpan={14} className="text-center">
                         No invoices found
                       </TableCell>
                     </TableRow>
@@ -428,6 +466,7 @@ export default function AdminInvoiceTable() {
                         <TableCell className="text-center"><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
                         <TableCell className="text-center"><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
                         <TableCell className="text-center"><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
+                        <TableCell className="text-center"><StatusBadge status={!!invoice.billedTimestamp} /></TableCell>
                         <TableCell>{tweleHrFormatDateString(new Date(invoice.updatedAt))}</TableCell>
                         <TableCell>
                           <Capsule

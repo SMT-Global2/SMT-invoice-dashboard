@@ -182,6 +182,9 @@ interface AnalyticsState {
   }
   analytics: Analytics;
   
+  // Add filtered analytics state
+  filteredAnalytics: Analytics;
+  
   pagination: PaginationState;
   filters: FilterState;
   totalPages: number;
@@ -219,6 +222,25 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
 
 
   analytics: {
+    totalGenerated: 0,
+    totalChecked: 0,
+    totalPacked: 0,
+    totalPickedUp: 0,
+    totalDelivered: 0,
+    totalOTC: 0,
+    totalBilled: 0,
+    processingEfficiency: 0,
+    billingRate: 0,
+    paymentDistribution: {
+      cash: 0,
+      credit: 0,
+      cashRatio: 0,
+      creditRatio: 0
+    }
+  },
+
+  // Initialize filtered analytics
+  filteredAnalytics: {
     totalGenerated: 0,
     totalChecked: 0,
     totalPacked: 0,
@@ -416,10 +438,69 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         fetch(`/api/invoice/all?${params.toString()}`).then(res => res.json())
       ]);
       
+      // Process invoices based on progress stage filter if needed
+      let filteredInvoices = invoiceData.invoices || [];
+      const progressStage = get().filters.progressStage;
+      
+      // Helper function to calculate invoice completeness
+      const calculateInvoiceCompleteness = (invoice: any) => {
+        let stages = 0;
+        let completed = 0;
+        
+        stages++;
+        if (invoice.invoiceTimestamp) completed++;
+        
+        stages++;
+        if (invoice.checkStatus === 'CHECKED') completed++;
+        
+        stages++;
+        if (invoice.packageStatus === 'PACKED') completed++;
+        
+        stages += 2;
+        if (invoice.deliveryStatus === 'PICKED_UP') completed++;
+        if (invoice.deliveryStatus === 'DELIVERED') completed += 2;
+        
+        stages++;
+        if (invoice.billedStatus === 'BILLED') completed++;
+        
+        return Math.round((completed / stages) * 100);
+      };
+      
+      if (progressStage === 'incomplete' || progressStage === 'complete') {
+        filteredInvoices = filteredInvoices.filter((invoice: any) => {
+          const isComplete = calculateInvoiceCompleteness(invoice) === 100;
+          return progressStage === 'complete' ? isComplete : !isComplete;
+        });
+      }
+      
+      // Set processingEfficiency and billingRate for filtered analytics
+      const filteredAnalytics = invoiceData.filteredAnalytics || {
+        totalGenerated: 0,
+        totalChecked: 0,
+        totalPacked: 0,
+        totalPickedUp: 0,
+        totalDelivered: 0,
+        totalOTC: 0,
+        totalBilled: 0,
+      };
+      
+      // Calculate efficiency metrics for filtered data
+      if (filteredAnalytics) {
+        filteredAnalytics.processingEfficiency = filteredAnalytics.totalChecked > 0 
+          ? Math.round((filteredAnalytics.totalPacked / filteredAnalytics.totalChecked) * 100) 
+          : 0;
+          
+        filteredAnalytics.billingRate = filteredAnalytics.totalDelivered > 0 
+          ? Math.round((filteredAnalytics.totalBilled / filteredAnalytics.totalDelivered) * 100) 
+          : 0;
+      }
+      
       set({
         allInvoices: {
-          invoices: invoiceData.invoices || [],
-          total: invoiceData.total || 0
+          invoices: filteredInvoices,
+          total: progressStage === 'incomplete' || progressStage === 'complete' 
+            ? filteredInvoices.length 
+            : invoiceData.total || 0
         },
         analytics: analyticsData.analytics || {
           totalGenerated: 0,
@@ -438,7 +519,10 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
             creditRatio: 0
           }
         },
-        totalPages: Math.ceil((invoiceData.total || 0) / get().pagination.limit),
+        filteredAnalytics: filteredAnalytics as Analytics,
+        totalPages: Math.ceil((progressStage === 'incomplete' || progressStage === 'complete' 
+          ? filteredInvoices.length 
+          : invoiceData.total || 0) / get().pagination.limit),
         isLoading: false
       });
     } catch (error) {
