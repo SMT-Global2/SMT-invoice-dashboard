@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
           .filter(section => section.isSaved)
           .reduce((acc: Record<string, any>, section) => {
             acc[section.partyCode] = {
-              imageUrl: section.images,
+              images : section.images,
               location: section.latitude && section.longitude 
                 ? { lat: section.latitude, lng: section.longitude } 
                 : null,

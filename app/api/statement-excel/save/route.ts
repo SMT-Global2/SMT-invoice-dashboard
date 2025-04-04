@@ -20,6 +20,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Statement ID and Party Code are required' }, { status: 400 });
     }
 
+    console.log("images", images);
+
     console.log("Finding report section for statement:", statementId, "party:", partyCode);
     
     try {

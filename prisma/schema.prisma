@@ -219,8 +219,6 @@ model ReportSection {
   longitude         Float?
   address           String?
 
-  imageUrls         String[]  // For storing actual image URLs instead of base64
-
   statementId       String    @db.ObjectId
   statement         Statement  @relation(fields: [statementId], references: [id], onDelete: Cascade)
 
