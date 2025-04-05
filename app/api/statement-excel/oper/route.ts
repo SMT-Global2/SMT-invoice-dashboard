@@ -104,6 +104,49 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  req: NextRequest,
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.username) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const id = req.nextUrl.searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Statement ID is required' }, { status: 400 });
+    }
+
+    const { name } = await req.json();
+
+    console.log("Renaming statement with ID:", id, "to:", name);
+
+    try {
+      await prisma.statement.update({
+        where: { id },
+        data: { name },
+      });
+
+      return NextResponse.json({ success: true });
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      return NextResponse.json({ 
+        error: 'Database error', 
+        details: dbError instanceof Error ? dbError.message : String(dbError) 
+      }, { status: 500 });
+    }
+  } catch (error) {
+    console.error('Error renaming statement:', error);
+    return NextResponse.json({ 
+      error: 'Error renaming statement',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
+  }
+}
+
+
 export async function DELETE(
   req: NextRequest,
 ) {

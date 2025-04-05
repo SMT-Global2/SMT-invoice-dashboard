@@ -269,21 +269,44 @@ export default function StatementExcelPage() {
     }
   };
 
-  const handleFileRename = (fileId: string) => {
-    // Remove any extension from the new name if user added one
-    const newName = removeFileExtension(editingFileName);
+  const handleFileRename = async (fileId: string) => {
+    try {
+      // Remove any extension from the new name if user added one
+      const newName = removeFileExtension(editingFileName);
 
-    setFiles(prev => prev.map(f =>
-      f.id === fileId ? { ...f, name: newName } : f
-    ));
+      //backend call 
+      const response = await fetch(`/api/statement-excel/oper?id=${fileId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newName }),
+      });
 
-    setEditingFileId(null);
 
-    // Update selected file if it's being renamed
-    if (selectedFile?.id === fileId) {
-      setSelectedFile(prev => prev ? { ...prev, name: newName } : null);
-    }
-  };
+      setFiles(prev => prev.map(f =>
+        f.id === fileId ? { ...f, name: newName } : f
+      ));
+
+      setEditingFileId(null);
+
+      // Update selected file if it's being renamed
+      if (selectedFile?.id === fileId) {
+        setSelectedFile(prev => prev ? { ...prev, name: newName } : null);
+      }
+      toast({
+        title: "Success",
+        description: "File renamed successfully",
+      });
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to rename file",
+        variant: "destructive",
+    });
+  }
+};
 
   const filteredSections = useMemo(() => {
     if (!selectedFile || !selectedFile.partySections) {
@@ -1303,19 +1326,20 @@ export default function StatementExcelPage() {
                               </button>
 
                               {/* Action buttons in the header */}
-                              <div className="flex items-center gap-1.5 mt-2 sm:mt-0 whitespace-nowrap">
+                              <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 justify-start sm:justify-end w-full sm:w-auto">
                                 {/* Location Button */}
                                 {savedPartyData?.location && (
                                   <Button
                                     variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8"
+                                    size="sm"
+                                    className="h-8 w-[4.5rem] flex items-center justify-center"
                                     onClick={() => openLocation(
                                       savedPartyData.location!.lat,
                                       savedPartyData.location!.lng
                                     )}
                                   >
-                                    <MapPin className="h-3.5 w-3.5" />
+                                    <MapPin className="h-3.5 w-3.5 mr-1" />
+                                    Map
                                   </Button>
                                 )}
 
@@ -1341,22 +1365,27 @@ export default function StatementExcelPage() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-8 w-[4.5rem]"
+                                          className="h-8 w-[4.5rem] flex items-center justify-center"
                                         >
                                           <X className="h-3.5 w-3.5 mr-1" />
                                           Reset
                                         </Button>
                                       </AlertDialogTrigger>
-                                      <AlertDialogContent>
+                                      <AlertDialogContent className="w-[90%] max-w-md">
                                         <AlertDialogHeader>
                                           <AlertDialogTitle>Reset Statement Data</AlertDialogTitle>
                                           <AlertDialogDescription>
                                             Are you sure you want to reset this statement data for {section.partyName}? This will clear the captured image and location data.
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleReset(section.partyCode)}>Reset</AlertDialogAction>
+                                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                          <AlertDialogCancel className="mt-2 sm:mt-0 w-full sm:w-auto">Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => handleReset(section.partyCode)}
+                                            className="w-full sm:w-auto"
+                                          >
+                                            Reset
+                                          </AlertDialogAction>
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>
@@ -1364,7 +1393,7 @@ export default function StatementExcelPage() {
                                     <Button
                                       variant="default"
                                       size="sm"
-                                      className="h-8 w-[4.5rem]"
+                                      className="h-8 w-[4.5rem] flex items-center justify-center"
                                       disabled={isSaving === section.partyCode}
                                       onClick={() => handleSave(section.partyCode)}
                                     >
@@ -1403,7 +1432,7 @@ export default function StatementExcelPage() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-8 w-[4.5rem]"
+                                          className="h-8 w-[4.5rem] flex items-center justify-center"
                                           disabled={loading}
                                         >
                                           {loading ? (
@@ -1420,6 +1449,7 @@ export default function StatementExcelPage() {
                                   </div>
                                 )}
                               </div>
+                              
                             </div>
                           </CardHeader>
 
