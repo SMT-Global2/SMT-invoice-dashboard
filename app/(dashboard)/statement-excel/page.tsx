@@ -1327,21 +1327,6 @@ export default function StatementExcelPage() {
 
                               {/* Action buttons in the header */}
                               <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 justify-start sm:justify-end w-full sm:w-auto">
-                                {/* Location Button */}
-                                {savedPartyData?.location && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-[4.5rem] flex items-center justify-center"
-                                    onClick={() => openLocation(
-                                      savedPartyData.location!.lat,
-                                      savedPartyData.location!.lng
-                                    )}
-                                  >
-                                    <MapPin className="h-3.5 w-3.5 mr-1" />
-                                    Map
-                                  </Button>
-                                )}
 
                                 {/* Image Capture/View */}
                                 <div>
@@ -1411,6 +1396,22 @@ export default function StatementExcelPage() {
                                     </Button>
                                   ) : null}
                                 </div>
+
+                                {/* Location Button */}
+                                {savedPartyData?.location && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-[4.5rem] flex items-center justify-center"
+                                    onClick={() => openLocation(
+                                      savedPartyData.location!.lat,
+                                      savedPartyData.location!.lng
+                                    )}
+                                  >
+                                  <MapPin className="h-3.5 w-3.5 mr-1" />
+                                    Map
+                                  </Button>
+                                )}
 
                                 {/* PDF Button */}
                                 {savedPartyData && (
