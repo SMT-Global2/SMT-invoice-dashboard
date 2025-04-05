@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       party: true,
     },
     orderBy: {
-      billedTimestamp: 'desc'
+      invoiceNumber: 'asc'
     },
     skip,
     take: limit,
