@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
           { firstName: { contains: search, mode: 'insensitive' } },
           { lastName: { contains: search, mode: 'insensitive' } },
         ],
-        department: departmentFilter ? { has: departmentFilter as Department } : undefined
+        department: departmentFilter && departmentFilter !== '' ? { has: departmentFilter as Department } : undefined
       },
       select: {
         id: true,

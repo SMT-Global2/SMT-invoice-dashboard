@@ -770,7 +770,7 @@ const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUs
                     <PaymentTypeSection
                         title="Cheque Payments" // Title not displayed by default in current setup
                         iconBgColor={colors.accentCheque} // Not used by default
-                        receipts={functionThatHandlesTheBlankRangesBetweenReceiptNumbers(userChequeReceipts , 'CHEQUE')}
+                        receipts={userChequeReceipts}
                     >
                         <ChequeDetails receipts={userChequeReceipts} />
                     </PaymentTypeSection>
@@ -819,7 +819,7 @@ interface ReceiptPDFProps {
     companyName?: string; // Optional: Pass company name as prop
 }
 
-const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyName = "SMT Enterprises" }) => { // Added default empty array for receipts
+const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyName = "Sanjivan Medico Traders" }) => { // Added default empty array for receipts
     const formattedDate = moment(date).format('MMMM D, YYYY');
 
     // Group receipts by username

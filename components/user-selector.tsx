@@ -43,7 +43,10 @@ export function UserSelector({
   const searchUsers = useCallback(async (search: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/user/search?search=${search}&department=${departmentFilter}`);
+      const url = new URL('/api/user/search', window.location.origin);
+      url.searchParams.set('search', search);
+      url.searchParams.set('department', departmentFilter || '');
+      const response = await fetch(url);
       const { data } = await response.json();
       setUsers(data);
     } catch (error) {

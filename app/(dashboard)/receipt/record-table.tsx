@@ -201,7 +201,7 @@ export function RecordTable({
               </div>
 
               {/* User Drop down */}
-              <div className="w-full sm:w-[160px]">
+              <div className="w-full sm:w-[120px]">
                 <UserSelector
                   value={selectedUser}
                   onChange={(user) => setSelectedUser && setSelectedUser(user.username)}
