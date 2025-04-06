@@ -19,7 +19,7 @@ import useAnalyticsStore from '@/store/useAnalyticsStore';
 import { useEffect } from 'react';
 import { Capsule } from '@/components/capsule';
 import { Input } from "@/components/ui/input"
-import { Car, CheckCircle, CheckSquare, FileText, Package, Search, Store, Truck, X } from "lucide-react"
+import { CheckCircle, CreditCard, FileText, Package, Search, Store, Truck, X } from "lucide-react"
 import TableSkeleton from "@/components/table-skeleton"
 import {
   Pagination,
@@ -384,6 +384,25 @@ export default function AdminInvoiceTable() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">Billed</CardTitle>
+              <CreditCard className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalBilled 
+                  : analytics.totalBilled}
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered Billed' 
+                  : 'Invoices Billed'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">OTC</CardTitle>
               <Store className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
@@ -400,6 +419,7 @@ export default function AdminInvoiceTable() {
               </p>
             </CardContent>
           </Card>
+          
         </div>
 
         <CardContent className="pt-6 overflow-hidden">
