@@ -14,7 +14,7 @@ export const UserSchema = z.object({
   phoneNumber: z.string().min(1, "Phone number is required"),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
-  department: z.array(z.enum([Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT, Department.RECEIPT_MANAGEMENT, Department.PURCHASE_MANAGEMENT])).min(1, "At least one department is required"),
+  department: z.array(z.enum([Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT, Department.RECEIPT_MANAGEMENT, Department.PURCHASE_MANAGEMENT, Department.DELIVERY_MEMO_MANAGEMENT])).min(1, "At least one department is required"),
   type: z.enum(["USER", "ADMIN"]),
 })
 

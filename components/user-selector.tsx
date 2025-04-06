@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,15 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Spinner } from "@/components/icons";
 import { debounce } from 'lodash';
+import { UserType, Department } from '@prisma/client';
 
 export interface User {
   id: string;
   username: string;
   firstName: string;
   lastName: string;
-  type: string;
-  department: string[];
+  type: UserType;
+  department: Department[];
 }
 
 interface UserSelectorProps {
@@ -23,23 +24,26 @@ interface UserSelectorProps {
   onChange: (user: User) => void;
   disabled?: boolean;
   placeholder?: string;
+  departmentFilter?: Department | null;
 }
 
 export function UserSelector({
   value,
   onChange,
   disabled = false,
-  placeholder = "Select User"
+  placeholder = "Select User",
+  departmentFilter = null
 }: UserSelectorProps) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const searchUser = useCallback(async (search: string) => {
+  const searchUsers = useCallback(async (search: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/user/search?search=${search}`);
+      const response = await fetch(`/api/user/search?search=${search}&department=${departmentFilter}`);
       const { data } = await response.json();
       setUsers(data);
     } catch (error) {
@@ -49,35 +53,62 @@ export function UserSelector({
     }
   }, []);
 
-  const debouncedSearchUser = useCallback(
+  // Load user data when username value changes
+  useEffect(() => {
+    if (value && (!selectedUser || selectedUser.username !== value)) {
+      const fetchUserByUsername = async () => {
+        try {
+          setIsLoading(true);
+          const response = await fetch(`/api/user/search?search=${value}`);
+          const { data } = await response.json();
+          const foundUser = data.find((user: User) => user.username === value);
+          if (foundUser) {
+            setSelectedUser(foundUser);
+          }
+        } catch (error) {
+          console.error('Failed to fetch user by username:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchUserByUsername();
+    } else if (!value) {
+      setSelectedUser(null);
+    }
+  }, [value, selectedUser]);
+
+  const debouncedSearchUsers = useCallback(
     debounce((search: string) => {
-      searchUser(search);
+      searchUsers(search);
     }, 600),
-    [searchUser]
+    [searchUsers]
   );
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    debouncedSearchUser(value);
+    debouncedSearchUsers(value);
   };
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
-      searchUser(searchTerm || '');
+      searchUsers(searchTerm || '');
     }
   };
 
-  const getDisplayName = (user: User) => `${user.firstName} ${user.lastName}`;
-  
-  const selectedUser = users.find(user => user.username === value);
-  const displayValue = selectedUser ? getDisplayName(selectedUser) : value;
+  const formatUserName = (user: User) => {
+    return `${user.firstName} ${user.lastName}`;
+  };
 
-  const formatDepartments = (departments: string[] | string) => {
-    if (Array.isArray(departments)) {
-      return departments.join(', ');
-    }
-    return departments;
+  const formatDepartment = (departments: Department[]) => {
+    return departments.join(', ');
+  };
+
+  const handleUserSelect = (user: User) => {
+    setSelectedUser(user);
+    onChange(user);
+    setOpen(false);
   };
 
   return (
@@ -87,10 +118,10 @@ export function UserSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="justify-between w-full"
+          className="justify-between"
           disabled={disabled}
         >
-          {displayValue || placeholder}
+          {selectedUser ? formatUserName(selectedUser) : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0" style={{ maxHeight: '300px', width: '300px' }}>
@@ -109,7 +140,7 @@ export function UserSelector({
             </CommandEmpty>
           ) : (
             <CommandEmpty className="m-auto flex items-center justify-center p-4">
-              No users found.
+              No user found.
             </CommandEmpty>
           )}
 
@@ -119,26 +150,19 @@ export function UserSelector({
                 <CommandItem
                   key={user.id}
                   value={user.username}
-                  onSelect={() => {
-                    if (value === user.username) {
-                      onChange({...user, username: null as unknown as string});
-                    } else {
-                      onChange(user);
-                    }
-                    setOpen(false);
-                  }}
+                  onSelect={() => handleUserSelect(user)}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === user.username ? "opacity-100" : "opacity-0"
+                      selectedUser?.username === user.username ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <div className="flex flex-col">
-                    <span>{getDisplayName(user)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {user.username} - {formatDepartments(user.department)}
-                    </span>
+                    <div className="font-medium">{formatUserName(user)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {user.username} • {formatDepartment(user.department)}
+                    </div>
                   </div>
                 </CommandItem>
               ))}

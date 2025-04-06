@@ -107,6 +107,7 @@ export function UserPerformance() {
               <SelectItem value="RECEIPT_MANAGEMENT">Receipt Management</SelectItem>
               <SelectItem value="INVOICE_MANAGEMENT">Invoice Management</SelectItem>
               <SelectItem value="PURCHASE_MANAGEMENT">Purchase Management</SelectItem>
+              <SelectItem value="DELIVERY_MEMO_MANAGEMENT">Delivery Memo Management</SelectItem>
               <SelectItem value="ALL_ROUNDER">All-rounders</SelectItem>
             </SelectContent>
           </Select>

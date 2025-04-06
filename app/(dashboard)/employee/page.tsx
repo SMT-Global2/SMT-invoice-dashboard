@@ -172,6 +172,7 @@ export default function EmployeePage() {
                               if (dept === "INVOICE_MANAGEMENT") variant = "secondary";
                               if (dept === "RECEIPT_MANAGEMENT") variant = "default";
                               if (dept === "PURCHASE_MANAGEMENT") variant = "destructive";
+                              if (dept === "DELIVERY_MEMO_MANAGEMENT") variant = "outline";
                               if (dept === "ALL_ROUNDER") variant = "outline";
                               
                               return (

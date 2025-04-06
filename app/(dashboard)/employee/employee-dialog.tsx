@@ -102,6 +102,7 @@ export function EmployeeDialog() {
     { label: "Receipt Management", value: Department.RECEIPT_MANAGEMENT },
     { label: "Invoice Management", value: Department.INVOICE_MANAGEMENT },
     { label: "Purchase Management", value: Department.PURCHASE_MANAGEMENT },
+    { label: "Delivery Memo Management", value: Department.DELIVERY_MEMO_MANAGEMENT },
     { label: "All Rounder", value: Department.ALL_ROUNDER },
   ]
 
@@ -325,6 +326,7 @@ export function EmployeeDialog() {
                         if (dept === "INVOICE_MANAGEMENT") variant = "secondary";
                         if (dept === "RECEIPT_MANAGEMENT") variant = "default";
                         if (dept === "PURCHASE_MANAGEMENT") variant = "destructive";
+                        if (dept === "DELIVERY_MEMO_MANAGEMENT") variant = "outline";
                         if (dept === "ALL_ROUNDER") variant = "outline";
                         
                         return (

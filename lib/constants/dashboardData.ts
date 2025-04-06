@@ -160,7 +160,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/deliverymemo',
         icon: ClipboardList,
         description: 'Delivery Memo Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT]
+        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT, Department.DELIVERY_MEMO_MANAGEMENT]
       },
       {
         id: 'expiry',

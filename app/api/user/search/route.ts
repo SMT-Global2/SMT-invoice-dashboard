@@ -1,5 +1,6 @@
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { UserType, Department } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
+    const departmentFilter = searchParams.get('department') || null;
 
     const users = await prisma.user.findMany({
       where: {
@@ -22,7 +24,8 @@ export async function GET(request: NextRequest) {
           { username: { contains: search, mode: 'insensitive' } },
           { firstName: { contains: search, mode: 'insensitive' } },
           { lastName: { contains: search, mode: 'insensitive' } },
-        ]
+        ],
+        department: departmentFilter ? { has: departmentFilter as Department } : undefined
       },
       select: {
         id: true,

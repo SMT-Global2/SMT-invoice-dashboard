@@ -4,6 +4,7 @@ import moment from 'moment';
 import { getServerSession } from 'next-auth';
 import { NextRequest } from 'next/server';
 import { findOrCreateDayStart } from './startNo/helper';
+import { UserType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -160,12 +161,12 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!image || (Array.isArray(image) && image.length === 0)) {
-      return Response.json({
-        success: false,
-        message: 'At least one image is required for checking'
-      }, { status: 400 });
-    }
+    // if (!image || (Array.isArray(image) && image.length === 0)) {
+    //   return Response.json({
+    //     success: false,
+    //     message: 'At least one image is required for checking'
+    //   }, { status: 400 });
+    // }
 
     // Check if DM exists and has been collected
     const existingDM = await prisma.deliveryMemo.findUnique({
@@ -221,6 +222,14 @@ export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.username) {
+      return Response.json({
+        success: false,
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+
+    //Only admin can reset
+    if (session.user.type !== UserType.ADMIN) {
       return Response.json({
         success: false,
         message: 'Unauthorized'

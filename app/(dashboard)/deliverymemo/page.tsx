@@ -60,6 +60,14 @@ import {
 } from "@/components/ui/select"
 import { ShowImage } from '@/components/show-image';
 import { PartyCodeSelector, PartyCode } from '@/components/party-code-selector';
+import { UserSelector, User } from '@/components/user-selector';
+import { Department } from '@prisma/client';
+
+// Extend DeliveryMemoData with user selection properties
+interface ExtendedDeliveryMemoData extends DeliveryMemoData {
+  userUsername?: string | null;
+  userName?: string | null;
+}
 
 export default function DeliveryMemoPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -81,6 +89,7 @@ export default function DeliveryMemoPage() {
     setCheckingMode,
     updateDeliveryMemoImage,
     saveDeliveryMemo,
+    saveDeliveryMemoWithCustomUser,
     checkDeliveryMemo,
     resetDeliveryMemo,
     handleDeliveryMemos,
@@ -129,7 +138,7 @@ export default function DeliveryMemoPage() {
 
   const handlePartyCodeSelect = (dm: DeliveryMemoData, partyCode: PartyCode) => {
     setLastInteractedDm(dm.dmNumber);
-    const newData = [...deliveryMemos];
+    const newData = [...deliveryMemos] as ExtendedDeliveryMemoData[];
     const index = newData.findIndex(item => item.dmNumber === dm.dmNumber);
     if (index !== -1) {
       newData[index] = {
@@ -137,6 +146,20 @@ export default function DeliveryMemoPage() {
         partyCode: partyCode.code,
         medicalName: partyCode.customerName || '-',
         city: partyCode.city || '-',
+      };
+      setDeliveryMemos(newData);
+    }
+  };
+
+  const handleUserSelect = (dm: DeliveryMemoData, user: User) => {
+    setLastInteractedDm(dm.dmNumber);
+    const newData = [...deliveryMemos] as ExtendedDeliveryMemoData[];
+    const index = newData.findIndex(item => item.dmNumber === dm.dmNumber);
+    if (index !== -1) {
+      newData[index] = {
+        ...newData[index],
+        userUsername: user.username,
+        userName: `${user.firstName} ${user.lastName}`,
       };
       setDeliveryMemos(newData);
     }
@@ -165,7 +188,22 @@ export default function DeliveryMemoPage() {
   const handleSave = async (dmNumber: number) => {
     try {
       setLastInteractedDm(dmNumber);
-      await saveDeliveryMemo(dmNumber, true);
+      
+      // Find the specific delivery memo to get the user
+      const dm = deliveryMemos.find(d => d.dmNumber === dmNumber) as ExtendedDeliveryMemoData;
+      
+      if (!dm) {
+        throw new Error('Delivery memo not found');
+      }
+      
+      // Ensure a user is selected before saving
+      if (!dm.userUsername) {
+        throw new Error('Please select a user before saving');
+      }
+      
+      // Use the selected username when saving
+      await saveDeliveryMemoWithCustomUser(dmNumber, dm.userUsername);
+      
       toast({
         title: 'Success',
         description: 'Delivery memo saved successfully',
@@ -194,9 +232,9 @@ export default function DeliveryMemoPage() {
       }
       
       // Check if image is uploaded
-      if (!dm.images || dm.images.length === 0) {
-        throw new Error('Please upload at least one image before checking');
-      }
+      // if (!dm.images || dm.images.length === 0) {
+      //   throw new Error('Please upload at least one image before checking');
+      // }
       
       await checkDeliveryMemo(dmNumber, true);
       toast({
@@ -311,6 +349,7 @@ export default function DeliveryMemoPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>User</TableHead>
                       <TableHead>Actions</TableHead>
                       <TableHead>Collected Time</TableHead>
                     </TableRow>
@@ -343,6 +382,14 @@ export default function DeliveryMemoPage() {
                           </TableCell>
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
+                          <TableCell>
+                            <UserSelector
+                              value={(row as ExtendedDeliveryMemoData).userUsername || null}
+                              onChange={(user) => handleUserSelect(row, user)}
+                              disabled={row.isDisabled || row.goodsCollectedUsername !== null}
+                              departmentFilter={Department.DELIVERY_MEMO_MANAGEMENT}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button
@@ -553,7 +600,7 @@ export default function DeliveryMemoPage() {
                               <Button
                                 variant="default"
                                 size="sm"
-                                disabled={isLoading || row.goodsCheckedUsername !== null || !row.images || row.images.length === 0}
+                                disabled={isLoading || row.goodsCheckedUsername !== null}
                                 onClick={async () => await handleCheck(row.dmNumber)}
                               >
                                 Save

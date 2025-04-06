@@ -41,6 +41,7 @@ interface DeliveryMemoState {
   checkDeliveryMemo: (dmNumber: number, isChecked: boolean) => Promise<void>
   resetDeliveryMemo: (dmNumber: number , isChecked: boolean) => Promise<void>
   updateDeliveryMemoImage: (dmNumber: number, image: string) => void
+  saveDeliveryMemoWithCustomUser: (dmNumber: number, username: string) => Promise<void>
 }
 
 export const useDeliveryMemoStore = create<DeliveryMemoState>()(
@@ -277,6 +278,64 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
         }
       },
 
+      saveDeliveryMemoWithCustomUser: async (dmNumber: number, username: string) => {
+        try {
+          set({ isLoading: true });
+          
+          const dm = get().deliveryMemos.find(d => d.dmNumber === dmNumber);
+          const date = get().selectedDate;
+
+          if (!dm) {
+            throw new Error('Delivery memo not found');
+          }
+
+          if (!dm.partyCode) {
+            throw new Error('Party code is required');
+          }
+
+          const dmToSave = {
+            dmNumber: dm.dmNumber,
+            generatedDate: date,
+            partyCode: dm.partyCode,
+            username: username
+          };
+
+          const response = await fetch('/api/deliverymemo/custom', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dmToSave),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to save delivery memo');
+          }
+
+          const { data } = await response.json();
+
+          const updatedDeliveryMemos = get().deliveryMemos.map(d => 
+            d.dmNumber === dmNumber ? {
+              ...d,
+              ...data,
+              medicalName: data.party.customerName || '-',
+              city: data.party.city || '-',
+              images: data.image || []
+            } : d
+          );
+
+          set({ deliveryMemos: updatedDeliveryMemos, isLoading: false });
+
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Failed to save delivery memo with custom user',
+            isLoading: false
+          });
+          throw error;
+        }
+      },
+
       checkDeliveryMemo: async (dmNumber: number, isChecked: boolean) => {
         try {
           set({ isLoading: true });
@@ -287,9 +346,9 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
             throw new Error('Delivery memo not found');
           }
 
-          if (!dm.images || dm.images.length === 0) {
-            throw new Error('At least one image is required for checking');
-          }
+          // if (!dm.images || dm.images.length === 0) {
+          //   throw new Error('At least one image is required for checking');
+          // }
 
           const response = await fetch('/api/deliverymemo', {
             method: 'PUT',
