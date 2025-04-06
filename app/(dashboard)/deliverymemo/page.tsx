@@ -384,7 +384,7 @@ export default function DeliveryMemoPage() {
                           <TableCell>{row.city}</TableCell>
                           <TableCell>
                             <UserSelector
-                              value={(row as ExtendedDeliveryMemoData).userUsername || null}
+                              value={(row as ExtendedDeliveryMemoData).goodsCollectedUsername || null}
                               onChange={(user) => handleUserSelect(row, user)}
                               disabled={row.isDisabled || row.goodsCollectedUsername !== null}
                               departmentFilter={Department.DELIVERY_MEMO_MANAGEMENT}
