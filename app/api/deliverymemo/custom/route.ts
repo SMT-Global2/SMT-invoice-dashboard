@@ -17,14 +17,6 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
     
-    // Only admins can specify custom users
-    if (session.user.type !== UserType.ADMIN) {
-      return Response.json({
-        success: false,
-        message: 'Only admins can use this endpoint'
-      }, { status: 403 });
-    }
-
     const body = await request.json();
     const { dmNumber, partyCode, generatedDate, username } = body;
 
