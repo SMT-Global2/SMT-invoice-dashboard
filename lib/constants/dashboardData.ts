@@ -214,7 +214,7 @@ export const dashboardCategories: DashboardCategory[] = [
       {
         id: 'contact-forms',
         title: 'Contact Forms',
-        href: '/management/contact-forms',
+        href: '/manage-contact-forms',
         icon: FileText,
         description: 'View and manage customer feedback and complaints',
         searchTerms: ['contact', 'feedback', 'complaints', 'forms', 'customer service'],

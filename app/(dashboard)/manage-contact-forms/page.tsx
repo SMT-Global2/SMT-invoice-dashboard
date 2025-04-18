@@ -30,6 +30,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ShowImage } from '@/components/show-image';
+import { getS3BucketUrl } from '@/lib/helper';
 
 const issueTypes = [
   'Missing Product',
@@ -160,6 +162,8 @@ export default function ContactFormsPage() {
     }
   };
 
+  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://invoice.sanjivanmedicotraders.in';
+
   return (
     <div className="p-6">
       <Card className="shadow-sm bg-background border-none">
@@ -170,18 +174,18 @@ export default function ContactFormsPage() {
               <CardDescription>Manage customer feedback and complaints</CardDescription>
               <div className="mt-2 flex items-center gap-2">
                 <a 
-                  href="http://invoice.sanjivanmedicotraders.in/contact-form" 
+                  href={`${frontendUrl}/contact-form`} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"
                 >
-                  http://invoice.sanjivanmedicotraders.in/contact-form
+                  {`${frontendUrl}/contact-form`}
                 </a>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   className="h-6 px-1.5"
-                  onClick={() => copyToClipboard('http://invoice.sanjivanmedicotraders.in/contact-form')}
+                  onClick={() => copyToClipboard(`${frontendUrl}/contact-form`)}
                 >
                   <Copy className="h-3 w-3 text-muted-foreground" />
                 </Button>
@@ -198,7 +202,7 @@ export default function ContactFormsPage() {
         <CardContent className="space-y-4">
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <Label className="mb-2 text-sm">Search</Label>
+              <Label className="text-sm">Search</Label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -298,7 +302,7 @@ export default function ContactFormsPage() {
                     className="h-9 w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'd MMM yyyy') : <span>Pick a date</span>}
+                    {endDate ? format(endDate, 'PPP') : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -407,53 +411,12 @@ export default function ContactFormsPage() {
                         <div className="flex items-center gap-2">
                           {form.images.length > 0 && (
                             <>
-                              <div className="flex -space-x-1">
-                                {form.images.slice(0, 2).map((image: string, index: number) => (
-                                  <div key={index} className="relative h-6 w-6 rounded-full border border-background">
-                                    <Image
-                                      src={image}
-                                      alt={`Image ${index + 1}`}
-                                      fill
-                                      className="rounded-full object-cover"
-                                    />
-                                  </div>
-                                ))}
-                                {form.images.length > 2 && (
-                                  <div className="flex h-6 w-6 items-center justify-center rounded-full border border-background bg-muted text-xs">
-                                    +{form.images.length - 2}
-                                  </div>
-                                )}
-                              </div>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="h-7 text-xs flex items-center gap-1">
-                                    <Expand className="h-3 w-3" />
-                                    View
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md">
-                                  <DialogHeader>
-                                    <DialogTitle>Images</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="grid grid-cols-2 gap-2 pt-4">
-                                    {form.images.map((image: string, index: number) => (
-                                      <div key={index} className="relative aspect-square">
-                                        <Image
-                                          src={image}
-                                          alt={`Image ${index + 1}`}
-                                          fill
-                                          className="object-cover rounded-lg"
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                              <ShowImage images={form.images} />
                             </>
                           )}
-                          <DropdownMenu>
+                          <DropdownMenu>  
                             <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="h-7 text-xs">
+                              <Button variant="outline" size="sm" className="py-[1rem]">
                                 Update Status
                               </Button>
                             </DropdownMenuTrigger>

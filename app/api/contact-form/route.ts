@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { uploadToS3 } from '@/lib/s3';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import moment from 'moment-timezone';
 
 export async function POST(request: Request) {
   try {
@@ -13,15 +16,24 @@ export async function POST(request: Request) {
     const comments = formData.get('comments') as string;
     const isUrgent = formData.get('isUrgent') === 'true';
     const rating = parseInt(formData.get('rating') as string) || 0;
-    
+
+    if (!medicalName || !city || !invoiceNumber || !issueType) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
     const images: string[] = [];
     const imageFiles = formData.getAll('images') as File[];
     
+    const imageKeys = [];
     // Upload images to S3
     for (const file of imageFiles) {
       if (file instanceof File) {
         const buffer = await file.arrayBuffer();
-        const fileName = `${Date.now()}-${file.name}`;
+        const fileName = `contact-form/${medicalName}/${Date.now()}-${file.name}`;
+        imageKeys.push(fileName);
         const url = await uploadToS3(buffer, fileName);
         images.push(url);
       }
@@ -34,7 +46,7 @@ export async function POST(request: Request) {
         city,
         invoiceNumber,
         issueType,
-        images,
+        images: imageKeys,
         comments,
         isUrgent,
         rating,
@@ -54,6 +66,16 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+
+    //Check if logged in 
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const issueType = searchParams.get('issueType');
     const status = searchParams.get('status');
@@ -81,15 +103,11 @@ export async function GET(request: Request) {
       where.createdAt = {};
       
       if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        where.createdAt.gte = start;
+        where.createdAt.gte = moment(startDate).startOf('day').toDate();
       }
       
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.createdAt.lte = end;
+        where.createdAt.lte = moment(endDate).endOf('day').toDate();
       }
     }
 

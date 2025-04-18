@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Upload, X, Phone, Mail, MapPin, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { compressImage, convertImage } from '@/lib/helper';
 
 const formSchema = z.object({
   medicalName: z.string().min(1, 'Medical name is required'),
@@ -75,9 +76,19 @@ export default function ContactFormPage() {
       formData.append('issueType', data.issueType);
       formData.append('comments', data.comments || '');
       formData.append('isUrgent', String(data.isUrgent));
-      
-      images.forEach((image) => {
-        formData.append('images', image);
+
+      // Process all images in parallel and wait for completion
+      const processedImages = await Promise.all(
+        images.map(async (image) => {
+          const changedFile = await convertImage(image);
+          const compressedFile = await compressImage(changedFile);
+          return compressedFile;
+        })
+      );
+
+      // Append all processed images to formData
+      processedImages.forEach(compressedFile => {
+        formData.append('images', compressedFile);
       });
 
       const response = await fetch('/api/contact-form', {
@@ -101,7 +112,7 @@ export default function ContactFormPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8 light">
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Navbar */}
         <nav className="mb-8">

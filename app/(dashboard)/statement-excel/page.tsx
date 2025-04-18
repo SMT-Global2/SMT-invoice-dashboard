@@ -486,10 +486,12 @@ export default function StatementExcelPage() {
         const partyName = section.partyName?.toLowerCase() || '';
         const location = section.location?.toLowerCase() || '';
         const contact = section.contact?.toLowerCase() || '';
+        const partyCode = section.partyCode?.toLowerCase() || '';
         
         return partyName.includes(searchTermLower) ||
                location.includes(searchTermLower) ||
-               contact.includes(searchTermLower);
+               contact.includes(searchTermLower) ||
+               partyCode.includes(searchTermLower);
       })();
 
       // Check visit filter match
@@ -1626,24 +1628,24 @@ export default function StatementExcelPage() {
               <CardTitle className="text-lg sm:text-xl">Statement Management</CardTitle>
               <CardDescription className="text-sm">Upload and view party statements from Excel files</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto">
               {isAdmin && selectedFile && (
-                <>
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDownloadExcel(selectedFile)}
-                    className="flex items-center gap-2 min-w-[160px]"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <FileDown className="h-4 w-4" />
-                    Download Excel Report
+                    <span>Download Excel Report</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleDownloadAllPDFs}
                     disabled={isDownloading}
-                    className="flex items-center gap-2 min-w-[160px] relative"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto relative"
                   >
                     {isDownloading ? (
                       <>
@@ -1655,76 +1657,78 @@ export default function StatementExcelPage() {
                     ) : (
                       <>
                         <FileDown className="h-4 w-4" />
-                        Download All PDFs
+                        <span>Download All PDFs</span>
                       </>
                     )}
                   </Button>
-                </>
+                </div>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchStatements}
-                disabled={isLoadingStatements}
-                className="flex items-center gap-2"
-              >
-                {isLoadingStatements ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      className="h-4 w-4"
-                    >
-                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                      <path d="M21 3v5h-5"/>
-                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                      <path d="M8 16H3v5"/>
-                    </svg>
-                  </>
-                )}
-                Refresh
-              </Button>
-            <Popover>
-              <PopoverTrigger asChild>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <Button
                   variant="outline"
                   size="sm"
-                  className={cn(
-                    "mt-2 sm:mt-0 justify-start text-left font-normal min-w-[170px]",
-                    !selectedDate && "text-muted-foreground"
-                  )}
+                  onClick={fetchStatements}
+                  disabled={isLoadingStatements}
+                  className="flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "d MMM yyyy") : <span>Pick a date</span>}
+                  {isLoadingStatements ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        className="h-4 w-4"
+                      >
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M8 16H3v5"/>
+                      </svg>
+                    </>
+                  )}
+                  <span className="sm:inline">Refresh</span>
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setSelectedDate(date);
-                      setSelectedFile(null);
-                      setExpandedParties(new Set());
-                      setSearchTerm('');
-                      setShowSavedOnly(false);
-                      setCurrentPage(1);
-                    }
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "w-full sm:w-auto justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "d MMM yyyy") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedDate(date);
+                          setSelectedFile(null);
+                          setExpandedParties(new Set());
+                          setSearchTerm('');
+                          setShowSavedOnly(false);
+                          setCurrentPage(1);
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
         </CardHeader>
