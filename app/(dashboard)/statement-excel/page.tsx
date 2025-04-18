@@ -251,14 +251,14 @@ export default function StatementExcelPage() {
         
         const data = await response.json();
 
-        console.log('Statement details loaded:', {
-          id: data.id,
-          name: data.name,
-          sectionsCount: data.partySections?.length || 0,
-          partySectionsType: data.partySections ? typeof data.partySections : 'undefined',
-          isArray: Array.isArray(data.partySections),
-          firstSection: data.partySections?.[0],
-        });
+        // console.log('Statement details loaded:', {
+        //   id: data.id,
+        //   name: data.name,
+        //   sectionsCount: data.partySections?.length || 0,
+        //   partySectionsType: data.partySections ? typeof data.partySections : 'undefined',
+        //   isArray: Array.isArray(data.partySections),
+        //   firstSection: data.partySections?.[0],
+        // });
 
         // Validate partySections before proceeding
         if (!data.partySections || !Array.isArray(data.partySections) || data.partySections.length === 0) {
@@ -1105,7 +1105,7 @@ export default function StatementExcelPage() {
           };
         });
 
-        console.log('Formatted files:', formattedFiles);
+        // console.log('Formatted files:', formattedFiles);
         
         // If we have a currently selected file, make sure to keep it selected
         let currentSelectedFileId = selectedFile?.id;
@@ -2231,40 +2231,38 @@ export default function StatementExcelPage() {
                                 {/* PDF Button */}
                                 {savedPartyData && (
                                   <div>
-                                    <PDFDownloadLink
-                                      document={
-                                        <StatementPDF
-                                          section={{
-                                            ...section,
-                                            data: section.data,
-                                          }}
-                                          fileName={selectedFile.name}
-                                          totalDebits={calculateTotal(section.data, 'col5')}
-                                          totalAdjustments={calculateTotal(section.data, 'col6')}
-                                          outstandingBalance={calculateTotal(section.data, 'col7')}
-                                          totalDiscount={calculateTotal(section.data, 'col10')}
-                                        />
-                                      }
-                                      fileName={`${section.partyCode}-${moment().format('YYYY-MM-DD')}.pdf`}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 w-[4.5rem] flex items-center justify-center"
+                                      onClick={async () => {
+                                        // Only generate PDF when clicked
+                                        const pdfDoc = (
+                                          <StatementPDF
+                                            section={{
+                                              ...section,
+                                              data: section.data,
+                                            }}
+                                            fileName={selectedFile.name}
+                                            totalDebits={calculateTotal(section.data, 'col5')}
+                                            totalAdjustments={calculateTotal(section.data, 'col6')}
+                                            outstandingBalance={calculateTotal(section.data, 'col7')}
+                                            totalDiscount={calculateTotal(section.data, 'col10')}
+                                          />
+                                        );
+                                        
+                                        const blob = await pdf(pdfDoc).toBlob();
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `${section.partyCode}-${moment().format('YYYY-MM-DD')}.pdf`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                      }}
                                     >
-                                      {({ loading }) => (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-8 w-[4.5rem] flex items-center justify-center"
-                                          disabled={loading}
-                                        >
-                                          {loading ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                          ) : (
-                                            <>
-                                              <FileDown className="h-3.5 w-3.5 mr-1" />
-                                              PDF
-                                            </>
-                                          )}
-                                        </Button>
-                                      )}
-                                    </PDFDownloadLink>
+                                      <FileDown className="h-3.5 w-3.5 mr-1" />
+                                      PDF
+                                    </Button>
                                   </div>
                                 )}
                               </div>
