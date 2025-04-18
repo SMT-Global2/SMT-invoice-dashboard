@@ -95,7 +95,7 @@ export function InventoryAnalytics() {
     }
   };
   
-  if (isLoading) {
+  if (isLoading && !inventory) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-[300px] w-full" />

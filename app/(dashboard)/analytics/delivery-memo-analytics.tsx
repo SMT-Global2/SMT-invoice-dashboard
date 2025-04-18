@@ -103,7 +103,7 @@ export function DeliveryMemoAnalytics() {
            date?.to?.toDateString() === today.toDateString();
   }, [date]);
   
-  if (isLoading) {
+  if (isLoading && !deliveryMemo) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-[300px] w-full" />

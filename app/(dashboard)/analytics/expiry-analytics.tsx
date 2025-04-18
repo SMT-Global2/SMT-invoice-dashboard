@@ -99,7 +99,7 @@ export function ExpiryAnalytics() {
            date?.to?.toDateString() === today.toDateString();
   }, [date]);
   
-  if (isLoading) {
+  if (isLoading && !expiry) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-[300px] w-full" />

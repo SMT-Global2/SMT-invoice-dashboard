@@ -14,8 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InventoryAnalytics } from "./inventory-analytics";
 import { DeliveryMemoAnalytics } from "./delivery-memo-analytics";
 import { ExpiryAnalytics } from "./expiry-analytics";
-import { StatementAnalytics } from "./statement-analytics";
-import { BillingAnalytics } from "./billing-analytics";
 import { ReceiptAnalytics } from "./receipt-analytics";
 
 export default function AnalyticsPage() {

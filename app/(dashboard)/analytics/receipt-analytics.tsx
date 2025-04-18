@@ -258,7 +258,7 @@ export function ReceiptAnalytics() {
     }
   };
   
-  if (isLoading) {
+  if (isLoading && !receipt) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-[300px] w-full" />
