@@ -8,6 +8,7 @@ export interface CheckInvoiceData extends InvoiceData {
   checkUsername: string | null
   checkTimestamp: Date | null
   checkStatus: CheckStatus
+  regionalCode: string
 }
 
 interface CheckingInvoiceState {
@@ -36,6 +37,11 @@ interface CheckingInvoiceState {
   uncheckedSelectedDate: Date | undefined
   checkedSelectedDate: Date | undefined
 
+  // Regional code filters
+  uncheckedSelectedRegionalCodes: string[]
+  checkedSelectedRegionalCodes: string[]
+  availableRegionalCodes: string[]
+
   // Actions
   setUncheckedInvoices: (invoices: CheckInvoiceData[]) => void
   setCheckedInvoices: (invoices: CheckInvoiceData[]) => void
@@ -56,6 +62,13 @@ interface CheckingInvoiceState {
   // Search actions
   setUncheckedSearchTerm: (term: string) => void
   setCheckedSearchTerm: (term: string) => void
+
+  // Regional code filter actions
+  setUncheckedSelectedRegionalCodes: (codes: string[]) => void
+  setCheckedSelectedRegionalCodes: (codes: string[]) => void
+  fetchAvailableRegionalCodes: () => Promise<void>
+  
+  clearAllFilters: () => void
 }
 
 export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
@@ -76,6 +89,15 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
       // Search
       uncheckedSearchTerm: '',
       checkedSearchTerm: '',
+
+      // Date
+      uncheckedSelectedDate: undefined,
+      checkedSelectedDate: undefined,
+      
+      // Regional code filters
+      uncheckedSelectedRegionalCodes: [],
+      checkedSelectedRegionalCodes: [],
+      availableRegionalCodes: [],
       
       // Actions
       setUncheckedInvoices: (invoices) => {
@@ -116,6 +138,16 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
         get().fetchCheckedInvoices();
       },
 
+      setUncheckedSelectedRegionalCodes: (codes) => {
+        set({ uncheckedSelectedRegionalCodes: codes, uncheckedCurrentPage: 1 });
+        get().fetchUncheckedInvoices();
+      },
+
+      setCheckedSelectedRegionalCodes: (codes) => {
+        set({ checkedSelectedRegionalCodes: codes, checkedCurrentPage: 1 });
+        get().fetchCheckedInvoices();
+      },
+
       setUncheckedSelectedDate: (date) => {
         if (moment(date).isAfter(moment(), 'day')) {
           return;
@@ -131,12 +163,40 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
         set({ checkedSelectedDate: date });
         get().fetchCheckedInvoices();
       },
+
+      fetchAvailableRegionalCodes: async () => {
+        try {
+          const response = await fetch('/api/party/regionalCodes');
+          if (!response.ok) {
+            throw new Error('Failed to fetch regional codes');
+          }
+          const data = await response.json();
+          set({ availableRegionalCodes: data.regionalCodes || [] });
+        } catch (error) {
+          console.error('Error fetching regional codes:', error);
+        }
+      },
+
+      clearAllFilters: () => {
+        set({
+          uncheckedSearchTerm: '',
+          checkedSearchTerm: '',
+          uncheckedSelectedRegionalCodes: [],
+          checkedSelectedRegionalCodes: [],
+          uncheckedSelectedDate: undefined,
+          checkedSelectedDate: undefined,
+          uncheckedCurrentPage: 1,
+          checkedCurrentPage: 1
+        });
+        get().fetchUncheckedInvoices();
+        get().fetchCheckedInvoices();
+      },
       
       fetchUncheckedInvoices: async () => {
         try {
           set({ isLoading: true, error: null });
           
-          const { uncheckedCurrentPage, itemsPerPage, uncheckedSearchTerm , uncheckedSelectedDate } = get();
+          const { uncheckedCurrentPage, itemsPerPage, uncheckedSearchTerm, uncheckedSelectedDate, uncheckedSelectedRegionalCodes } = get();
           
           const url = new URL('/api/invoice/check/unchecked', window.location.origin);
           url.searchParams.set('page', uncheckedCurrentPage.toString());
@@ -149,6 +209,10 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
           if (uncheckedSelectedDate) {
             url.searchParams.set('date', moment(uncheckedSelectedDate).format('YYYY-MM-DD'));
           }
+
+          if (uncheckedSelectedRegionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', uncheckedSelectedRegionalCodes.join(','));
+          }
           
           const response = await fetch(url.toString());
           const { data, totalPages } = await response.json();
@@ -158,6 +222,7 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
               paymodeMode: undefined,
             })),
             uncheckedTotalPages: totalPages,
@@ -172,7 +237,7 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
         try {
           set({ isLoading: true, error: null });
           
-          const { checkedCurrentPage, itemsPerPage, checkedSearchTerm , checkedSelectedDate } = get();
+          const { checkedCurrentPage, itemsPerPage, checkedSearchTerm, checkedSelectedDate, checkedSelectedRegionalCodes } = get();
           
           const url = new URL('/api/invoice/check/checked', window.location.origin);
           url.searchParams.set('page', checkedCurrentPage.toString());
@@ -185,6 +250,10 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
           if (checkedSelectedDate) {
             url.searchParams.set('date', moment(checkedSelectedDate).format('YYYY-MM-DD'));
           }
+
+          if (checkedSelectedRegionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', checkedSelectedRegionalCodes.join(','));
+          }
           
           const response = await fetch(url.toString());
           const { data, totalPages } = await response.json();
@@ -194,6 +263,7 @@ export const useCheckingInvoiceStore = create<CheckingInvoiceState>()(
               ...item,
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
+              regionalCode: item?.party?.regionalCode || '-',
             })),
             checkedTotalPages: totalPages,
             isLoading: false 

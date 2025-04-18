@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Calendar, RotateCcw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { ShowImage } from '@/components/show-image';
+import { format } from 'date-fns';
 
 export function BilledTable() {
   const { toast } = useToast();
@@ -130,7 +131,29 @@ export function BilledTable() {
                 className="w-full"
               />
             </div>
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Select
+                defaultValue="all"
+                onValueChange={(value) => {
+                  // Handle filter by invoice type (all, regular, otc)
+                  if (value === "all") {
+                    setBilledSearchTerm("");
+                  } else if (value === "regular") {
+                    setBilledSearchTerm("type:regular");
+                  } else if (value === "otc") {
+                    setBilledSearchTerm("type:otc");
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Invoice Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="regular">Regular Only</SelectItem>
+                  <SelectItem value="otc">OTC Only</SelectItem>
+                </SelectContent>
+              </Select>
               <DatePicker
                 date={billedSelectedDate}
                 setDate={setBilledSelectedDate}
@@ -155,10 +178,12 @@ export function BilledTable() {
                 <TableRow>
                   <TableHead className="w-[60px]">Sr. No.</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Invoice No.</TableHead>
                   <TableHead>Party Code</TableHead>
                   <TableHead>Medical Name</TableHead>
                   <TableHead>City</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Paymode</TableHead>
+                  <TableHead>Invoice No.</TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead>Bill Timestamp</TableHead>
                   <TableHead>Action</TableHead>
@@ -166,10 +191,10 @@ export function BilledTable() {
               </TableHeader>
               <TableBody>
                 {isBilledLoading && billedInvoices?.length === 0 ? (
-                  <TableSkeleton rows={5} cols={9} />
+                  <TableSkeleton rows={5} cols={11} />
                 ) : billedInvoices?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center">No billed invoices found</TableCell>
+                    <TableCell colSpan={11} className="text-center">No billed invoices found</TableCell>
                   </TableRow>
                 ) : (
                   billedInvoices?.map((invoice, index) => (
@@ -179,11 +204,37 @@ export function BilledTable() {
                       )}
                     >
                       <TableCell>{(billedCurrentPage - 1) * billedItemsPerPage + index + 1}</TableCell>
-                      <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
-                      <TableCell>{invoice.invoiceNumber}</TableCell>
+                      <TableCell>
+                        {invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}
+                      </TableCell>
                       <TableCell>{invoice.partyCode}</TableCell>
                       <TableCell>{invoice.medicalName || '-'}</TableCell>
                       <TableCell>{invoice.city || '-'}</TableCell>
+                      <TableCell>
+                        {invoice.isOtc ? (
+                          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                            OTC
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                            Regular
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {invoice.paymodeMode === 'CASH' ? (
+                          <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            Cash
+                          </span>
+                        ) : invoice.paymodeMode === 'CREDIT' ? (
+                          <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20">
+                            Credit
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>{invoice.invoiceNumber}</TableCell>
                       <TableCell>
                         <ShowImage
                           images={[...invoice.image, ...invoice.billImage]}

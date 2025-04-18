@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export function UnbilledTable() {
   const { toast } = useToast();
@@ -169,7 +170,29 @@ export function UnbilledTable() {
                 className="w-full"
               />
             </div>
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Select
+                defaultValue="all"
+                onValueChange={(value) => {
+                  // Handle filter by invoice type (all, regular, otc)
+                  if (value === "all") {
+                    setUnbilledSearchTerm("");
+                  } else if (value === "regular") {
+                    setUnbilledSearchTerm("type:regular");
+                  } else if (value === "otc") {
+                    setUnbilledSearchTerm("type:otc");
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Invoice Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="regular">Regular Only</SelectItem>
+                  <SelectItem value="otc">OTC Only</SelectItem>
+                </SelectContent>
+              </Select>
               <DatePicker
                 date={unbilledSelectedDate}
                 setDate={setUnbilledSelectedDate}
@@ -194,20 +217,22 @@ export function UnbilledTable() {
                 <TableRow>
                   <TableHead className="w-[60px]">Sr. No.</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Invoice No.</TableHead>
                   <TableHead>Party Code</TableHead>
                   <TableHead>Medical Name</TableHead>
                   <TableHead>City</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Paymode</TableHead>
+                  <TableHead>Invoice No.</TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isUnbilledLoading && unbilledInvoices?.length === 0 ? (
-                  <TableSkeleton rows={5} cols={8} />
+                  <TableSkeleton rows={5} cols={10} />
                 ) : unbilledInvoices?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">No unbilled invoices found</TableCell>
+                    <TableCell colSpan={10} className="text-center">No unbilled invoices found</TableCell>
                   </TableRow>
                 ) : (
                   unbilledInvoices?.map((invoice, index) => (
@@ -218,11 +243,35 @@ export function UnbilledTable() {
                       )}
                     >
                       <TableCell>{(unbilledCurrentPage - 1) * unbilledItemsPerPage + index + 1}</TableCell>
-                      <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
-                      <TableCell>{invoice.invoiceNumber}</TableCell>
+                      <TableCell>{invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}</TableCell>
                       <TableCell>{invoice.partyCode}</TableCell>
                       <TableCell>{invoice.medicalName || '-'}</TableCell>
                       <TableCell>{invoice.city || '-'}</TableCell>
+                      <TableCell>
+                        {invoice.isOtc ? (
+                          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                            OTC
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                            Regular
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {invoice.paymodeMode === 'CASH' ? (
+                          <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            Cash
+                          </span>
+                        ) : invoice.paymodeMode === 'CREDIT' ? (
+                          <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20">
+                            Credit
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>{invoice.invoiceNumber}</TableCell>
                       <TableCell>
                         <TakeImage
                           imageKey={invoice.invoiceNumber}

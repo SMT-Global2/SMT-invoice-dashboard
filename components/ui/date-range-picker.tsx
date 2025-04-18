@@ -40,12 +40,9 @@ export function DatePickerWithRange({
             <CalendarIcon className="mr-2 h-4 w-4" />
             {date?.from ? (
               date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
+                `${format(date.from, "d MMM yyyy")} - ${format(date.to, "d MMM yyyy")}`
               ) : (
-                format(date.from, "LLL dd, y")
+                format(date.from, "d MMM yyyy")
               )
             ) : (
               <span>Pick a date range</span>

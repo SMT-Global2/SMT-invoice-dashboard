@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Description and Terms & Conditions: Sanjivan Medico Traders System</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 2em;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        p {
+            text-align: justify;
+            margin-bottom: 1em;
+        }
+        ul, ol {
+            margin-left: 2em;
+            margin-bottom: 1em;
+        }
+        li {
+            margin-bottom: 0.5em;
+        }
+        ul ul {
+            margin-left: 1.5em; /* Indent nested lists */
+        }
+        code {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 2em 0;
+        }
+        strong {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Product Description and Terms & Conditions: Sanjivan Medico Traders System</h1>
+
+<p><strong>Prepared For:</strong> Mr. Sachin Sarda, Sanjivan Medico Traders<br>
+<strong>Prepared By:</strong> Noobacker Enterprises<br>
+<strong>Date:</strong> 5 April 2025</p>
+
+<hr>
+
+<h2>1. Introduction & System Overview</h2>
+
+<p>Noobacker Enterprises is pleased to present the <strong>Sanjivan Medico Traders</strong> system, a bespoke digital solution meticulously crafted to streamline and enhance the inventory management and delivery memo processing operations for Sanjivan Medico Traders. This comprehensive web application leverages modern technologies to provide a robust, efficient, and user-friendly platform, replacing manual processes with automated workflows, thereby minimizing errors, improving traceability, and boosting overall operational productivity.</p>
+
+<p>The Sanjivan Medico Traders system is designed with scalability and ease-of-use at its core, ensuring that Sanjivan Medico Traders can manage its critical logistics data with precision and confidence.</p>
+
+<hr>
+
+<h2>2. Core Modules & Feature Overview</h2>
+
+<p>The Sanjivan Medico Traders system is architected around several interconnected modules designed to manage the complete operational workflow, from inventory and invoicing to delivery, billing, and administration.</p>
+
+<h3>2.1. Invoice Lifecycle Management</h3>
+
+<p>This core area handles the journey of an invoice through various stages:</p>
+
+<ul>
+<li><strong>Invoice Creation (<code>/invoice</code>):</strong>
+    <ul>
+    <li>Registers new invoices, typically based on a selected date.</li>
+    <li>Assigns <code>Party Code</code>, automatically fetching related customer details (Name, City).</li>
+    <li>Selects <code>Payment Mode</code> (e.g., Cash, Cheque).</li>
+    <li>Captures/Uploads initial invoice images (using device camera or gallery via <code>TakeImage</code>), handling compression and S3 storage.</li>
+    <li>Saves the initial invoice record, validating required fields (Party, Payment Mode, Image). Includes a special "OTC" save option.</li>
+    <li>Provides search by invoice number and status indicators (<code>Capsule</code>).</li>
+    <li>Allows resetting unsaved/partially saved invoices.</li>
+    </ul>
+</li>
+<li><strong>Invoice Checking (<code>/checking</code>):</strong>
+    <ul>
+    <li>Reviews invoices previously saved in the creation stage.</li>
+    <li>Tabbed interface: "Unchecked" and "Checked".</li>
+    <li>Displays full invoice details, including images (<code>ShowImage</code>).</li>
+    <li>Allows filtering by date, invoice number, and regional code.</li>
+    <li>Enables users to verify invoice details and mark them as "Checked".</li>
+    <li>Allows modification of the <code>Payment Mode</code> at this stage.</li>
+    <li>Provides an overview of already checked invoices.</li>
+    </ul>
+</li>
+<li><strong>Invoice Packing (<code>/packing</code>):</strong>
+    <ul>
+    <li>Manages the packing process for checked invoices.</li>
+    *   Tabbed interface: "Unpacked" and "Packed".</li>
+    <li>Displays invoice details for verification before packing.</li>
+    <li>Captures/Uploads packing-specific images (e.g., photo of the parcel) using <code>TakeImage</code>, storing them on S3.</li>
+    <li>Allows filtering by date, invoice number, and regional code.</li>
+    <li>Marks invoices as "Packed" upon completion.</li>
+    <li>Provides an overview of already packed invoices.</li>
+    </ul>
+</li>
+<li><strong>Invoice Delivery (<code>/delivery</code>):</strong>
+    <ul>
+    <li>Tracks the final stage of the invoice lifecycle.</li>
+    <li>Tabbed interface: "To Deliver", "In Transit", "Delivered".</li>
+    <li>Manages the assignment, pickup, shipment tracking, and delivery confirmation of packed invoices.</li>
+    <li>Utilizes dedicated components (<code>ToDeliverTable</code>, <code>InTransitTable</code>, <code>DeliveredTable</code>) for clarity.</li>
+    </ul>
+</li>
+<li><strong>Billing Management (<code>/billing</code>):</strong>
+    <ul>
+    <li>Manages the billing status of invoices (likely post-delivery).</li>
+    <li>Tabbed interface: "Unbilled Invoices" and "Billed Invoices".</li>
+    <li>Provides views (<code>UnbilledTable</code>, <code>BilledTable</code>) to track and update the billing status.</li>
+    </ul>
+</li>
+</ul>
+
+<h3>2.2. Receipt Management (<code>/receipt</code>)</h3>
+
+<ul>
+<li>Handles the creation, viewing, updating, and deletion (CRUD) of payment receipts.</li>
+<li>Uses <code>ReceiptDialog</code> for data entry/modification.</li>
+<li>Features a <code>RecordTable</code> with filtering by search term, date, payment method (Cash, Cheque, NEFT/RTGS etc.), and user.</li>
+<li>Includes pagination for managing large numbers of receipts.</li>
+<li><strong>PDF Generation:</strong> Creates PDF summaries of receipts based on active filters.</li>
+</ul>
+
+<h3>2.3. Inventory Management (<code>/inventory</code>)</h3>
+
+<ul>
+<li>Manages incoming inventory records associated with agencies.</li>
+<li>Intuitive dialog (<code>InventoryDialog</code>) for creating/editing items (Agency Code, Invoice details, LR details, etc.).</li>
+<li>Uses <code>AgencyCodeSelector</code> for easy lookup.</li>
+<li>Features form validation (Zod).</li>
+<li>Tabular display with "Inventory Check" and "Voucher" tabs.</li>
+<li>Includes search, date filtering, and pagination.</li>
+<li>Handles item deletion with confirmation.</li>
+</ul>
+
+<h3>2.4. Delivery Memo (DM) Management (<code>/deliverymemo</code>)</h3>
+
+<ul>
+<li>Digitizes the Delivery Memo workflow.</li>
+<li><strong>Collection Tab:</strong> Assigns DMs to parties (<code>PartyCodeSelector</code>) and users (<code>UserSelector</code>), tracks collection status (<code>Capsule</code>), records collection time, allows resetting.</li>
+<li><strong>Checking Tab:</strong> Verifies collected DMs, captures/uploads image proof (<code>TakeImage</code>), records checking time and user, allows resetting.</li>
+<li>Features filtering by date, DM number, and regional code.</li>
+</ul>
+
+<h3>2.5. Expiry Management (<code>/expiry</code>)</h3>
+
+<ul>
+<li>Tracks product expiry information.</li>
+<li>Tabbed interface: "Record Table" and "Internal Operations".</li>
+<li><strong>Record Table:</strong> Manages CRUD operations for expiry items via <code>ExpiryDialog</code>, with search and date filters.</li>
+<li><strong>Internal Operations:</strong> Handles potentially imported expiry data, allowing association with a <code>Credit Note Number</code>.</li>
+</ul>
+
+<h3>2.6. Statement Processing (<code>/statement-excel</code>)</h3>
+
+<ul>
+<li>A comprehensive module for processing party statements uploaded via Excel files.</li>
+<li>Parses uploaded <code>.xlsx</code> files, extracting party details and transaction data.</li>
+<li>Associates statements with a specific date.</li>
+<li>Allows viewing statement files, filtering by date, and expanding sections per party.</li>
+<li><strong>Visit Tracking:</strong> Enables field users to record visit details per party within a statement:
+    <ul>
+    <li>Capture/Upload visit images (<code>TakeImage</code>).</li>
+    <li>Record GPS location.</li>
+    <li>Record timestamp and user.</li>
+    <li>View saved visit details (images, map link, user, time).</li>
+    </ul>
+</li>
+<li><strong>Export:</strong> Generates individual party statement PDFs, a bulk ZIP of all party PDFs for a file, or downloads the data back to Excel.</li>
+<li>Includes file management (rename, delete) and filtering by visit status/user.</li>
+</ul>
+
+<h3>2.7. Analytics & Reporting (<code>/analytics</code>)</h3>
+
+<ul>
+<li>Provides a centralized dashboard with various data visualizations.</li>
+<li>Tabbed interface covering:
+    <ul>
+    <li><strong>Invoice Analytics:</strong> Stats cards, trends, status breakdowns, user activity, top parties, heatmaps.</li>
+    <li><strong>User Performance:</strong> Metrics specific to user activities.</li>
+    <li><strong>Invoices Table:</strong> Detailed administrative view of invoices.</li>
+    <li><strong>Receipt Analytics:</strong> Dedicated insights into receipt data.</li>
+    <li><strong>Inventory Analytics:</strong> Dedicated insights into inventory data.</li>
+    <li><strong>Delivery Memo Analytics:</strong> Dedicated insights into DM data.</li>
+    <li><strong>Expiry Analytics:</strong> Dedicated insights into expiry data.</li>
+    </ul>
+</li>
+<li>Fetches data via <code>useAnalyticsStore</code> and dedicated API endpoints.</li>
+</ul>
+
+<h3>2.8. Administration & Master Data Management</h3>
+
+<ul>
+<li><strong>Employee Management (<code>/employee</code>):</strong>
+    <ul>
+    <li>Manages user accounts (employees).</li>
+    <li>CRUD operations via <code>EmployeeDialog</code>.</li>
+    <li>Displays employee details including username, assigned departments (visualized with badges), and type (User/Admin).</li>
+    <li>Includes password visibility toggle for administrators.</li>
+    </ul>
+</li>
+<li><strong>Agency Management (<code>/agency</code>):</strong>
+    <ul>
+    <li>Manages agency records (Code, Company Name, Short Name).</li>
+    <li>CRUD operations via <code>AgencyDialog</code>.</li>
+    <li>Features search by agency code and pagination.</li>
+    </ul>
+</li>
+<li><strong>Party / Client Management (<code>/party</code>):</strong>
+    <ul>
+    <li>Manages client/party records (Code, Regional Code, Customer Name, City).</li>
+    <li>CRUD operations via <code>PartyDialog</code>.</li>
+    <li>Features search by party code and pagination.</li>
+    <li>Includes functionality to view past delivery history for a specific party (<code>PastDeliveriesDialog</code>).</li>
+    </ul>
+</li>
+</ul>
+
+<h3>2.9. General System Features (Cross-Cutting)</h3>
+
+<ul>
+<li><strong>Modern User Interface (UI):</strong> Built with React and Shadcn UI for a clean, responsive experience.</li>
+<li><strong>Authentication & Authorization:</strong> Secure login (NextAuth.js), potentially role-based access control (Admin vs User types, Department assignments).</li>
+<li><strong>Department-Specific Access:</strong> Users are granted access only to the modules and features relevant to their assigned department(s), enhancing security and simplifying the user experience.</li>
+<li><strong>State Management:</strong> Efficient client-side state using Zustand stores (<code>useInventoryStore</code>, <code>useDeliveryMemoStore</code>, <code>useInvoiceStore</code>, etc.).</li>
+<li><strong>Real-time Feedback:</strong> Toast notifications for user actions.</li>
+<li><strong>Loading States:</strong> Skeletons and spinners for better UX during data operations.</li>
+<li><strong>Reusable Components:</strong> Modular design (<code>DatePicker</code>, various Selectors, <code>TakeImage</code>, <code>Capsule</code>, etc.).</li>
+<li><strong>Utility Functions:</strong> Helpers for dates, images, S3 uploads.</li>
+</ul>
+
+<hr>
+
+<h2>3. Technical Stack Highlights</h2>
+
+<ul>
+<li><strong>Framework:</strong> Next.js (React Framework)</li>
+<li><strong>Language:</strong> TypeScript</li>
+<li><strong>UI Library:</strong> Shadcn UI, Tailwind CSS</li>
+<li><strong>State Management:</strong> Zustand</li>
+<li><strong>Form Handling:</strong> React Hook Form, Zod (for validation)</li>
+<li><strong>Database ORM:</strong> Prisma</li>
+<li><strong>Authentication:</strong> NextAuth.js</li>
+<li><strong>Deployment Platform:</strong> (Assumed Vercel or similar Node.js compatible hosting)</li>
+<li><strong>Cloud Storage:</strong> AWS S3 (for image uploads)</li>
+</ul>
+
+<hr>
+
+<h2>4. Terms and Conditions (TnC)</h2>
+
+<p>The following terms and conditions govern the use and service of the Sanjivan Medico Traders system provided by Noobacker Enterprises to Sanjivan Medico Traders:</p>
+
+<ol>
+<li><strong>Domain Registration:</strong> Noobacker Enterprises will register and manage a suitable domain name for the application for a period of <strong>five (5) years</strong> from the date of initial deployment, included as part of the initial project cost. Renewal of the domain after this period will be the responsibility of Sanjivan Medico Traders, or can be managed by Noobacker Enterprises at the prevailing market price at the time of renewal.</li>
+<li><strong>Service & Maintenance:</strong> Noobacker Enterprises guarantees the operational service and maintenance of the application for its <strong>lifetime</strong>, contingent upon the timely <strong>upfront payment</strong> of the Annual Maintenance Contract (AMC) fee.</li>
+<li><strong>Annual Maintenance Contract (AMC):</strong>
+    <ul>
+    <li>The AMC fee is payable annually, <strong>upfront</strong>, within the month of <strong>March</strong>.</li>
+    <li>The AMC covers standard hosting costs, routine software updates (security patches, minor library updates), bug fixes arising from normal usage, and basic operational support during standard business hours.</li>
+    <li>The AMC fee is subject to an annual increment of <strong>three point eight percent (3.8%)</strong> to account for inflation and evolving service costs. The first increment will apply starting from the second year's payment.</li>
+    <li>Failure to pay the AMC fee by the due date (March 31st) may result in the suspension of services until the payment is cleared.</li>
+    </ul>
+</li>
+<li><strong>Additional Charges & Scope:</strong>
+    <ul>
+    <li>The AMC does <strong>not</strong> cover new feature development, significant modifications to existing features, major UI redesigns, third-party integration costs beyond the initial scope, or extensive data migration/correction tasks. Such requests will be quoted separately based on estimated effort.</li>
+    <li>A <strong>buffer or leverage charge allowance of up to ₹2,000 (Two Thousand Indian Rupees) per annum</strong> is included within the AMC. This can cover minor, ad-hoc support requests or investigations that fall slightly outside the standard AMC scope (e.g., minor report tweaks, investigation of user-specific issues not related to bugs), at the discretion of Noobacker Enterprises. Usage beyond this buffer will be chargeable at standard hourly rates after prior notification and approval from Sanjivan Medico Traders.</li>
+    </ul>
+</li>
+<li><strong>Data Ownership:</strong> Sanjivan Medico Traders retains full ownership of all data entered into the Sanjivan Medico Traders system. Noobacker Enterprises will provide data exports upon request, subject to reasonable notice and potentially chargeable if requiring significant custom formatting or effort outside standard procedures.</li>
+<li><strong>Confidentiality:</strong> Both parties agree to maintain the confidentiality of proprietary information (including business processes, data structures, user information, and system design) shared during the project lifecycle and ongoing service period. This obligation survives the termination of the agreement.</li>
+<li><strong>Acceptable Use:</strong> Sanjivan Medico Traders agrees to use the system solely for its intended purposes and in compliance with all applicable laws. Prohibited uses include attempting unauthorized access, disrupting service integrity, introducing malware, or storing illegal content.</li>
+<li><strong>Limitation of Liability:</strong> Noobacker Enterprises shall not be liable for indirect, incidental, special, or consequential damages (including loss of profits or data) arising from the use or inability to use the Sanjivan Medico Traders system, even if advised of the possibility of such damages. The maximum liability of Noobacker Enterprises under this agreement, whether in contract, tort, or otherwise, shall be limited to the total AMC fee paid by Sanjivan Medico Traders for the twelve (12) month period preceding the event giving rise to the claim. This limitation does not apply to liabilities that cannot be excluded or limited under applicable law.</li>
+<li><strong>Force Majeure:</strong> Neither party shall be liable for any failure or delay in performance due to circumstances beyond its reasonable control, including but not limited to acts of God, war, riot, embargoes, acts of civil or military authorities, fire, floods, accidents, strikes, or shortages of transportation facilities, fuel, energy, labor, or materials.</li>
+<li><strong>Termination:</strong>
+    <ul>
+    <li>Either party may terminate this agreement with 30 days written notice if the other party materially breaches these Terms and Conditions and fails to cure such breach within the notice period.</li>
+    <li>Noobacker Enterprises may suspend or terminate services immediately for non-payment of AMC fees as outlined in clause 3.</li>
+    <li>Upon termination, Sanjivan Medico Traders' license to use the system ceases. Noobacker Enterprises will cooperate in providing a final data export (as per clause 5).</li>
+    </ul>
+</li>
+</ol>
+
+<hr>
+
+<h2>5. Key Benefits & Improvements Over Previous Methods</h2>
+
+<p>While specific performance data for the previous system is not available for direct graphical comparison, the Sanjivan Medico Traders system is designed to offer significant advantages:</p>
+
+<ul>
+<li><strong>Enhanced Efficiency:</strong> Automation of workflows (invoice processing, DM tracking, expiry management, statement handling) drastically reduces manual effort, data entry time, and potential for delays.</li>
+<li><strong>Improved Accuracy:</strong> Standardized data entry forms, validation rules (Zod), and reduced manual transcription minimize errors in inventory counts, invoice details, party information, and receipts.</li>
+<li><strong>Increased Traceability:</strong> Digital records with timestamps, user attributions, and image capture (for invoices, packing, DMs, statement visits) provide a clear audit trail for every step in the process.</li>
+<li><strong>Centralized Data Access:</strong> All operational data is stored and accessible within a single system, eliminating information silos and making it easier to find relevant details quickly.</li>
+<li><strong>Real-time Visibility:</strong> Dashboards and reporting features offer up-to-date insights into inventory levels, invoice statuses, DM progress, expiry dates, and overall operational performance.</li>
+<li><strong>Better Collaboration:</strong> Different departments (Invoice, Packing, Delivery, Billing, Admin) can work concurrently within the system, accessing the information they need based on their roles.</li>
+<li><strong>Streamlined Reporting:</strong> Automated generation of reports (e.g., PDF receipts, statement summaries, analytics dashboards) saves significant time compared to manual compilation.</li>
+<li><strong>Improved Field Operations:</strong> The Statement Processing module empowers field staff with tools for efficient visit tracking, data capture (images, location), and reporting directly within the application.</li>
+<li><strong>Scalability:</strong> The system is built on a modern tech stack designed to handle growing data volumes and user loads effectively.</li>
+</ul>
+
+<hr>
+
+<h2>6. Conclusion</h2>
+
+<p>The Sanjivan Medico Traders system represents a significant technological advancement for Sanjivan Medico Traders, poised to deliver tangible benefits in operational efficiency, data accuracy, and process control. Noobacker Enterprises is committed to providing a high-quality solution and ongoing support to ensure the long-term success of this implementation.</p>
+
+<p>We look forward to deploying the Sanjivan Medico Traders system and supporting Sanjivan Medico Traders in leveraging its full potential.</p>
+
+</body>
+</html> 

@@ -46,6 +46,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import { ColumnDef } from "@tanstack/react-table"
+import { format } from "date-fns"
 
 export default function AgencyPage() {
   const { 
@@ -190,7 +193,7 @@ export default function AgencyPage() {
                       <TableCell>{agency.companyName || '-'}</TableCell>
                       <TableCell>{agency.shortName || '-'}</TableCell>
                       <TableCell>
-                        {agency.createdAt && new Date(agency.createdAt).toLocaleDateString()}
+                        {agency.createdAt && format(new Date(agency.createdAt), 'd MMM yyyy')}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button

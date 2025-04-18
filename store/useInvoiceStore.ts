@@ -199,8 +199,18 @@ export const useInvoiceStore = create<InvoiceState>()(
             throw new Error('Invoice not found');
           }
 
-          if(!invoice.paymodeMode) {
+          // Validate required fields
+          if (!invoice.partyCode) {
+            throw new Error('Party code is required');
+          }
+
+          if (!invoice.paymodeMode) {
             throw new Error('Paymode mode is required');
+          }
+
+          // Validate that at least one image is uploaded
+          if (!invoice.image || invoice.image.length === 0) {
+            throw new Error('At least one image is required');
           }
 
           const invoiceToSave = {

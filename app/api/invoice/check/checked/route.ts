@@ -26,6 +26,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const date = searchParams.get('date') || '';
 
+    // Regional codes
+    const regionalCodesParam = searchParams.get('regionalCodes') || '';
+    const regionalCodes = regionalCodesParam ? regionalCodesParam.split(',') : [];
+
     // Build where clause
     const where: any = {
       isOtc: false,
@@ -43,6 +47,15 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.invoiceNumber = {
         equals: isNaN(parseInt(search)) ? undefined : parseInt(search),
+      };
+    }
+    
+    // Add regional code filter if provided
+    if (regionalCodes.length > 0) {
+      where.party = {
+        regionalCode: {
+          in: regionalCodes
+        }
       };
     }
     

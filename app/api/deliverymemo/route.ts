@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const dateFilter = searchParams.get('date');
   const checkingMode = searchParams.get('checkingMode') === 'true';
+  
+  // Get regional codes for filtering
+  const regionalCodesParam = searchParams.get('regionalCodes') || '';
+  const regionalCodes = regionalCodesParam ? regionalCodesParam.split(',') : [];
 
   const where: any = dateFilter
     ? {
@@ -36,6 +40,15 @@ export async function GET(request: NextRequest) {
   // If we're in checking mode, only return items that have been collected
   if (checkingMode) {
     where.goodsCollectedUsername = { not: null };
+  }
+  
+  // Add regional code filter if provided
+  if (regionalCodes.length > 0) {
+    where.party = {
+      regionalCode: {
+        in: regionalCodes
+      }
+    };
   }
 
   const data = await prisma.deliveryMemo.findMany({
@@ -249,8 +262,7 @@ export async function DELETE(request: NextRequest) {
 
     const dm = await prisma.deliveryMemo.findUnique({
       where: {
-        dmNumber: parseInt(dmNumber),
-        ...(isChecked && { goodsCheckedUsername: session.user.username })
+        dmNumber: parseInt(dmNumber)
       }
     });
 

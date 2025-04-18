@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { Invoice, CheckStatus, PackageStatus, DeliveryStatus, BilledStatus, PartyCode, User } from '@prisma/client'
 import { DateRange } from 'react-day-picker'
+import moment from 'moment'
 
 export interface IInvoice extends Invoice {
   party : PartyCode;
@@ -98,13 +99,20 @@ interface UserPerformanceResponse {
   users: {
     username: string;
     fullName: string;
-    department: string;
+    department: string[];
     performance: {
       invoices: number;
       checking: number;
       packing: number;
       delivery: number;
       billing: number;
+      receipts: number;
+      invChecks: number;
+      invVouchers: number;
+      dmCollects: number;
+      dmChecks: number;
+      expUploads: number;
+      expCreditNotes: number;
       overall: number;
     };
   }[];
@@ -172,6 +180,88 @@ interface FilterState {
   selectedRegionalCodes: string[];
 }
 
+interface ExtendedAnalyticsResponse {
+  success: boolean;
+  data: {
+    inventory?: InventoryAnalytics;
+    deliveryMemo?: DeliveryMemoAnalytics;
+    expiry?: ExpiryAnalytics;
+    statement?: StatementAnalytics;
+    billing?: BillingAnalytics;
+    receipt?: ReceiptAnalytics;
+  };
+}
+
+interface InventoryAnalytics {
+  totalCount: number;
+  withVoucherCount: number;
+  withoutVoucherCount: number;
+  percentWithVoucher: string;
+  byAgency: Array<{ agencyCode: string, agencyName: string, _count: number }>;
+  byUserCheck: Array<{ username: string, count: number }>;
+  byUserVoucher: Array<{ username: string, count: number }>;
+  perDay: Array<{ date: Date, count: number }>;
+}
+
+interface DeliveryMemoAnalytics {
+  totalCount: number;
+  collectedCount: number;
+  checkedCount: number;
+  percentCollected: string;
+  percentChecked: string;
+  perDay: Array<{ date: Date, count: number }>;
+  byRegionalCode: Array<{ regionalCode: string, count: number }>;
+  byUserCollected: Array<{ username: string, count: number }>;
+  byUserChecked: Array<{ username: string, count: number }>;
+}
+
+interface ExpiryAnalytics {
+  totalCount: number;
+  withCreditNoteCount: number;
+  withoutCreditNoteCount: number;
+  percentWithCreditNote: string;
+  perDay: Array<{ date: Date, count: number }>;
+  byRegionalCode: Array<{ regionalCode: string, count: number }>;
+  byUser: Array<{ username: string, count: number }>;
+  byCreditNoteUser: Array<{ username: string, count: number }>;
+}
+
+interface StatementAnalytics {
+  totalCount: number;
+  perDay: Array<{ date: Date, count: number }>;
+  byUploadUser: Array<{ username: string, count: number }>;
+  reportSections: {
+    totalCount: number;
+    savedCount: number;
+    unsavedCount: number;
+    percentSaved: string;
+    byPartyCode: Array<{ partyCode: string, count: number }>;
+    bySavedUser: Array<{ username: string, count: number }>;
+  };
+}
+
+interface BillingAnalytics {
+  totalCount: number;
+  cashCount: number;
+  creditCount: number;
+  percentCash: string;
+  percentCredit: string;
+  perDay: Array<{ date: Date, count: number }>;
+  byUser: Array<{ username: string, count: number }>;
+}
+
+interface ReceiptAnalytics {
+  totalCount: number;
+  cashCount: number;
+  chequeCount: number;
+  percentCash: string;
+  percentCheque: string;
+  perDay: Array<{ date: Date, count: number }>;
+  byUser: Array<{ username: string, count: number }>;
+  totalAmount: number;
+  amountByUser: Array<{ username: string, amount: number }>;
+}
+
 interface AnalyticsState {
   isLoading: boolean;
   error: string | null;
@@ -209,6 +299,21 @@ interface AnalyticsState {
   setDateRange: (dateRange: DateRange | undefined) => void;
   setSelectedRegionalCodes: (codes: string[]) => void;
   clearAllFilters: () => void;
+
+  // Extended analytics
+  extendedAnalytics: {
+    inventory: InventoryAnalytics | null;
+    deliveryMemo: DeliveryMemoAnalytics | null;
+    expiry: ExpiryAnalytics | null;
+    statement: StatementAnalytics | null;
+    billing: BillingAnalytics | null;
+    receipt: ReceiptAnalytics | null;
+    isLoading: boolean;
+    error: string | null;
+  };
+  
+  // Add new fetch function
+  fetchExtendedAnalytics: (type?: string, dateRange?: DateRange) => Promise<void>;
 }
 
 const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
@@ -377,7 +482,8 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       throw new Error('Failed to fetch user performance data');
     }
     
-    return res.json();
+    const data: UserPerformanceResponse = await res.json();
+    return data;
   },
 
   fetchTrendData: async (dateRange) => {
@@ -530,6 +636,75 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         error: error instanceof Error ? error.message : 'An error occurred',
         isLoading: false 
       });
+    }
+  },
+
+  // Initialize extended analytics
+  extendedAnalytics: {
+    inventory: null,
+    deliveryMemo: null,
+    expiry: null,
+    statement: null,
+    billing: null,
+    receipt: null,
+    isLoading: false,
+    error: null
+  },
+  
+  fetchExtendedAnalytics: async (type = 'all', dateRange) => {
+    try {
+      set(state => ({
+        extendedAnalytics: {
+          ...state.extendedAnalytics,
+          isLoading: true,
+          error: null
+        }
+      }));
+      
+      // Build the URL
+      const url = new URL('/api/analytics/extended', window.location.origin);
+      url.searchParams.set('type', type);
+      
+      if (dateRange?.from) {
+        url.searchParams.set('from', typeof dateRange.from === 'string' 
+          ? dateRange.from 
+          : moment(dateRange.from).format('YYYY-MM-DD'));
+      }
+      
+      if (dateRange?.to) {
+        url.searchParams.set('to', typeof dateRange.to === 'string' 
+          ? dateRange.to 
+          : moment(dateRange.to).format('YYYY-MM-DD'));
+      }
+      
+      const response = await fetch(url.toString());
+      const data: ExtendedAnalyticsResponse = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.data as any || 'Failed to fetch extended analytics');
+      }
+      
+      set(state => ({
+        extendedAnalytics: {
+          inventory: data.data.inventory || state.extendedAnalytics.inventory,
+          deliveryMemo: data.data.deliveryMemo || state.extendedAnalytics.deliveryMemo,
+          expiry: data.data.expiry || state.extendedAnalytics.expiry,
+          statement: data.data.statement || state.extendedAnalytics.statement,
+          billing: data.data.billing || state.extendedAnalytics.billing,
+          receipt: data.data.receipt || state.extendedAnalytics.receipt,
+          isLoading: false,
+          error: null
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching extended analytics:', error);
+      set(state => ({
+        extendedAnalytics: {
+          ...state.extendedAnalytics,
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'An error occurred'
+        }
+      }));
     }
   },
 

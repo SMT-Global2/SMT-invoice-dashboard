@@ -8,10 +8,15 @@ export interface InventoryData {
   generatedDate: Date
   agencyCode: string
   agency?: AgencyCode
-  invoiceNumber: number
+  invoiceNumber: string
   invoiceDate: Date
-  orderNumber: number
-  orderDate: Date
+  dueDate?: Date
+  lrNumber?: string
+  lrDate?: Date
+  through?: string
+  packages?: string
+  orderNumber?: number
+  orderDate?: Date
   inventoryCheckUsername?: string | null
   inventoryCheckTimestamp?: Date | null
   voucherNumber?: number | null

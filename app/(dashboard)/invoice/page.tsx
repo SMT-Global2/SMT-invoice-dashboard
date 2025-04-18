@@ -50,6 +50,12 @@ import { Input } from "@/components/ui/input";
 import { PartyCodeSelector, PartyCode } from '@/components/party-code-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PaymodeMode } from '@prisma/client';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { format } from "date-fns"
 
 export default function InvoicePage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -150,6 +156,26 @@ export default function InvoicePage() {
   const handleSave = async (invoiceNumber: number) => {
     try {
       setLastInteractedInvoice(invoiceNumber);
+      
+      // Find the invoice to validate required fields
+      const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+      if (!invoice) {
+        throw new Error('Invoice not found');
+      }
+      
+      // Client-side validation
+      if (!invoice.partyCode) {
+        throw new Error('Party code is required');
+      }
+      
+      if (!invoice.paymodeMode) {
+        throw new Error('Payment mode is required');
+      }
+      
+      if (!invoice.image || invoice.image.length === 0) {
+        throw new Error('At least one image is required');
+      }
+      
       await saveInvoice(invoiceNumber);
       toast({
         title: 'Success',
@@ -162,7 +188,7 @@ export default function InvoicePage() {
         variant: 'destructive',
         title: 'Failed',
         description: error instanceof Error ? error.message : 'Invoice not saved',
-        duration: 2000,
+        duration: 3000,
       });
     }
   }
@@ -170,6 +196,33 @@ export default function InvoicePage() {
   const handleOtc = async (invoiceNumber: number) => {
     try {
       setLastInteractedInvoice(invoiceNumber);
+      
+      // Find the invoice to validate required fields
+      const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+      if (!invoice) {
+        throw new Error('Invoice not found');
+      }
+      
+      // Client-side validation
+      if (!invoice.partyCode) {
+        throw new Error('Party code is required');
+      }
+      
+      if (!invoice.paymodeMode) {
+        throw new Error('Payment mode is required');
+      }
+      
+      // Check if image exists
+      if (!invoice.image || invoice.image.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Image Required',
+          description: 'Please upload at least one image before saving as OTC.',
+          duration: 3000,
+        });
+        return; // Stop execution if no image
+      }
+      
       await saveInvoice(invoiceNumber, true);
       toast({
         title: 'Success',
@@ -182,7 +235,7 @@ export default function InvoicePage() {
         variant: 'destructive',
         title: 'Failed',
         description: error instanceof Error ? error.message : 'Invoice not saved',
-        duration: 2000,
+        duration: 3000,
       });
     }
   }
@@ -296,7 +349,7 @@ export default function InvoicePage() {
                                 />
                           }</TableCell>
                           <TableCell>{row.invoiceNumber}</TableCell>
-                          <TableCell>{selectedDate ? selectedDate.toLocaleDateString() : new Date().toLocaleDateString()}</TableCell>
+                          <TableCell>{selectedDate ? format(selectedDate, 'd MMM yyyy') : format(new Date(), 'd MMM yyyy')}</TableCell>
                           <TableCell>
                             <PartyCodeSelector
                               value={row.partyCode || null}
@@ -349,14 +402,26 @@ export default function InvoicePage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Button
-                                variant="default"
-                                size="sm"
-                                disabled={row.isDisabled || isLoading || row.invoiceTimestamp !== null}
-                                onClick={async () => await handleSave(row.invoiceNumber)}
-                              >
-                                Save
-                              </Button>
+                              <Tooltip delayDuration={300}>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      disabled={row.isDisabled || isLoading || row.invoiceTimestamp !== null}
+                                      onClick={async () => await handleSave(row.invoiceNumber)}
+                                      className={!row.image || row.image.length === 0 ? "border-red-500" : ""}
+                                    >
+                                      Save
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                {(!row.image || row.image.length === 0) && (
+                                  <TooltipContent>
+                                    <p>Image required before saving</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
@@ -389,31 +454,43 @@ export default function InvoicePage() {
                                     showIcon='ok'
                                   />
                                 ) : (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="default"
-                                        size="sm"
-                                        disabled={row.isDisabled || isLoading}
-                                      >
-                                        OTC
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Confirm OTC</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Are you sure you want to mark this invoice {row.invoiceNumber} as OTC? This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={async () => await handleOtc(row.invoiceNumber)}>
-                                          Confirm
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
+                                  <Tooltip delayDuration={300}>
+                                    <TooltipTrigger asChild>
+                                      <div>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              variant="default"
+                                              size="sm"
+                                              disabled={row.isDisabled || isLoading}
+                                              className={!row.image || row.image.length === 0 ? "border-red-500" : ""}
+                                            >
+                                              OTC
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Confirm OTC</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Are you sure you want to mark this invoice {row.invoiceNumber} as OTC? This action cannot be undone.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction onClick={async () => await handleOtc(row.invoiceNumber)}>
+                                                Confirm
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                    </TooltipTrigger>
+                                    {(!row.image || row.image.length === 0) && (
+                                      <TooltipContent>
+                                        <p>Image required before saving as OTC</p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
                                 )
                               }
                             </div>

@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import { format } from 'date-fns';
 
 export function DeliveredTable() {
   const { 
@@ -176,7 +177,9 @@ export function DeliveredTable() {
                 deliveredInvoices?.map((invoice, index) => (
                   <TableRow key={invoice.invoiceNumber}>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}
+                    </TableCell>
                     <TableCell>{invoice.invoiceNumber}</TableCell>
                     <TableCell>{invoice.partyCode}</TableCell>
                     <TableCell>{invoice.medicalName}</TableCell>

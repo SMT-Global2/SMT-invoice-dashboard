@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { format } from "date-fns"
 
 export default function PartyPage() {
   const { 
@@ -203,7 +204,7 @@ export default function PartyPage() {
                       <TableCell>{party.customerName || '-'}</TableCell>
                       <TableCell>{party.city || '-'}</TableCell>
                       <TableCell>
-                        {party.createdAt && new Date(party.createdAt).toLocaleDateString()}
+                        {party.createdAt && format(new Date(party.createdAt), 'd MMM yyyy')}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button

@@ -28,17 +28,30 @@ import { Badge } from "@/components/ui/badge";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import useAnalyticsStore from "@/store/useAnalyticsStore";
+import { Input } from "@/components/ui/input";
+
+// Define sort options
+type SortOption = 
+  | 'totalDesc' 
+  | 'totalAsc' 
 
 interface UserPerformanceData {
   username: string;
   fullName: string;
-  department: string;
+  department: string[];
   performance: {
     invoices: number;
     checking: number;
     packing: number;
     delivery: number;
     billing: number;
+    receipts: number;
+    invChecks: number;
+    invVouchers: number;
+    dmCollects: number;
+    dmChecks: number;
+    expUploads: number;
+    expCreditNotes: number;
     overall: number;
   };
 }
@@ -52,6 +65,15 @@ export function UserPerformance() {
     to: new Date(),
   });
   const [selectedDepartment, setSelectedDepartment] = useState<string>("ALL");
+  const [userSearchTerm, setUserSearchTerm] = useState<string>("");
+  const [sortOption, setSortOption] = useState<SortOption>('totalDesc'); // State for sorting
+
+  // Helper function to calculate total activity
+  const calculateTotalActivity = (performance: UserPerformanceData['performance']): number => {
+    return Object.values(performance)
+      .filter(value => typeof value === 'number' && !isNaN(value))
+      .reduce((sum, value) => sum + value, 0);
+  };
 
   useEffect(() => {
     const fetchUserPerformance = async () => {
@@ -66,8 +88,28 @@ export function UserPerformance() {
           const filteredUsers = selectedDepartment !== "ALL" 
             ? result.users.filter(user => user.department.includes(selectedDepartment))
             : result.users;
+
+          // Further filter by user search term
+          const searchedUsers = userSearchTerm.trim() === ""
+            ? filteredUsers
+            : filteredUsers.filter(user => 
+                user.fullName.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                user.username.toLowerCase().includes(userSearchTerm.toLowerCase())
+              );
             
-          setUserPerformance(filteredUsers);
+          // Sort the users based on the selected sort option
+          const sortedUsers = [...searchedUsers].sort((a, b) => {
+            switch (sortOption) {
+              case 'totalDesc':
+                return calculateTotalActivity(b.performance) - calculateTotalActivity(a.performance);
+              case 'totalAsc':
+                return calculateTotalActivity(a.performance) - calculateTotalActivity(b.performance);
+              default:
+                return 0;
+            }
+          });
+
+          setUserPerformance(sortedUsers); // Set the final sorted and filtered list
         } else {
           setUserPerformance([]);
         }
@@ -80,7 +122,7 @@ export function UserPerformance() {
     };
 
     fetchUserPerformance();
-  }, [dateRange, selectedDepartment, fetchUserPerformanceData]);
+  }, [dateRange, selectedDepartment, fetchUserPerformanceData, userSearchTerm, sortOption]); // Add sortOption dependency
 
   return (
     <Card className="col-span-1 md:col-span-3">
@@ -94,7 +136,14 @@ export function UserPerformance() {
             Detailed analysis of user productivity and efficiency
           </CardDescription>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-center">
+          <Input 
+            type="text"
+            placeholder="Search user..."
+            value={userSearchTerm}
+            onChange={(e) => setUserSearchTerm(e.target.value)}
+            className="w-[200px]"
+          />
           <Select
             value={selectedDepartment}
             onValueChange={setSelectedDepartment}
@@ -111,6 +160,18 @@ export function UserPerformance() {
               <SelectItem value="ALL_ROUNDER">All-rounders</SelectItem>
             </SelectContent>
           </Select>
+          <Select
+            value={sortOption}
+            onValueChange={(value) => setSortOption(value as SortOption)}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="totalDesc">Highest Activity</SelectItem>
+              <SelectItem value="totalAsc">Lowest Activity</SelectItem>
+            </SelectContent>
+          </Select>
           <DatePickerWithRange 
             date={dateRange} 
             setDate={setDateRange}
@@ -123,36 +184,53 @@ export function UserPerformance() {
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
           </div>
         ) : (
-          <div className="rounded-md border my-4">
+          <div className="rounded-md border my-4 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-center">Created</TableHead>
-                  <TableHead className="text-center">Checked</TableHead>
-                  <TableHead className="text-center">Packed</TableHead>
-                  <TableHead className="text-center">Delivered</TableHead>
-                  <TableHead className="text-center">Billed</TableHead>
+                  <TableHead className="sticky left-0 bg-card z-10 min-w-[180px]">User</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Invoices Created</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Invoices Checked</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Invoices Packed</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Invoices Delivered</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Invoices Billed</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Receipts Created</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Inventories Checked</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Inventories Vouchered</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">DMs Collected</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">DMs Checked</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Expiries Uploaded</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">Expiry Credit Notes</TableHead>
                   {/* <TableHead className="text-center">Overall Score</TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {userPerformance.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={13} className="text-center py-8">
                       No user performance data available
                     </TableCell>
                   </TableRow>
                 ) : (
                   userPerformance.map((user, index) => (
                     <TableRow key={user.username}>
-                      <TableCell>
+                      <TableCell className="sticky left-0 bg-card z-5 min-w-[180px]">
                         <div className="font-medium">{user.fullName}</div>
                         <div className="text-xs text-muted-foreground">{user.username}</div>
-                        <div className="flex gap-1 mt-1">
-                          <Badge variant="outline" className="text-[10px] px-1 py-0">
-                            {user.department}
-                          </Badge>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Array.isArray(user.department) && user.department.length > 0 ? (
+                            user.department.map((dept, idx) => (
+                              <Badge 
+                                key={idx} 
+                                variant="outline" 
+                                className="text-[10px] px-1 py-0"
+                              >
+                                {dept} 
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0">N/A</Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-center font-medium">{user.performance.invoices}</TableCell>
@@ -160,6 +238,13 @@ export function UserPerformance() {
                       <TableCell className="text-center font-medium">{user.performance.packing}</TableCell>
                       <TableCell className="text-center font-medium">{user.performance.delivery}</TableCell>
                       <TableCell className="text-center font-medium">{user.performance.billing}</TableCell>
+                      <TableCell className="text-center font-medium">{user.performance.receipts}</TableCell>
+                      <TableCell className="text-center font-medium">{user.performance.invChecks}</TableCell>
+                      <TableCell className="text-center font-medium">{user.performance.invVouchers}</TableCell>
+                      <TableCell className="text-center font-medium">{user.performance.dmCollects}</TableCell>
+                      <TableCell className="text-center font-medium">{user.performance.dmChecks}</TableCell>
+                      <TableCell className="text-center font-medium">{user.performance.expUploads}</TableCell>
+                      <TableCell className="text-center font-medium">{user.performance.expCreditNotes}</TableCell>
                       {/* <TableCell>
                         <div className="flex flex-col items-center">
                           <span className="font-medium">{user.performance.overall}/10</span>

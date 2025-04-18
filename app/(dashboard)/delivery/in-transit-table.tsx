@@ -42,6 +42,7 @@ import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { compressImage, convertImage, uploadFileToS3 } from '@/lib/helper';
 import moment from 'moment';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export function InTransitTable() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -263,7 +264,9 @@ export function InTransitTable() {
                     )}
                   >
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}
+                    </TableCell>
                     <TableCell>{invoice.invoiceNumber}</TableCell>
                     <TableCell>{invoice.partyCode}</TableCell>
                     <TableCell>{invoice.medicalName}</TableCell>

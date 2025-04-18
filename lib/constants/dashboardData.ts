@@ -183,7 +183,7 @@ export const dashboardCategories: DashboardCategory[] = [
   
   {
     id: 'management',
-    label: 'Management',
+    label: ' Admin Management',
     items: [
       {
         id: 'employee',
@@ -209,6 +209,15 @@ export const dashboardCategories: DashboardCategory[] = [
         icon: Handshake,
         description: 'Maintain and organize client data',
         searchTerms: ['party', 'client', 'customer', 'organization', 'business'],
+        roles: ['ADMIN']
+      },
+      {
+        id: 'contact-forms',
+        title: 'Contact Forms',
+        href: '/management/contact-forms',
+        icon: FileText,
+        description: 'View and manage customer feedback and complaints',
+        searchTerms: ['contact', 'feedback', 'complaints', 'forms', 'customer service'],
         roles: ['ADMIN']
       }
     ]

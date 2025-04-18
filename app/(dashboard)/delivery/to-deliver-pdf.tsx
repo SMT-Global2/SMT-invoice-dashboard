@@ -1,5 +1,9 @@
 import moment from "moment-timezone";
 import { DeliveryInvoiceData } from "@/store/useDeliveryInvoiceStore";
+import React from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
 // Assuming you might still want toast notifications on error
 // import { toast } from "@/components/ui/use-toast";
 
@@ -119,11 +123,7 @@ export const toDeliverPrintContent = async ({
     // --- End Option 2 ---
 
     // --- 1. Generate the HTML Content First ---
-    const currentDate = new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-    });
+    const currentDate = format(new Date(), 'd MMM yyyy');
 
     const filterParts = [];
     if (toDeliverSelectedDate) {

@@ -33,10 +33,13 @@ import { DatePicker } from '@/components/ui/date-picker';
 const formSchema = z.object({
   generatedDate: z.date({ required_error: 'Generated date is required' }),
   agencyCode: z.string({ required_error: 'Agency code is required' }),
-  invoiceNumber: z.coerce.number({ required_error: 'Invoice number is required' }),
-  invoiceDate: z.date({ required_error: 'Invoice date is required' }),
-  orderNumber: z.coerce.number({ required_error: 'Order number is required' }),
-  orderDate: z.date({ required_error: 'Order date is required' }),
+  invoiceNumber: z.string({ required_error: 'Bill / Order / Invoice No. is required' }),
+  invoiceDate: z.date({ required_error: 'Bill / Order / Invoice Date is required' }),
+  dueDate: z.date().optional(),
+  lrNumber: z.string().optional(),
+  lrDate: z.date().optional(),
+  through: z.string().optional(),
+  packages: z.string().optional(),
   shortName: z.string().optional(),
   companyName: z.string().optional(),
 });
@@ -65,10 +68,13 @@ export function InventoryDialog({
     defaultValues: {
       generatedDate: new Date(),
       agencyCode: '',
-      invoiceNumber: 0,
+      invoiceNumber: '',
       invoiceDate: new Date(),
-      orderNumber: 0,
-      orderDate: new Date(),
+      dueDate: new Date(),
+      lrNumber: '',
+      lrDate: new Date(),
+      through: '',
+      packages: '',
       shortName: '',
       companyName: '',
     },
@@ -81,10 +87,13 @@ export function InventoryDialog({
         form.reset({
           generatedDate: new Date(inventoryItem.generatedDate),
           agencyCode: inventoryItem.agencyCode,
-          invoiceNumber: inventoryItem.invoiceNumber,
+          invoiceNumber: inventoryItem.invoiceNumber.toString(),
           invoiceDate: new Date(inventoryItem.invoiceDate),
-          orderNumber: inventoryItem.orderNumber,
-          orderDate: new Date(inventoryItem.orderDate),
+          dueDate: inventoryItem.dueDate ? new Date(inventoryItem.dueDate) : undefined,
+          lrNumber: inventoryItem.lrNumber || '',
+          lrDate: inventoryItem.lrDate ? new Date(inventoryItem.lrDate) : undefined,
+          through: inventoryItem.through || '',
+          packages: inventoryItem.packages || '',
           shortName: inventoryItem.agency?.shortName || '',
           companyName: inventoryItem.agency?.companyName || '',
         });
@@ -101,10 +110,13 @@ export function InventoryDialog({
         form.reset({
           generatedDate: new Date(),
           agencyCode: '',
-          invoiceNumber: 0,
+          invoiceNumber: '',
           invoiceDate: new Date(),
-          orderNumber: 0,
-          orderDate: new Date(),
+          dueDate: new Date(),
+          lrNumber: '',
+          lrDate: new Date(),
+          through: '',
+          packages: '',
           shortName: '',
           companyName: '',
         });
@@ -122,7 +134,19 @@ export function InventoryDialog({
       // Remove fields that are not needed for saving
       const { shortName, companyName, ...saveData } = data;
       
-      await onSave(id, saveData);
+      // Create the save data object with the correct structure
+      const dataToSave = {
+        ...saveData,
+        // Format dates correctly
+        invoiceDate: saveData.invoiceDate,
+        dueDate: saveData.dueDate || null,
+        lrDate: saveData.lrDate || null,
+        // Add empty values for backward compatibility
+        orderNumber: null,
+        orderDate: null
+      };
+      
+      await onSave(id, dataToSave);
       
       toast({
         title: 'Success',
@@ -246,13 +270,11 @@ export function InventoryDialog({
               name="invoiceNumber"
               render={({ field }) => (
                 <FormItem className="grid grid-cols-4 items-center gap-2">
-                  <FormLabel className="text-right">Invoice Number</FormLabel>
+                  <FormLabel className="text-right">Bill / Order / Invoice No.</FormLabel>
                   <div className="col-span-3">
                     <FormControl>
                       <Input
-                        type="number"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -267,7 +289,7 @@ export function InventoryDialog({
               name="invoiceDate"
               render={({ field }) => (
                 <FormItem className="grid grid-cols-4 items-center gap-2">
-                  <FormLabel className="text-right">Invoice Date</FormLabel>
+                  <FormLabel className="text-right">Bill / Order / Invoice Date</FormLabel>
                   <div className="col-span-3">
                     <FormControl>
                       <DatePicker
@@ -283,16 +305,33 @@ export function InventoryDialog({
             
             <FormField
               control={form.control}
-              name="orderNumber"
+              name="dueDate"
               render={({ field }) => (
                 <FormItem className="grid grid-cols-4 items-center gap-2">
-                  <FormLabel className="text-right">Order Number</FormLabel>
+                  <FormLabel className="text-right">Due Date</FormLabel>
+                  <div className="col-span-3">
+                    <FormControl>
+                      <DatePicker
+                        date={field.value}
+                        setDate={(date) => field.onChange(date)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="lrNumber"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">L.R. No.</FormLabel>
                   <div className="col-span-3">
                     <FormControl>
                       <Input
-                        type="number"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -304,15 +343,53 @@ export function InventoryDialog({
             
             <FormField
               control={form.control}
-              name="orderDate"
+              name="lrDate"
               render={({ field }) => (
                 <FormItem className="grid grid-cols-4 items-center gap-2">
-                  <FormLabel className="text-right">Order Date</FormLabel>
+                  <FormLabel className="text-right">L.R. Date</FormLabel>
                   <div className="col-span-3">
                     <FormControl>
                       <DatePicker
                         date={field.value}
-                        setDate={(date) => date && field.onChange(date)}
+                        setDate={(date) => field.onChange(date)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="through"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">Through</FormLabel>
+                  <div className="col-span-3">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="packages"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-2">
+                  <FormLabel className="text-right">Packages</FormLabel>
+                  <div className="col-span-3">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />

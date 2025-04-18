@@ -79,7 +79,9 @@ export async function GET(req: NextRequest) {
               images: true,
               latitude: true,
               longitude: true,
-              address: true
+              address: true,
+              visitedBy: true,
+              savedUsername: true
             }
           }
         }
@@ -103,7 +105,8 @@ export async function GET(req: NextRequest) {
                 ? { lat: section.latitude, lng: section.longitude } 
                 : null,
               timestamp: section.savedTimestamp,
-              address: section.address
+              address: section.address,
+              visitedBy: section.visitedBy || section.savedUsername || null
             };
             return acc;
           }, {});

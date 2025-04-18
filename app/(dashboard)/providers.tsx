@@ -3,6 +3,7 @@
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Loader2 } from 'lucide-react';
 import { SessionProvider, useSession } from 'next-auth/react';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
 
@@ -22,9 +23,16 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
-      {/* <SessionProvider> */}
-        {children}
-      {/* </SessionProvider> */}
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="light"
+        enableSystem={false}
+        disableTransitionOnChange
+      >
+        {/* <SessionProvider> */}
+          {children}
+        {/* </SessionProvider> */}
+      </ThemeProvider>
     </TooltipProvider>
   );
 }

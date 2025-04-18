@@ -112,6 +112,6 @@ export function Logo() {
 
 export function SMTLogo({className = "" } : {className?: string}) {
   return (
-    <img src={"smt-circle.png"} alt="SMT Logo" className={`${className} rounded-full`}/>
+    <img src="/SMT.png" alt="SMT Logo" className={`${className} rounded-full`}/>
   );
 }

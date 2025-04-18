@@ -13,6 +13,14 @@ export const tweleHrFormatDateString = (date: string | Date): string => {
   return `${day}/${month}/${year}, ${hours12}:${minutes} ${ampm}`;
 };
 
+export const formatDateOnly = (date: string | Date): string => {
+  const dateObj = new Date(date);
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const year = dateObj.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
 
 const heic2anyPromise = import('heic2any').then((mod) => mod.default);
 

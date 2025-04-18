@@ -9,6 +9,7 @@ import { tweleHrFormatDateString } from "@/lib/helper";
 import moment from "moment-timezone";
 import { ShowImage } from "@/components/show-image";
 import React from "react"; // Import React for CSSProperties type
+import { format } from "date-fns"
 
 // Helper function to define steps and calculate progress
 const getTimelineProgress = (invoice: IInvoice) => {
@@ -81,7 +82,7 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => {
             <Card className="p-4">
               <h3 className="font-semibold mb-2">Invoice Details</h3>
               <div className="space-y-1 text-sm">
-                <p><span className="text-muted-foreground">Generated:</span> {invoice.generatedDate ? new Date(invoice.generatedDate).toLocaleDateString() : 'N/A'}</p>
+                <p><span className="text-muted-foreground">Generated:</span> {invoice.generatedDate ? format(new Date(invoice.generatedDate), 'd MMM yyyy') : 'N/A'}</p>
                 <p><span className="text-muted-foreground">OTC:</span> {invoice.isOtc ? "Yes" : "No"}</p>
                 {/* Provide default for comparison if invoiceTimestamp is missing */}
                 <p><span className="text-muted-foreground">Delayed:</span> {moment(invoice.generatedDate).isSame(moment(invoice.invoiceTimestamp || invoice.generatedDate), 'day') ? "No" : "Yes"}</p>

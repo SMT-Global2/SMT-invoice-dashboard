@@ -62,6 +62,9 @@ import { ShowImage } from '@/components/show-image';
 import { PartyCodeSelector, PartyCode } from '@/components/party-code-selector';
 import { UserSelector, User } from '@/components/user-selector';
 import { Department } from '@prisma/client';
+import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import { FilterX } from 'lucide-react';
+import { format } from "date-fns"
 
 // Extend DeliveryMemoData with user selection properties
 interface ExtendedDeliveryMemoData extends DeliveryMemoData {
@@ -69,12 +72,18 @@ interface ExtendedDeliveryMemoData extends DeliveryMemoData {
   userName?: string | null;
 }
 
+// Add this after the imports
+type UserMap = {
+  [username: string]: string; // username -> full name
+};
+
 export default function DeliveryMemoPage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const [lastInteractedDm, setLastInteractedDm] = useState<number | null>(null);
   const { toast } = useToast();
   const [dmSearchTerm, setDmSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState("collection");
+  const [userFullNames, setUserFullNames] = useState<UserMap>({});
 
   const {
     deliveryMemos,
@@ -93,12 +102,69 @@ export default function DeliveryMemoPage() {
     checkDeliveryMemo,
     resetDeliveryMemo,
     handleDeliveryMemos,
+    selectedRegionalCodes,
+    availableRegionalCodes,
+    setSelectedRegionalCodes,
+    fetchAvailableRegionalCodes,
+    clearAllFilters
   } = useDeliveryMemoStore();
 
   useEffect(() => {
     setCheckingMode(activeTab === "checking");
     handleDeliveryMemos();
-  }, [handleDeliveryMemos, selectedDate, activeTab, setCheckingMode]);
+    fetchAvailableRegionalCodes();
+  }, [handleDeliveryMemos, selectedDate, activeTab, setCheckingMode, fetchAvailableRegionalCodes]);
+
+  useEffect(() => {
+    // Only fetch user details when we're on the checking tab
+    if (activeTab === "checking" && !isLoading && deliveryMemos.length > 0) {
+      const usernames = new Set<string>();
+      
+      // Collect all usernames that need to be looked up
+      deliveryMemos.forEach(dm => {
+        if (dm.goodsCollectedUsername && !userFullNames[dm.goodsCollectedUsername]) {
+          usernames.add(dm.goodsCollectedUsername);
+        }
+        if (dm.goodsCheckedUsername && !userFullNames[dm.goodsCheckedUsername]) {
+          usernames.add(dm.goodsCheckedUsername);
+        }
+      });
+      
+      // If we have usernames to look up
+      if (usernames.size > 0) {
+        const fetchUserDetails = async () => {
+          try {
+            const newUserMap: UserMap = { ...userFullNames };
+            const usernameArray = Array.from(usernames);
+            
+            // Fetch details for each username
+            await Promise.all(usernameArray.map(async (username) => {
+              try {
+                const response = await fetch(`/api/user/search?search=${username}`);
+                const { data } = await response.json();
+                const user = data.find((u: any) => u.username === username);
+                
+                if (user) {
+                  newUserMap[username] = `${user.firstName} ${user.lastName}`;
+                } else {
+                  newUserMap[username] = username; // Fallback to username if user not found
+                }
+              } catch (error) {
+                console.error(`Error fetching details for user ${username}:`, error);
+                newUserMap[username] = username; // Fallback to username on error
+              }
+            }));
+            
+            setUserFullNames(newUserMap);
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+          }
+        };
+        
+        fetchUserDetails();
+      }
+    }
+  }, [activeTab, deliveryMemos, isLoading, userFullNames]);
 
   const handleImageUpload = (dmNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -136,18 +202,49 @@ export default function DeliveryMemoPage() {
     }
   };
 
-  const handlePartyCodeSelect = (dm: DeliveryMemoData, partyCode: PartyCode) => {
-    setLastInteractedDm(dm.dmNumber);
-    const newData = [...deliveryMemos] as ExtendedDeliveryMemoData[];
-    const index = newData.findIndex(item => item.dmNumber === dm.dmNumber);
-    if (index !== -1) {
-      newData[index] = {
-        ...newData[index],
-        partyCode: partyCode.code,
-        medicalName: partyCode.customerName || '-',
-        city: partyCode.city || '-',
-      };
-      setDeliveryMemos(newData);
+  const handlePartyCodeSelect = async (dm: DeliveryMemoData, partyCode: PartyCode) => {
+    try {
+      setLastInteractedDm(dm.dmNumber);
+      
+      // First, fetch the regional code
+      const regionalCode = await fetchRegionalCodeForParty(partyCode.code);
+      
+      // Then update all data at once
+      const newData = [...deliveryMemos] as ExtendedDeliveryMemoData[];
+      const index = newData.findIndex(item => item.dmNumber === dm.dmNumber);
+      
+      if (index !== -1) {
+        newData[index] = {
+          ...newData[index],
+          partyCode: partyCode.code,
+          medicalName: partyCode.customerName || '-',
+          city: partyCode.city || '-',
+          regionalCode: regionalCode || '-' // Use the fetched regional code
+        };
+        
+        // Update state only once with all data
+        setDeliveryMemos(newData);
+      }
+    } catch (error) {
+      console.error('Error updating party details:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update party details',
+        duration: 2000,
+      });
+    }
+  };
+
+  const fetchRegionalCodeForParty = async (partyCode: string): Promise<string | null> => {
+    try {
+      const response = await fetch(`/api/party/details?code=${partyCode}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.regionalCode || null;
+    } catch (error) {
+      console.error("Error fetching party details:", error);
+      return null;
     }
   };
 
@@ -328,11 +425,27 @@ export default function DeliveryMemoPage() {
                   </div>
                   <div className="flex items-center justify-end gap-2">
                     <DatePicker date={selectedDate} setDate={setSelectedDate} />
-                    <Button
-                      variant={'outline'}
-                      disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
-                      onClick={() => setSelectedDate(moment().startOf('day').toDate())}
-                    >Clear Date</Button>
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={selectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setSelectedRegionalCodes}
+                    />
+                    {(selectedDate && !moment(selectedDate).isSame(moment(), 'day')) || selectedRegionalCodes.length > 0 ? (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={clearAllFilters}
+                        title="Clear all filters"
+                      >
+                        <FilterX className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant={'outline'}
+                        disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
+                        onClick={() => setSelectedDate(moment().startOf('day').toDate())}
+                      >Clear Date</Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -349,6 +462,7 @@ export default function DeliveryMemoPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
                       <TableHead>User</TableHead>
                       <TableHead>Actions</TableHead>
                       <TableHead>Collected Time</TableHead>
@@ -356,7 +470,7 @@ export default function DeliveryMemoPage() {
                   </TableHeader>
                   <TableBody>
                     {isLoading && deliveryMemos?.length === 0 ? (
-                      <TableSkeleton rows={5} cols={10} />
+                      <TableSkeleton rows={5} cols={11} />
                     ) : !moment(selectedDate).isSame(moment(), 'day') && deliveryMemos.length === 0 ? (
                       <TableEmpty
                         text='No delivery memos created on this date'
@@ -372,7 +486,7 @@ export default function DeliveryMemoPage() {
                           <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
                           <TableCell>{getDeliveryMemoStatus(row)}</TableCell>
                           <TableCell>{row.dmNumber}</TableCell>
-                          <TableCell>{selectedDate ? selectedDate.toLocaleDateString() : new Date().toLocaleDateString()}</TableCell>
+                          <TableCell>{selectedDate ? format(selectedDate, 'd MMM yyyy') : format(new Date(), 'd MMM yyyy')}</TableCell>
                           <TableCell>
                             <PartyCodeSelector
                               value={row.partyCode || null}
@@ -382,9 +496,10 @@ export default function DeliveryMemoPage() {
                           </TableCell>
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
+                          <TableCell>{row.regionalCode}</TableCell>
                           <TableCell>
                             <UserSelector
-                              value={(row as ExtendedDeliveryMemoData).goodsCollectedUsername || null}
+                              value={(row as ExtendedDeliveryMemoData).userUsername || row.goodsCollectedUsername || null}
                               onChange={(user) => handleUserSelect(row, user)}
                               disabled={row.isDisabled || row.goodsCollectedUsername !== null}
                               departmentFilter={Department.DELIVERY_MEMO_MANAGEMENT}
@@ -537,11 +652,27 @@ export default function DeliveryMemoPage() {
                   </div>
                   <div className="flex items-center justify-end gap-2">
                     <DatePicker date={selectedDate} setDate={setSelectedDate} />
-                    <Button
-                      variant={'outline'}
-                      disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
-                      onClick={() => setSelectedDate(moment().startOf('day').toDate())}
-                    >Clear Date</Button>
+                    <RegionalCodeFilter
+                      selectedRegionalCodes={selectedRegionalCodes}
+                      availableRegionalCodes={availableRegionalCodes}
+                      setSelectedRegionalCodes={setSelectedRegionalCodes}
+                    />
+                    {(selectedDate && !moment(selectedDate).isSame(moment(), 'day')) || selectedRegionalCodes.length > 0 ? (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={clearAllFilters}
+                        title="Clear all filters"
+                      >
+                        <FilterX className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant={'outline'}
+                        disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
+                        onClick={() => setSelectedDate(moment().startOf('day').toDate())}
+                      >Clear Date</Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -558,6 +689,8 @@ export default function DeliveryMemoPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
+                      <TableHead>User</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Actions</TableHead>
                       <TableHead>Checked Time</TableHead>
@@ -581,10 +714,33 @@ export default function DeliveryMemoPage() {
                           <TableCell>{(currentPage - 1) * itemsPerPage + i + 1}</TableCell>
                           <TableCell>{getDeliveryMemoStatus(row)}</TableCell>
                           <TableCell>{row.dmNumber}</TableCell>
-                          <TableCell>{selectedDate ? selectedDate.toLocaleDateString() : new Date().toLocaleDateString()}</TableCell>
+                          <TableCell>{selectedDate ? format(selectedDate, 'd MMM yyyy') : format(new Date(), 'd MMM yyyy')}</TableCell>
                           <TableCell>{row.partyCode}</TableCell>
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
+                          <TableCell>{row.regionalCode}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              // Try to find user's full name from the data
+                              // First check if we have the userName in extended data
+                              const userInfo = deliveryMemos.find(
+                                dm => dm.dmNumber === row.dmNumber && 
+                                     (dm as ExtendedDeliveryMemoData).userName
+                              ) as ExtendedDeliveryMemoData;
+                              
+                              if (userInfo?.userName) {
+                                return userInfo.userName;
+                              }
+                              
+                              // Check if we have the full name in our userFullNames map
+                              if (row.goodsCollectedUsername && userFullNames[row.goodsCollectedUsername]) {
+                                return userFullNames[row.goodsCollectedUsername];
+                              }
+                              
+                              // Fallback to username if no full name is available
+                              return row.goodsCollectedUsername || '-';
+                            })()}
+                          </TableCell>
                           <TableCell>
                             <TakeImage
                               imageKey={row.dmNumber}

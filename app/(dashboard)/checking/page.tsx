@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
-import { tweleHrFormatDateString } from '@/lib/helper';
+import { tweleHrFormatDateString, formatDateOnly } from '@/lib/helper';
 import TableSkeleton from '@/components/table-skeleton';
 import { Capsule } from '@/components/capsule';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ import {
   TabsContent
 } from '@/components/ui/tabs';
 import { useCheckingInvoiceStore } from '@/store/useCheckingInvoiceStore';
+import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import {
   Pagination,
   PaginationContent,
@@ -48,6 +49,7 @@ import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/ui/date-picker';
 import moment from 'moment';
 import { PaymodeMode } from '@prisma/client';
+import { FilterX, ImageIcon } from 'lucide-react';
 
 export default function CheckingPage() {
   const { toast } = useToast();
@@ -82,7 +84,16 @@ export default function CheckingPage() {
     uncheckedSearchTerm,
     checkedSearchTerm,
     setUncheckedSearchTerm,
-    setCheckedSearchTerm
+    setCheckedSearchTerm,
+
+    // Regional code filters
+    uncheckedSelectedRegionalCodes,
+    checkedSelectedRegionalCodes,
+    availableRegionalCodes,
+    setUncheckedSelectedRegionalCodes,
+    setCheckedSelectedRegionalCodes,
+    fetchAvailableRegionalCodes,
+    clearAllFilters
   } = useCheckingInvoiceStore();
 
 
@@ -90,7 +101,8 @@ export default function CheckingPage() {
   useEffect(() => {
     fetchUncheckedInvoices();
     fetchCheckedInvoices();
-  }, [fetchUncheckedInvoices, fetchCheckedInvoices]);
+    fetchAvailableRegionalCodes();
+  }, [fetchUncheckedInvoices, fetchCheckedInvoices, fetchAvailableRegionalCodes]);
 
   const handleCheckInvoice = async (invoiceNumber: number) => {
     try {
@@ -171,11 +183,21 @@ export default function CheckingPage() {
 
                 <div className="flex items-center gap-2">
                   <DatePicker date={uncheckedSelectedDate} setDate={setUncheckedSelectedDate} />
-                  <Button
-                    variant={'outline'}
-                    disabled={!uncheckedSelectedDate || moment(uncheckedSelectedDate).isSame(moment(), 'day')}
-                    onClick={() => setUncheckedSelectedDate(undefined)}
-                  >Clear Date</Button>
+                  <RegionalCodeFilter
+                    selectedRegionalCodes={uncheckedSelectedRegionalCodes}
+                    availableRegionalCodes={availableRegionalCodes}
+                    setSelectedRegionalCodes={setUncheckedSelectedRegionalCodes}
+                  />
+                  {(uncheckedSelectedDate || uncheckedSelectedRegionalCodes.length > 0) && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={clearAllFilters}
+                      title="Clear all filters"
+                    >
+                      <FilterX className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
 
               </div>
@@ -192,128 +214,139 @@ export default function CheckingPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
                       <TableHead>Payment Mode</TableHead>
                       <TableHead>Image</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && uncheckedInvoices?.length === 0 ? (
-                      <TableSkeleton rows={5} cols={8} />
-                    ) : uncheckedInvoices?.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center">No invoices found</TableCell>
-                      </TableRow>
-                    ) : (
-                      uncheckedInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}>
-                          <TableCell>{(uncheckedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
-                          <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
-                          <TableCell>{invoice.invoiceNumber}</TableCell>
-                          <TableCell>{invoice.partyCode}</TableCell>
-                          <TableCell>{invoice.medicalName}</TableCell>
-                          <TableCell>{invoice.city}</TableCell>
-                          <TableCell>
-                            <Select
-                              value={invoice.paymodeMode || ""}
-                              onValueChange={(value) => {
-                                try {
-                                  const newData = [...uncheckedInvoices];
-                                  const index = newData.findIndex(item => item.invoiceNumber === invoice.invoiceNumber);
-                                  if (index !== -1) {
-                                    newData[index] = {
-                                      ...newData[index],
-                                      paymodeMode: value as PaymodeMode
-                                    };
-                                    setUncheckedInvoices(newData);
-                                  }
-                                } catch (error) {
-                                  console.error("Error updating payment mode:", error);
+                  {isLoading ? (
+                    <TableSkeleton rows={10} cols={10} />
+                  ) : uncheckedInvoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-8">
+                        No invoices found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    uncheckedInvoices.map((invoice, index) => (
+                      <TableRow key={invoice.invoiceNumber}>
+                        <TableCell>{(uncheckedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
+                        <TableCell>{invoice.generatedDate ? formatDateOnly(invoice.generatedDate) : '-'}</TableCell>
+                        <TableCell>{invoice.invoiceNumber}</TableCell>
+                        <TableCell>{invoice.partyCode}</TableCell>
+                        <TableCell>{invoice.medicalName}</TableCell>
+                        <TableCell>{invoice.city}</TableCell>
+                        <TableCell>{invoice.regionalCode}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={invoice.paymodeMode || ""}
+                            onValueChange={(value) => {
+                              try {
+                                const newData = [...uncheckedInvoices];
+                                const index = newData.findIndex(item => item.invoiceNumber === invoice.invoiceNumber);
+                                if (index !== -1) {
+                                  newData[index] = {
+                                    ...newData[index],
+                                    paymodeMode: value as PaymodeMode
+                                  };
+                                  setUncheckedInvoices(newData);
                                 }
-                              }}
-                            >
-                              <SelectTrigger className="w-[140px]">
-                                <SelectValue placeholder="Payment mode" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value={PaymodeMode.CASH}>Cash</SelectItem>
-                                <SelectItem value={PaymodeMode.CREDIT}>Credit</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <ShowImage images={invoice.image} />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant={"default"}
-                              disabled={isLoading}
-                              onClick={async () => await handleCheckInvoice(invoice.invoiceNumber)}
-                            >
-                              Check
+                              } catch (error) {
+                                console.error("Error updating payment mode:", error);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue placeholder="Payment mode" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={PaymodeMode.CASH}>Cash</SelectItem>
+                              <SelectItem value={PaymodeMode.CREDIT}>Credit</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          {invoice.image && invoice.image.length > 0 ? (
+                            <Button size="sm" className="flex items-center gap-2">
+                              <ImageIcon className="h-4 w-4" />
+                              <span>View</span>
                             </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => handleCheckInvoice(invoice.invoiceNumber)}
+                            disabled={isLoading}
+                          >
+                            Check
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                   </TableBody>
                 </Table>
               </div>
 
-              {/* Pagination Controls */}
-              <div className="mt-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => uncheckedCurrentPage > 1 && setUncheckedCurrentPage(uncheckedCurrentPage - 1)}
-                        className={uncheckedCurrentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-
-                    {displayedPages(uncheckedCurrentPage - 1, uncheckedTotalPages).map((pageIndex, i) => (
-                      <PaginationItem key={i}>
-                        {pageIndex === -1 ? (
-                          <span className="px-4 py-2">...</span>
-                        ) : (
-                          <PaginationLink
-                            onClick={() => setUncheckedCurrentPage(pageIndex + 1)}
-                            isActive={uncheckedCurrentPage === pageIndex + 1}
-                          >
-                            {pageIndex + 1}
-                          </PaginationLink>
-                        )}
+              {/* Pagination */}
+              {uncheckedTotalPages > 1 && (
+                <div className="flex justify-center mt-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setUncheckedCurrentPage(Math.max(1, uncheckedCurrentPage - 1));
+                          }}
+                          aria-disabled={uncheckedCurrentPage === 1}
+                          className={uncheckedCurrentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                        />
                       </PaginationItem>
-                    ))}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => uncheckedCurrentPage < uncheckedTotalPages && setUncheckedCurrentPage(uncheckedCurrentPage + 1)}
-                        className={uncheckedCurrentPage >= uncheckedTotalPages ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-
-                    <div className="ml-4 border-l pl-4">
-                      <Select
-                        value={itemsPerPage.toString()}
-                        onValueChange={(value) => {
-                          setItemsPerPage(parseInt(value));
-                        }}
-                      >
-                        <SelectTrigger className="w-[100px] h-8">
-                          <SelectValue placeholder="Per page" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="5">5 / page</SelectItem>
-                          <SelectItem value="10">10 / page</SelectItem>
-                          <SelectItem value="20">20 / page</SelectItem>
-                          <SelectItem value="50">50 / page</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </PaginationContent>
-                </Pagination>
-              </div>
+                      
+                      {displayedPages(uncheckedCurrentPage - 1, uncheckedTotalPages).map((pageIndex, i) => (
+                        pageIndex === -1 ? (
+                          <PaginationItem key={`ellipsis-${i}`}>
+                            <span className="px-4 py-2">...</span>
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem key={`page-${pageIndex}`}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setUncheckedCurrentPage(pageIndex + 1);
+                              }}
+                              className={cn(pageIndex + 1 === uncheckedCurrentPage && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground")}
+                              isActive={pageIndex + 1 === uncheckedCurrentPage}
+                            >
+                              {pageIndex + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setUncheckedCurrentPage(Math.min(uncheckedTotalPages, uncheckedCurrentPage + 1));
+                          }}
+                          aria-disabled={uncheckedCurrentPage === uncheckedTotalPages}
+                          className={uncheckedCurrentPage === uncheckedTotalPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -323,7 +356,7 @@ export default function CheckingPage() {
             <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <CardTitle>Checked Invoices</CardTitle>
-
+              
               <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
                 <div className="flex flex-col gap-2">
                   <Input
@@ -337,19 +370,26 @@ export default function CheckingPage() {
 
                 <div className="flex items-center gap-2">
                   <DatePicker date={checkedSelectedDate} setDate={setCheckedSelectedDate} />
-                  <Button
-                    variant={'outline'}
-                    disabled={!checkedSelectedDate || moment(checkedSelectedDate).isSame(moment(), 'day')}
-                    onClick={() => setCheckedSelectedDate(undefined)}
-                  >Clear Date</Button>
+                  <RegionalCodeFilter
+                    selectedRegionalCodes={checkedSelectedRegionalCodes}
+                    availableRegionalCodes={availableRegionalCodes}
+                    setSelectedRegionalCodes={setCheckedSelectedRegionalCodes}
+                  />
+                  {(checkedSelectedDate || checkedSelectedRegionalCodes.length > 0) && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={clearAllFilters}
+                      title="Clear all filters"
+                    >
+                      <FilterX className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
             </CardHeader>
             <CardContent>
-
-
-              
               <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 <Table>
                   <TableHeader>
@@ -360,100 +400,106 @@ export default function CheckingPage() {
                       <TableHead>Party Code</TableHead>
                       <TableHead>Medical Name</TableHead>
                       <TableHead>City</TableHead>
+                      <TableHead>Regional Code</TableHead>
+                      <TableHead>Payment Mode</TableHead>
                       <TableHead>Image</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Check Time</TableHead>
+                      <TableHead>Checked By</TableHead>
+                      <TableHead>Checked At</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && checkedInvoices?.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center">Loading...</TableCell>
+                  {isLoading ? (
+                    <TableSkeleton rows={10} cols={11} />
+                  ) : checkedInvoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={11} className="text-center py-8">
+                        No invoices found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    checkedInvoices.map((invoice, index) => (
+                      <TableRow key={invoice.invoiceNumber}>
+                        <TableCell>{(checkedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
+                        <TableCell>{invoice.generatedDate ? formatDateOnly(invoice.generatedDate) : '-'}</TableCell>
+                        <TableCell>{invoice.invoiceNumber}</TableCell>
+                        <TableCell>{invoice.partyCode}</TableCell>
+                        <TableCell>{invoice.medicalName}</TableCell>
+                        <TableCell>{invoice.city}</TableCell>
+                        <TableCell>{invoice.regionalCode}</TableCell>
+                        <TableCell><Capsule text={invoice.paymodeMode?.toString() || '-'} /></TableCell>
+                        <TableCell>
+                          {invoice.image && invoice.image.length > 0 ? (
+                            <Button size="sm" className="flex items-center gap-2">
+                              <ImageIcon className="h-4 w-4" />
+                              <span>View</span>
+                            </Button>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell>{invoice.checkUsername || '-'}</TableCell>
+                        <TableCell>{invoice.checkTimestamp ? formatDateOnly(invoice.checkTimestamp) : '-'}</TableCell>
                       </TableRow>
-                    ) : checkedInvoices?.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center">No invoices found</TableCell>
-                      </TableRow>
-                    ) : (
-                      checkedInvoices?.map((invoice, index) => (
-                        <TableRow key={invoice.invoiceNumber}>
-                          <TableCell>{(checkedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
-                          <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
-                          <TableCell>{invoice.invoiceNumber}</TableCell>
-                          <TableCell>{invoice.partyCode}</TableCell>
-                          <TableCell>{invoice.medicalName}</TableCell>
-                          <TableCell>{invoice.city}</TableCell>
-                          <TableCell>
-                            <ShowImage images={invoice.image} />
-                          </TableCell>
-                          <TableCell>
-                            <Capsule
-                              text="Checked"
-                              showIcon="ok"
-                            />
-                          </TableCell>
-                          <TableCell>{tweleHrFormatDateString(invoice.checkTimestamp!)}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                    ))
+                  )}
                   </TableBody>
                 </Table>
               </div>
 
-              {/* Pagination Controls */}
-              <div className="mt-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => checkedCurrentPage > 1 && setCheckedCurrentPage(checkedCurrentPage - 1)}
-                        className={checkedCurrentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-
-                    {displayedPages(checkedCurrentPage - 1, checkedTotalPages).map((pageIndex, i) => (
-                      <PaginationItem key={i}>
-                        {pageIndex === -1 ? (
-                          <span className="px-4 py-2">...</span>
-                        ) : (
-                          <PaginationLink
-                            onClick={() => setCheckedCurrentPage(pageIndex + 1)}
-                            isActive={checkedCurrentPage === pageIndex + 1}
-                          >
-                            {pageIndex + 1}
-                          </PaginationLink>
-                        )}
+              {/* Pagination */}
+              {checkedTotalPages > 1 && (
+                <div className="flex justify-center mt-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCheckedCurrentPage(Math.max(1, checkedCurrentPage - 1));
+                          }}
+                          aria-disabled={checkedCurrentPage === 1}
+                          className={checkedCurrentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                        />
                       </PaginationItem>
-                    ))}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => checkedCurrentPage < checkedTotalPages && setCheckedCurrentPage(checkedCurrentPage + 1)}
-                        className={checkedCurrentPage >= checkedTotalPages ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-
-                    <div className="ml-4 border-l pl-4">
-                      <Select
-                        value={itemsPerPage.toString()}
-                        onValueChange={(value) => {
-                          setItemsPerPage(parseInt(value));
-                        }}
-                      >
-                        <SelectTrigger className="w-[100px] h-8">
-                          <SelectValue placeholder="Per page" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="5">5 / page</SelectItem>
-                          <SelectItem value="10">10 / page</SelectItem>
-                          <SelectItem value="20">20 / page</SelectItem>
-                          <SelectItem value="50">50 / page</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </PaginationContent>
-                </Pagination>
-              </div>
+                      
+                      {displayedPages(checkedCurrentPage - 1, checkedTotalPages).map((pageIndex, i) => (
+                        pageIndex === -1 ? (
+                          <PaginationItem key={`ellipsis-${i}`}>
+                            <span className="px-4 py-2">...</span>
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem key={`page-${pageIndex}`}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCheckedCurrentPage(pageIndex + 1);
+                              }}
+                              className={cn(pageIndex + 1 === checkedCurrentPage && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground")}
+                              isActive={pageIndex + 1 === checkedCurrentPage}
+                            >
+                              {pageIndex + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCheckedCurrentPage(Math.min(checkedTotalPages, checkedCurrentPage + 1));
+                          }}
+                          aria-disabled={checkedCurrentPage === checkedTotalPages}
+                          className={checkedCurrentPage === checkedTotalPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

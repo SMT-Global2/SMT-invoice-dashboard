@@ -71,6 +71,35 @@ const formatNumber = (value: number | string | undefined): string => {
     return numberValue.toFixed(2);
 };
 
+// --- Helper function to format numbers safely with a maximum limit ---
+const formatNumberSafely = (value: number | string | undefined): number => {
+  if (value === undefined || value === null) {
+    return 0;
+  }
+  if (typeof value === 'string') {
+    value = value.replace(/,/g, '');
+  }
+  const num = Number(value);
+
+  if (isNaN(num) || !isFinite(num)) {
+    return 0;
+  }
+
+  const MAX_SAFE_VALUE = 999999; // 6 digits
+  const MIN_SAFE_VALUE = -999999; // 6 digits
+
+  if (num > MAX_SAFE_VALUE) {
+    console.warn(`PDF Render: Number ${num} exceeds maximum safe value, truncating to ${MAX_SAFE_VALUE}`);
+    return MAX_SAFE_VALUE;
+  }
+  if (num < MIN_SAFE_VALUE) {
+    console.warn(`PDF Render: Number ${num} exceeds minimum safe value, truncating to ${MIN_SAFE_VALUE}`);
+    return MIN_SAFE_VALUE;
+  }
+
+  // Round to 2 decimal places
+  return Math.round(num * 100) / 100;
+};
 
 // --- UI Enhancement: Color Palette (Updated Blue) ---
 const NEW_BLUE = 'rgb(28, 85, 230)'; // Updated to exact RGB values
@@ -92,6 +121,7 @@ const colors = {
   totalBorder: '#7dd3fc', // Unused, border handled by table lines
   summaryBg: '#e0f2fe', // Summary background matches total row
   summaryBorder: '#bfdbfe', // Summary border
+  complaintLink: '#2563eb', // Blue color for complaint link
 };
 
 // --- Column Definition (Using User Provided Definition) ---
@@ -278,7 +308,7 @@ const styles = StyleSheet.create({
   },
    notice: {
     marginTop: 15,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: colors.noticeBg,
     borderRadius: 3,
@@ -286,15 +316,25 @@ const styles = StyleSheet.create({
   noticeTitle: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 5,
+    marginBottom: 3,
     color: colors.noticeText,
     textAlign:'center',
   },
   noticeText: {
     fontSize: 8.5,
-    lineHeight: 1.4,
+    lineHeight: 1.2,
     color: colors.noticeText,
     textAlign: 'center',
+  },
+  noticeLink: {
+    fontSize: 8.5,
+    lineHeight: 1.2,
+    color: colors.complaintLink,
+    textAlign: 'center',
+    fontFamily: 'Helvetica-Bold',
+    textDecoration: 'underline',
+    marginTop: 2,
+    marginBottom: 2,
   },
   footerText: {
     position: 'absolute',
@@ -323,51 +363,13 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
 
   const numericColumns = ['col5', 'col6', 'col7', 'col8', 'col10']; // Keys for decimal formatting
 
-  // --- Calculate Totals for Integrated Table Row ---
-  let debitsTotal = 0;
-  let partAdjTotal = 0;
-  let balanceTotal = 0;
-  let discTotal = 0;
+  // Safely calculate totals within the component
+  const safeDebits = formatNumberSafely(section.data?.reduce((sum, row) => sum + formatNumberSafely(row.col5), 0));
+  const safeAdjustments = formatNumberSafely(section.data?.reduce((sum, row) => sum + formatNumberSafely(row.col6), 0));
+  const safeBalance = formatNumberSafely(section.data?.reduce((sum, row) => sum + formatNumberSafely(row.col7), 0));
+  const safeDiscount = formatNumberSafely(section.data?.reduce((sum, row) => sum + formatNumberSafely(row.col10), 0));
 
-  const dataRows = section.data.filter(row =>
-      String(row.col1).trim().toLowerCase() !== 'total' &&
-      String(row.col3).trim().toLowerCase() !== 'total'
-  );
-
-  dataRows.forEach((row) => {
-      const debit = parseFloat(String(row.col5).replace(/[^0-9.-]/g, ''));
-      const partAdj = parseFloat(String(row.col6).replace(/[^0-9.-]/g, ''));
-      const balance = parseFloat(String(row.col7).replace(/[^0-9.-]/g, ''));
-      const disc = parseFloat(String(row.col10).replace(/[^0-9.-]/g, ''));
-
-      if (!isNaN(debit)) debitsTotal += debit;
-      if (!isNaN(partAdj)) partAdjTotal += partAdj;
-      if (!isNaN(balance)) balanceTotal = balance; // This will get the last non-NaN balance
-      if (!isNaN(disc)) discTotal += disc;
-  });
-
-  // Calculate the final balance total correctly
-  balanceTotal = debitsTotal - partAdjTotal;
-
-  const totalRow: ExcelData = {
-    col0: '', col1: 'Total', col2: '', col3: '', col4: '',
-    col5: debitsTotal, col6: partAdjTotal, col7: balanceTotal,
-    col8: '', col9: '', col10: discTotal, col11: '', col12: ''
-  };
-
-  const tableData = [...dataRows, totalRow];
-  const lastRowIndexInTable = tableData.length - 1;
-
-  // --- Calculate Totals for Separate Summary Section ---
-  const summaryDebits = debitsTotal;
-  const summaryAdjustments = partAdjTotal;
-  const summaryOutstanding = dataRows.length > 0
-      ? parseFloat(String(dataRows[dataRows.length - 1].col8).replace(/[^0-9.-]/g, ''))
-      : 0;
-  const finalOutstandingBalance = !isNaN(summaryOutstanding) ? summaryOutstanding : 0;
-
-  // Use the corrected user-provided column definitions
-  const currentColumnDefinition = columnDefinition;
+  const regularRows = section.data.filter(row => !String(row.col4 || '').toLowerCase().includes('total'));
 
   return (
     <Document title={`${fileName} - ${section.partyName}`}>
@@ -376,7 +378,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
         {/* --- Page Header (First Page Only) --- */}
         <View style={styles.pageHeader}>
            <Text style={styles.generationInfo}>
-             Generated: {format(new Date(), "dd MMM yyyy, h:mm a")}
+             Generated: {format(new Date(), "d MMM yyyy, h:mm a")}
            </Text>
           <Text style={styles.companyName}>Sanjivan Medico Traders</Text>
           <Text style={[styles.reportTitle, { fontWeight: 'bold' }]}>Outstanding Statement</Text>
@@ -398,7 +400,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
         <View style={styles.table}>
           {/* Table Header (Repeats) */}
           <View style={styles.tableHeader} fixed>
-            {currentColumnDefinition.map((col, index) => (
+            {columnDefinition.map((col, index) => (
               <Text
                 key={`header-${col.key}`}
                 style={[
@@ -406,7 +408,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
                   // Specific alignment for header text if needed (overrides base)
                   // col.headerAlign === 'left' ? styles.cellAlignLeft : col.headerAlign === 'right' ? styles.cellAlignRight : {},
                   { width: col.width },
-                  index === currentColumnDefinition.length - 1 ? styles.headerCellLast : {},
+                  index === columnDefinition.length - 1 ? styles.headerCellLast : {},
                 ]}
               >
                 {/* Handle potential newline in header text */}
@@ -418,81 +420,78 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
           </View>
 
           {/* Table Body */}
-          {tableData.map((row: ExcelData, rowIndex: number) => {
-            const isTotalRow = rowIndex === lastRowIndexInTable;
+          {regularRows.map((row, rowIndex) => (
+            <View key={rowIndex} style={[styles.tableRow, rowIndex % 2 === 0 ? styles.tableRowEven : {}]}>
+              {columnDefinition.map((col, cellIndex) => {
+                let cellValue = row[col.key as keyof ExcelData];
+                let displayValue = '';
 
-            return (
-             <View
-                key={`row-${rowIndex}`}
-                style={[
-                  isTotalRow ? styles.totalRow : styles.tableRow,
-                  !isTotalRow && rowIndex % 2 === 1 ? styles.tableRowEven : {},
-                ]}
-                wrap={false}
-              >
-               {currentColumnDefinition.map((col, cellIndex) => {
-                 let cellData = row[col.key] ?? '';
-                 let formattedCellData = '';
+                // Apply safe formatting to numeric columns
+                if (['col5', 'col6', 'col7', 'col8', 'col10'].includes(col.key)) {
+                  displayValue = formatNumberSafely(cellValue).toFixed(2);
+                } else if (col.key === 'col1') { // Date column
+                  displayValue = typeof cellValue === 'number' ? convertExcelDate(cellValue) : String(cellValue || '');
+                } else {
+                  displayValue = String(cellValue || '');
+                }
 
-                 // --- Data Formatting Logic ---
-                 if (col.key === 'col1' && !isTotalRow) { // Date Formatting
-                   const potentialDateNumber = Number(cellData);
-                   if (!isNaN(potentialDateNumber) && potentialDateNumber > 1000 && potentialDateNumber < 100000 && String(cellData).indexOf('-') === -1 && String(cellData).indexOf('/') === -1 ) {
-                     formattedCellData = convertExcelDate(potentialDateNumber);
-                   } else { formattedCellData = cellData.toString(); }
-                 }
-                 else if (numericColumns.includes(col.key) && cellData !== '') { // Decimal Formatting
-                    const numValue = parseFloat(String(cellData).replace(/[^0-9.-]/g, ''));
-                    if (!isNaN(numValue)) {
-                        formattedCellData = numValue.toFixed(2);
-                    } else {
-                        formattedCellData = cellData.toString();
-                    }
-                 }
-                 else { // Default
-                   formattedCellData = cellData.toString();
-                 }
-                 // --- End Formatting Logic ---
+                return (
+                  <Text
+                    key={cellIndex}
+                    style={[
+                      styles.cell,
+                      cellIndex === columnDefinition.length - 1 ? styles.cellLast : {},
+                      { width: col.width, textAlign: col.align as any }
+                    ]}
+                  >
+                    {displayValue}
+                  </Text>
+                );
+              })}
+            </View>
+          ))}
 
-                 const isLastCell = cellIndex === currentColumnDefinition.length - 1;
+          {/* Total Row */}
+          <View style={styles.totalRow}>
+            {columnDefinition.map((col, cellIndex) => {
+              let totalValue = '';
+              if (cellIndex === 4) totalValue = 'Total';
+              else if (cellIndex === 5) totalValue = safeDebits.toFixed(2);
+              else if (cellIndex === 6) totalValue = safeAdjustments.toFixed(2);
+              else if (cellIndex === 7) totalValue = safeBalance.toFixed(2);
+              else if (cellIndex === 10) totalValue = safeDiscount.toFixed(2);
 
-                 return (
-                   <Text
-                     key={`${col.key}-${rowIndex}`}
-                     style={[
-                       styles.cell,
-                       // Apply data cell alignment from definition
-                       col.align === 'left' ? styles.cellAlignLeft :
-                       col.align === 'right' ? styles.cellAlignRight :
-                       styles.cellAlignCenter,
-                       { width: col.width },
-                       isLastCell ? styles.cellLast : {},
-                       isTotalRow ? styles.boldText : {},
-                     ]}
-                   >
-                     {formattedCellData}
-                   </Text>
-                 );
-               })}
-             </View>
-            );
-          })}
+              return (
+                <Text
+                  key={cellIndex}
+                  style={[
+                    styles.cell,
+                    styles.boldText, // Make total row bold
+                    cellIndex === columnDefinition.length - 1 ? styles.cellLast : {},
+                    { width: col.width, textAlign: col.align as any }
+                  ]}
+                >
+                  {totalValue}
+                </Text>
+              );
+            })}
+          </View>
         </View>
 
         {/* --- Summary Section --- */}
         <View style={styles.summarySection}>
             <Text style={styles.summaryTitle}>Summary</Text>
             <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Debits:</Text>
-                <Text style={styles.summaryValue}>{formatNumber(summaryDebits)}</Text>
+                <Text style={[styles.summaryLabel, styles.boldText]}>Total Debits:</Text>
+                <Text style={[styles.summaryValue, styles.boldText]}>{safeDebits.toFixed(2)}</Text>
             </View>
             <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Part Adjustments:</Text>
-                <Text style={styles.summaryValue}>{formatNumber(summaryAdjustments)}</Text>
+                <Text style={styles.summaryLabel}>Total Adjustments:</Text>
+                <Text style={styles.summaryValue}>{safeAdjustments.toFixed(2)}</Text>
             </View>
              <View style={styles.summaryRow}>
                 <Text style={[styles.summaryLabel, styles.boldText]}>Outstanding Balance:</Text>
-                <Text style={[styles.summaryValue, styles.boldText]}>{formatNumber(finalOutstandingBalance)}</Text>
+                <Text style={[styles.summaryValue, styles.boldText]}>{safeBalance.toFixed(2)}</Text>
             </View>
         </View>
 
@@ -502,6 +501,15 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
           <Text style={styles.noticeText}>
             Review the outstanding balance and make a timely payment to ensure uninterrupted service. Process at your earliest convenience.
             {'\n'}
+            If you have any concerns or feedback, please use our online complaint form :
+            <span style={{ color: colors.complaintLink, textDecoration: 'underline' }}>
+              <a href="http://invoice.sanjivanmedicotraders.in/contact-form" target="_blank" rel="noopener noreferrer">Contact Form</a>
+            </span> 
+          </Text>
+          <Text style={styles.noticeLink}>
+            http://invoice.sanjivanmedicotraders.in/contact-form
+          </Text>
+          <Text style={styles.noticeText}>
             Queries/Payments: Ph: +91 9422137362 | Email: info@sanjivanmedico.in | Web: www.sanjivanmedicotraders.in
           </Text>
         </View>

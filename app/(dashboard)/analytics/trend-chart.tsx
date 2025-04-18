@@ -15,8 +15,6 @@ interface TrendChartProps {
 interface TrendData {
   date: string;
   invoices: number;
-  items: number;
-  orders: number;
 }
 
 export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
@@ -104,34 +102,21 @@ export function TrendChart({ title = "Activity Trends" }: TrendChartProps) {
                 <YAxis tickMargin={10} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend verticalAlign="top" height={36} />
+                {/* Define the gradient */}
+                <defs>
+                  <linearGradient id="colorInvoices" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <Area
                   type="monotone"
                   dataKey="invoices"
                   name="Invoices"
                   stackId="1"
                   stroke="#8884d8"
-                  fill="#8884d8"
-                  fillOpacity={0.6}
+                  fill="url(#colorInvoices)" // Reference the gradient
                 />
-                {/* 
-                <Area
-                  type="monotone"
-                  dataKey="items"
-                  name="Items"
-                  stackId="2"
-                  stroke="#82ca9d"
-                  fill="#82ca9d"
-                  fillOpacity={0.6}
-                /> */}
-                {/* <Area
-                  type="monotone"
-                  dataKey="orders"
-                  name="Orders"
-                  stackId="3"
-                  stroke="#ffc658"
-                  fill="#ffc658"
-                  fillOpacity={0.6}
-                /> */}
               </AreaChart>
             </ResponsiveContainer>
           </div>

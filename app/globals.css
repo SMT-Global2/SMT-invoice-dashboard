@@ -162,6 +162,17 @@
     --sidebar-accent: 210 40% 96.1%;
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
     --sidebar-ring: 222.2 84% 4.9%;
+
+    --chart-1: 220 80% 60%; /* Blue */
+    --chart-2: 160 70% 50%; /* Teal */
+    --chart-3: 40 90% 60%;  /* Orange */
+    --chart-4: 300 75% 65%; /* Purple */
+    --chart-5: 0 80% 70%;   /* Red */
+    --chart-6: 100 60% 60%; /* Lime */
+    --chart-7: 200 70% 60%; /* Cyan */
+    --chart-8: 260 70% 70%; /* Violet */
+    --chart-9: 0 0% 60%;    /* Gray */
+    --chart-10: 30 80% 65%; /* Peach */
   }
 
   .dark {
@@ -199,6 +210,18 @@
     --sidebar-accent: 217.2 32.6% 17.5%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-ring: 212.7 26.8% 83.9%;
+
+    /* Added Dark Theme Chart Colors */
+    --chart-1: 210 100% 75%; /* Brighter Blue */
+    --chart-2: 170 80% 65%;  /* Brighter Teal */
+    --chart-3: 45 100% 70%;  /* Brighter Orange */
+    --chart-4: 290 85% 75%;  /* Brighter Purple */
+    --chart-5: 0 90% 75%;    /* Brighter Red */
+    --chart-6: 110 70% 70%;  /* Brighter Lime */
+    --chart-7: 190 80% 70%;  /* Brighter Cyan */
+    --chart-8: 270 80% 75%;  /* Brighter Violet */
+    --chart-9: 210 10% 70%;  /* Light Gray */
+    --chart-10: 35 90% 75%; /* Brighter Peach */
   }
 }
 

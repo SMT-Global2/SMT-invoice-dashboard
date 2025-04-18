@@ -51,6 +51,7 @@ import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { DatePicker } from '@/components/ui/date-picker';
 import moment from 'moment';
 import { cn } from '@/lib/utils';
+import { format } from "date-fns"
 
 export default function PackingPage() {
   const { toast } = useToast();
@@ -283,7 +284,7 @@ export default function PackingPage() {
                           )}
                         >
                           <TableCell>{(unpackedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
-                          <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
+                          <TableCell>{format(new Date(invoice.generatedDate!), 'd MMM yyyy')}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.partyCode}</TableCell>
                           <TableCell>{invoice.medicalName}</TableCell>
@@ -450,7 +451,7 @@ export default function PackingPage() {
                       packedInvoices?.map((invoice, index) => (
                         <TableRow key={invoice.invoiceNumber}>
                           <TableCell>{(packedCurrentPage - 1) * itemsPerPage + index + 1}</TableCell>
-                          <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
+                          <TableCell>{format(new Date(invoice.generatedDate!), 'd MMM yyyy')}</TableCell>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.partyCode}</TableCell>
                           <TableCell>{invoice.medicalName}</TableCell>

@@ -82,7 +82,8 @@ export async function GET(
                 ? { lat: section.latitude, lng: section.longitude } 
                 : null,
               timestamp: section.savedTimestamp,
-              address: section.address
+              address: section.address,
+              visitedBy: section.visitedBy || section.savedUsername || null // Include both new and old field for compatibility
             };
             return acc;
           }, {}),
@@ -155,9 +156,15 @@ export async function DELETE(
     if (!session?.user?.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Check if user is an admin
+    if (session.user.type !== 'ADMIN') {
+      return NextResponse.json({ 
+        error: 'Forbidden - Only administrators can delete statements'
+      }, { status: 403 });
+    }
 
     const id = req.nextUrl.searchParams.get('id');
-
 
     if (!id) {
       return NextResponse.json({ error: 'Statement ID is required' }, { status: 400 });

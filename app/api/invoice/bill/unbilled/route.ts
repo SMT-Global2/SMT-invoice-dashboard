@@ -28,15 +28,20 @@ export async function GET(request: NextRequest) {
   
   // Build where clause for unbilled invoices
   const where: any = {
-    isOtc: false,
     billedStatus: BilledStatus.NOT_BILLED
   };
   
   // Add search filter if provided
   if (search) {
-    where.invoiceNumber = {
-      equals: isNaN(parseInt(search)) ? undefined : parseInt(search),
-    };
+    if (search === 'type:regular') {
+      where.isOtc = false;
+    } else if (search === 'type:otc') {
+      where.isOtc = true;
+    } else {
+      where.invoiceNumber = {
+        equals: isNaN(parseInt(search)) ? undefined : parseInt(search),
+      };
+    }
   }
   
   // Add date filter if provided

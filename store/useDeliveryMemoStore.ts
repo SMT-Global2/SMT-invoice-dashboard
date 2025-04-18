@@ -7,6 +7,7 @@ export interface DeliveryMemoData {
   partyCode: string
   medicalName: string
   city: string
+  regionalCode: string
   generatedDate: Date | null
   goodsCollectedUsername: string | null
   goodsCollectedTimestamp: Date | null
@@ -28,12 +29,23 @@ interface DeliveryMemoState {
   dmStartNo: number
   dmEndNo: number | null
   checkingMode: boolean
+  
+  // Regional code filters
+  selectedRegionalCodes: string[]
+  availableRegionalCodes: string[]
+  dmSearchTerm: string
 
   // Actions
   setDeliveryMemos: (deliveryMemos: DeliveryMemoData[]) => void
   setSelectedDate: (date: Date | undefined) => void
   setCurrentPage: (page: number) => void
   setCheckingMode: (mode: boolean) => void
+  setDmSearchTerm: (term: string) => void
+  
+  // Regional code actions
+  setSelectedRegionalCodes: (codes: string[]) => void
+  fetchAvailableRegionalCodes: () => Promise<void>
+  clearAllFilters: () => void
 
   handleDeliveryMemos: () => Promise<void>
   fetchDeliveryMemos: (date?: Date | null) => Promise<void>
@@ -56,6 +68,11 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
       isLoading: false,
       error: null,
       checkingMode: false,
+      dmSearchTerm: '',
+      
+      // Regional code filters
+      selectedRegionalCodes: [],
+      availableRegionalCodes: [],
 
       setDeliveryMemos: (deliveryMemos) => set({ deliveryMemos }),
       setSelectedDate: (date) => {
@@ -69,6 +86,38 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
       setCheckingMode: (mode) => {
         set({ checkingMode: mode });
         get().fetchDeliveryMemos();
+      },
+      setDmSearchTerm: (term) => set({ dmSearchTerm: term }),
+      
+      setSelectedRegionalCodes: (codes) => {
+        set({ selectedRegionalCodes: codes });
+        if (codes.length === 0) {
+          get().handleDeliveryMemos();
+        } else {
+          get().fetchDeliveryMemos();
+        }
+      },
+      
+      fetchAvailableRegionalCodes: async () => {
+        try {
+          const response = await fetch('/api/party/regionalCodes');
+          if (!response.ok) {
+            throw new Error('Failed to fetch regional codes');
+          }
+          const data = await response.json();
+          set({ availableRegionalCodes: data.regionalCodes || [] });
+        } catch (error) {
+          console.error('Error fetching regional codes:', error);
+        }
+      },
+      
+      clearAllFilters: () => {
+        set({
+          selectedRegionalCodes: [],
+          selectedDate: moment().startOf('day').toDate(),
+          dmSearchTerm: '',
+        });
+        get().handleDeliveryMemos();
       },
       
       updateDeliveryMemoImage: (dmNumber, image) => {
@@ -96,6 +145,13 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
           if (get().checkingMode) {
             url.searchParams.set('checkingMode', 'true');
           }
+          
+          // Add regional codes to the request if any are selected
+          const { selectedRegionalCodes } = get();
+          if (selectedRegionalCodes.length > 0) {
+            url.searchParams.set('regionalCodes', selectedRegionalCodes.join(','));
+          }
+          
           const response = await fetch(url.toString());
           const { data } = await response.json();
           
@@ -104,6 +160,7 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
             ...item,
             medicalName: item.party?.customerName || '-',
             city: item.party?.city || '-',
+            regionalCode: item.party?.regionalCode || '-',
             images: item.image || []
           }));
           
@@ -169,6 +226,7 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
                 ...existingDM,
                 medicalName: existingDM.party.customerName || '-',
                 city: existingDM.party.city || '-',
+                regionalCode: existingDM.party.regionalCode || '-',
                 images: existingDM.image || [],
               });
             } else if (
@@ -180,6 +238,7 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
                 partyCode: '',
                 medicalName: '-',
                 city: '-',
+                regionalCode: '-',
                 goodsCollectedUsername: null,
                 goodsCollectedTimestamp: null,
                 goodsCheckedUsername: null,
@@ -196,6 +255,7 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
                 partyCode: '',
                 medicalName: '-',
                 city: '-',
+                regionalCode: '-',
                 goodsCollectedUsername: null,
                 goodsCollectedTimestamp: null,
                 goodsCheckedUsername: null,

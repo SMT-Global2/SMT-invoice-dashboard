@@ -62,115 +62,91 @@ export async function GET(request: Request) {
       }
     });
     
+    // Define date filters per model (adjust field names as needed)
+    const invoiceDateFilter = { generatedDate: { gte: fromDate, lte: toDate } }; // Assuming generatedDate for Invoice
+    const receiptDateFilter = { generatedDate: { gte: fromDate, lte: toDate } }; // Assuming generatedDate for Receipt
+    const inventoryDateFilter = { generatedDate: { gte: fromDate, lte: toDate } };
+    const dmDateFilter = { generatedDate: { gte: fromDate, lte: toDate } };
+    const expiryDateFilter = { generatedDate: { gte: fromDate, lte: toDate } };
+
     // Get metrics for each user
     const userPerformancePromises = users.map(async (user) => {
-      // Count invoices created
-      const invoicesCreated = await prisma.invoice.count({
-        where: {
-          ...dateFilter,
-          invoiceUsername: user.username
-        }
-      });
+      const [ // Use Promise.all for efficiency
+        invoicesCreated,
+        invoicesChecked,
+        invoicesPacked,
+        invoicesDelivered,
+        invoicesBilled,
+        receiptsCreated,       // New
+        inventoriesChecked,    // New
+        inventoriesVouchered,  // New
+        dmsCollected,        // New
+        dmsChecked,          // New
+        expiriesUploaded,      // New
+        expiriesCreditNoted    // New
+      ] = await Promise.all([
+        // Invoice counts (use correct date filter)
+        prisma.invoice.count({ where: { invoiceUsername: user.username, ...invoiceDateFilter } }),
+        prisma.invoice.count({ where: { checkUsername: user.username, ...invoiceDateFilter } }),
+        prisma.invoice.count({ where: { packageUsername: user.username, ...invoiceDateFilter } }),
+        prisma.invoice.count({ where: { deliveredUsername: user.username, ...invoiceDateFilter } }),
+        prisma.invoice.count({ where: { billedUsername: user.username, ...invoiceDateFilter } }),
+        // New counts (use correct date filters and usernames)
+        prisma.receipt.count({ where: { receiptUsername: user.username, ...receiptDateFilter } }), 
+        prisma.inventory.count({ where: { inventoryCheckUsername: user.username, ...inventoryDateFilter } }),
+        prisma.inventory.count({ where: { inventoryVoucherUsername: user.username, ...inventoryDateFilter } }),
+        prisma.deliveryMemo.count({ where: { goodsCollectedUsername: user.username, ...dmDateFilter } }),
+        prisma.deliveryMemo.count({ where: { goodsCheckedUsername: user.username, ...dmDateFilter } }),
+        prisma.expiry.count({ where: { expiryUsername: user.username, ...expiryDateFilter } }),
+        prisma.expiry.count({ where: { creditNoteUsername: user.username, creditNoteNumber: { not: null }, ...expiryDateFilter } }) // Only count if CN exists
+      ]);
       
-      // Count invoices checked
-      const invoicesChecked = await prisma.invoice.count({
-        where: {
-          ...dateFilter,
-          checkUsername: user.username
-        }
-      });
-      
-      // Count invoices packed
-      const invoicesPacked = await prisma.invoice.count({
-        where: {
-          ...dateFilter,
-          packageUsername: user.username
-        }
-      });
-      
-      // Count invoices delivered
-      const invoicesDelivered = await prisma.invoice.count({
-        where: {
-          ...dateFilter,
-          deliveredUsername: user.username
-        }
-      });
-      
-      // Count invoices billed
-      const invoicesBilled = await prisma.invoice.count({
-        where: {
-          ...dateFilter,
-          billedUsername: user.username
-        }
-      });
-      
-      // Calculate average processing time
-      const completedInvoices = await prisma.invoice.findMany({
-        where: {
-          invoiceUsername: user.username,
-          deliveryStatus: 'DELIVERED',
-          invoiceTimestamp: { not: null },
-          deliveredTimestamp: { not: null },
-          ...dateFilter
-        },
-        select: {
-          invoiceTimestamp: true,
-          deliveredTimestamp: true
-        }
-      });
-      
-      let totalProcessingHours = 0;
-      let completedCount = 0;
-      
-      completedInvoices.forEach(invoice => {
-        if (invoice.invoiceTimestamp && invoice.deliveredTimestamp) {
-          const startTime = moment(invoice.invoiceTimestamp);
-          const endTime = moment(invoice.deliveredTimestamp);
-          const diffHours = endTime.diff(startTime, 'hours', true);
-          
-          if (diffHours > 0 && diffHours < 720) { // Exclude outliers (30 days max)
-            totalProcessingHours += diffHours;
-            completedCount++;
-          }
-        }
-      });
-      
-      // Calculate overall performance score based on various metrics
-      // This is a simple weighted average, but could be more sophisticated
-      const totalActivity = invoicesCreated + invoicesChecked + invoicesPacked + invoicesDelivered + invoicesBilled;
+      // Recalculate overall score (optional - adjust weights as needed)
+      const totalActivity = invoicesCreated + invoicesChecked + invoicesPacked + invoicesDelivered + invoicesBilled + 
+                          receiptsCreated + inventoriesChecked + inventoriesVouchered + dmsCollected + 
+                          dmsChecked + expiriesUploaded + expiriesCreditNoted;
       const overallScore = totalActivity > 0 ? Math.round((
-        (invoicesCreated * 1) +
-        (invoicesChecked * 1.2) +
-        (invoicesPacked * 1.5) +
-        (invoicesDelivered * 1.8) +
-        (invoicesBilled * 2)
-      ) / totalActivity * 10) : 0;
+        (invoicesCreated * 1) + (invoicesChecked * 1.2) + (invoicesPacked * 1.5) + 
+        (invoicesDelivered * 1.8) + (invoicesBilled * 2) + 
+        // Add weights for new actions
+        (receiptsCreated * 1) + (inventoriesChecked * 1.2) + (inventoriesVouchered * 1.5) +
+        (dmsCollected * 1) + (dmsChecked * 1.2) + (expiriesUploaded * 1) + (expiriesCreditNoted * 1.5) 
+      ) / (11.2) * 10) : 0; // Simplified weighting - adjust denominator based on max possible weighted sum or use average
       
-      // Format response according to UserPerformanceResponse interface
       return {
         username: user.username,
         fullName: `${user.firstName} ${user.lastName}`,
-        department: Array.isArray(user.department) ? user.department.join(', ') : 'Unknown',
+        department: Array.isArray(user.department) ? user.department : [],
         performance: {
           invoices: invoicesCreated,
           checking: invoicesChecked,
           packing: invoicesPacked,
           delivery: invoicesDelivered,
           billing: invoicesBilled,
-          overall: overallScore
+          // Add new metrics
+          receipts: receiptsCreated,
+          invChecks: inventoriesChecked,
+          invVouchers: inventoriesVouchered,
+          dmCollects: dmsCollected,
+          dmChecks: dmsChecked,
+          expUploads: expiriesUploaded,
+          expCreditNotes: expiriesCreditNoted,
+          // Updated overall score
+          overall: overallScore 
         }
       };
     });
     
     let userPerformanceData = await Promise.all(userPerformancePromises);
     
-    // Filter out users with no activity
+    // Update filter to include new activity metrics
     userPerformanceData = userPerformanceData.filter(user => 
-      user.performance.invoices > 0 || 
-      user.performance.checking > 0 || 
-      user.performance.packing > 0 || 
-      user.performance.delivery > 0 ||
-      user.performance.billing > 0
+      user.performance.invoices > 0 || user.performance.checking > 0 || 
+      user.performance.packing > 0 || user.performance.delivery > 0 ||
+      user.performance.billing > 0 || user.performance.receipts > 0 ||
+      user.performance.invChecks > 0 || user.performance.invVouchers > 0 ||
+      user.performance.dmCollects > 0 || user.performance.dmChecks > 0 ||
+      user.performance.expUploads > 0 || user.performance.expCreditNotes > 0
     );
     
     // Sort by overall performance

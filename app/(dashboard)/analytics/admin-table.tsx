@@ -286,7 +286,7 @@ export default function AdminInvoiceTable() {
           </div>
         </CardHeader>
 
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 px-4 md:px-6">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 px-4 md:px-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">Generated</CardTitle>
@@ -384,25 +384,6 @@ export default function AdminInvoiceTable() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">Billed</CardTitle>
-              <CreditCard className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
-                  ? filteredAnalytics.totalBilled 
-                  : analytics.totalBilled}
-              </div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
-                  ? 'Filtered Billed' 
-                  : 'Invoices Billed'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">OTC</CardTitle>
               <Store className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </CardHeader>
@@ -416,6 +397,25 @@ export default function AdminInvoiceTable() {
                 {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
                   ? 'Filtered OTC' 
                   : 'Invoices OTC'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">Billed</CardTitle>
+              <CreditCard className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? filteredAnalytics.totalBilled 
+                  : analytics.totalBilled}
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                  ? 'Filtered Billed' 
+                  : 'Invoices Billed'}
               </p>
             </CardContent>
           </Card>
@@ -476,7 +476,7 @@ export default function AdminInvoiceTable() {
                       <TableRow key={invoice.invoiceNumber}>
                         <TableCell className="text-center">{index + 1}</TableCell>
                         <TableCell>{invoice.invoiceNumber}</TableCell>
-                        <TableCell>{new Date(invoice.invoiceTimestamp!).toLocaleDateString()}</TableCell>
+                        <TableCell>{format(new Date(invoice.invoiceTimestamp!), 'd MMM yyyy')}</TableCell>
                         <TableCell>{invoice.partyCode}</TableCell>
                         <TableCell className="truncate max-w-[140px]">{invoice.party?.customerName}</TableCell>
                         <TableCell>{invoice.party?.city}</TableCell>

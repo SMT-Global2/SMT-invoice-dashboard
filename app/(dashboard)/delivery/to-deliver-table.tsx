@@ -40,6 +40,7 @@ import {
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { useRef } from 'react';
 import { toDeliverPrintContent } from './to-deliver-pdf';
+import { format } from 'date-fns';
 
 export function ToDeliverTable() {
   const { toast } = useToast();
@@ -221,7 +222,7 @@ export function ToDeliverTable() {
                 toDeliverInvoices?.map((invoice, index) => (
                   <TableRow key={invoice.invoiceNumber}>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell>{new Date(invoice.generatedDate!).toLocaleDateString()}</TableCell>
+                    <TableCell>{invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}</TableCell>
                     <TableCell>{invoice.invoiceNumber}</TableCell>
                     <TableCell>{invoice.partyCode}</TableCell>
                     <TableCell>{invoice.medicalName}</TableCell>

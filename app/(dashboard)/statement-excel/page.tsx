@@ -39,6 +39,20 @@ import StatementPDF from './statement-pdf';
 import { FileUpload } from '@/components/file-upload';
 import { TakeImage } from '@/components/take-image';
 import { compressImage, convertImage, uploadFileToS3, getS3BucketUrl } from '@/lib/helper';
+import { useSession } from 'next-auth/react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { pdf } from '@react-pdf/renderer';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
 
 interface ExcelData {
   [key: string]: string | number;
@@ -58,6 +72,7 @@ interface SavedData {
   location: { lat: number; lng: number } | null;
   timestamp: Date | null;
   address: string | null;
+  visitedBy: string | null;
 }
 
 interface StatementFile {
@@ -87,14 +102,38 @@ export default function StatementExcelPage() {
   const { toast } = useToast();
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<StatementFile | null>(null);
+  const [showAccessDeniedDialog, setShowAccessDeniedDialog] = useState<boolean>(false);
   const [isRecentStatementsExpanded, setIsRecentStatementsExpanded] = useState(false);
   const [isUploadExpanded, setIsUploadExpanded] = useState(false);
   const [isLoadingStatements, setIsLoadingStatements] = useState(true);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [visitFilter, setVisitFilter] = useState<'all' | 'visited' | 'unvisited'>('all');
+  const [userFilter, setUserFilter] = useState<string>(() => {
+    // Initialize from localStorage if available, otherwise default to 'all'
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('statementUserFilter') || 'all';
+    }
+    return 'all';
+  });
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [imageKeys, setImageKeys] = useState<Record<string, string[]>>({});
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.type === 'ADMIN';
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
+  const [failedDownloads, setFailedDownloads] = useState<Array<{partyCode: string, partyName: string}>>([]);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
+
+  // Update localStorage when userFilter changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('statementUserFilter', userFilter);
+    }
+  }, [userFilter]);
 
   // Memoize filtered files to prevent unnecessary re-renders
   const filteredFiles = useMemo(() => {
@@ -147,13 +186,19 @@ export default function StatementExcelPage() {
         throw new Error(result.error || 'Upload failed');
       }
 
+      // Check if partySections is properly defined and not empty
       if (!result.partySections || !Array.isArray(result.partySections) || result.partySections.length === 0) {
+        console.error('No party sections found in the response:', result);
         toast({
           title: "Warning",
           description: "No party statements found in the file. Please check if this is the correct Excel file.",
         });
+        setIsLoading(false);
         return;
       }
+
+      // Log the first few party sections to debug
+      console.log('Upload response first sections:', result.partySections.slice(0, 3));
 
       // Create a new file object from the response
       const newFile: StatementFile = {
@@ -161,7 +206,7 @@ export default function StatementExcelPage() {
         name: result.name,
         uploadDate: new Date(result.uploadDate),
         statementDate: new Date(result.statementDate),
-        partySections: result.partySections,
+        partySections: result.partySections || [],
         headers: result.headers || [],
         savedParties: {},
       };
@@ -195,12 +240,36 @@ export default function StatementExcelPage() {
     }
 
     const fetchStatementDetails = async (statementId: string) => {
+      setIsLoadingDetails(true); // Start loading
       try {
         const response = await fetch(`/api/statement-excel/oper?id=${statementId}`);
-        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch statement details');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch statement details');
+        }
+        
+        const data = await response.json();
+
+        console.log('Statement details loaded:', {
+          id: data.id,
+          name: data.name,
+          sectionsCount: data.partySections?.length || 0,
+          partySectionsType: data.partySections ? typeof data.partySections : 'undefined',
+          isArray: Array.isArray(data.partySections),
+          firstSection: data.partySections?.[0],
+        });
+
+        // Validate partySections before proceeding
+        if (!data.partySections || !Array.isArray(data.partySections) || data.partySections.length === 0) {
+          console.error('No party sections found in the response:', data);
+          toast({
+            title: "Warning",
+            description: "No party statements found in the file. The data might be corrupted. Please try re-uploading the file.",
+            variant: "destructive",
+          });
+          setIsLoadingDetails(false);
+          return;
         }
 
         // Create a complete statement file with all data
@@ -209,13 +278,24 @@ export default function StatementExcelPage() {
           name: data.name,
           uploadDate: new Date(data.uploadDate),
           statementDate: new Date(data.statementDate),
-          partySections: data.partySections,
+          partySections: data.partySections.map((section: any) => ({
+            partyCode: section.partyCode || '',
+            partyName: section.partyName || '',
+            location: section.location || '',
+            contact: section.contact || '',
+            creditDays: section.creditDays || '',
+            data: Array.isArray(section.data) ? section.data : []
+          })),
           headers: data.headers || [],
           savedParties: data.savedParties || {}
         };
 
+        console.log('Party sections processed:', completeFile.partySections.length);
+
         // Clear search term and filters when changing files
         setSearchTerm('');
+        setVisitFilter('all');
+        setUserFilter('all');
         setShowSavedOnly(false);
         setSelectedFile(completeFile);
 
@@ -231,6 +311,8 @@ export default function StatementExcelPage() {
           description: "Failed to fetch statement details.",
           variant: "destructive",
         });
+      } finally {
+        setIsLoadingDetails(false); // End loading
       }
     };
 
@@ -238,14 +320,29 @@ export default function StatementExcelPage() {
   };
 
   const handleFileDelete = async (fileId: string) => {
+    // Client-side check for admin privileges
+    if (!session?.user?.type || session.user.type !== 'ADMIN') {
+      toast({
+        title: "Access Denied",
+        description: "Only administrators can delete statements.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const response = await fetch(`/api/statement-excel/oper?id=${fileId}`, {
         method: 'DELETE',
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete statement');
+        // Handle specific error cases
+        if (response.status === 403) {
+          throw new Error('Only administrators can delete statements');
+        }
+        throw new Error(result.error || 'Failed to delete statement');
       }
 
       // Update local state after successful deletion
@@ -308,47 +405,113 @@ export default function StatementExcelPage() {
   }
 };
 
+  // Get unique users who have visited any party - only for the currently selected statement
+  const uniqueUsers = useMemo(() => {
+    if (!selectedFile?.savedParties) return [];
+    
+    const users = new Set<string>();
+    
+    // Only check the currently selected file
+    Object.entries(selectedFile.savedParties).forEach(([partyCode, data]) => {
+      // Include all usernames including "admin" but exclude "Unknown User"
+      if (data.visitedBy && data.visitedBy !== "Unknown User") {
+        users.add(data.visitedBy);
+      }
+    });
+    
+    // Debug log
+    console.log(`Found ${users.size} unique users in the current statement: ${Array.from(users).join(', ')}`);
+    
+    return Array.from(users).sort();
+  }, [selectedFile?.savedParties]);
+
+  // Get statistics for each user - only for the currently selected statement
+  const userStats = useMemo(() => {
+    if (!selectedFile?.savedParties) return {};
+    
+    const stats: Record<string, number> = {};
+    
+    // Initialize all users with 0
+    uniqueUsers.forEach(user => {
+      stats[user] = 0;
+    });
+    
+    // Track unique parties visited by each user in the current statement
+    const userParties = new Map<string, Set<string>>();
+    uniqueUsers.forEach(user => {
+      userParties.set(user, new Set());
+    });
+    
+    // Count visits only from the currently selected statement
+    Object.entries(selectedFile.savedParties).forEach(([partyCode, data]) => {
+      // Count visits from all users except "Unknown User"
+      if (data.visitedBy && data.visitedBy !== "Unknown User") {
+        // Only count each unique party code once per user
+        const partySet = userParties.get(data.visitedBy);
+        if (partySet && !partySet.has(partyCode)) {
+          partySet.add(partyCode);
+          stats[data.visitedBy] = (stats[data.visitedBy] || 0) + 1;
+        }
+      }
+    });
+    
+    // Debug log
+    console.log('User visit counts in current statement:', stats);
+    
+    return stats;
+  }, [selectedFile?.savedParties, uniqueUsers]);
+
   const filteredSections = useMemo(() => {
-    if (!selectedFile || !selectedFile.partySections) {
+    if (!selectedFile?.partySections) {
+      console.log('No party sections available in selectedFile', selectedFile);
       return [];
     }
 
-    let filtered = [...selectedFile.partySections];
+    console.log('Filtering sections:', {
+      totalSections: selectedFile.partySections.length,
+      searchTerm,
+      visitFilter,
+      userFilter
+    });
+    
+    const filtered = selectedFile.partySections.filter(section => {
+      if (!section) {
+        console.log('Empty section found');
+        return false;
+      }
+      
+      // Check search term match
+      const matchesSearch = !searchTerm ? true : (() => {
+        const searchTermLower = searchTerm.toLowerCase();
+        const partyName = section.partyName?.toLowerCase() || '';
+        const location = section.location?.toLowerCase() || '';
+        const contact = section.contact?.toLowerCase() || '';
+        
+        return partyName.includes(searchTermLower) ||
+               location.includes(searchTermLower) ||
+               contact.includes(searchTermLower);
+      })();
 
-    // Apply search filter if there's a search term
-    if (searchTerm) {
-      filtered = filtered.filter(section => {
-        if (!section) return false;
+      // Check visit filter match
+      const matchesVisitFilter = visitFilter === 'all' ? true :
+        visitFilter === 'visited' ? (selectedFile.savedParties?.[section.partyCode] ?? false) :
+        !(selectedFile.savedParties?.[section.partyCode] ?? false);
 
-        const searchLower = searchTerm.toLowerCase();
+      // Check user filter match
+      const savedData = selectedFile.savedParties?.[section.partyCode];
+      const matchesUserFilter = userFilter === 'all' ? true :
+        savedData?.visitedBy === userFilter;
 
-        // Check party details
-        const matchesPartyDetails =
-          section.partyCode?.toLowerCase().includes(searchLower) ||
-          section.partyName?.toLowerCase().includes(searchLower) ||
-          section.location?.toLowerCase().includes(searchLower);
-
-        if (matchesPartyDetails) return true;
-
-        // Check transaction data
-        return section.data?.some(row =>
-          Object.values(row || {}).some(value =>
-            String(value || '').toLowerCase().includes(searchLower)
-          )
-        );
-      });
-    }
-
-    // Apply saved filter if enabled
-    if (showSavedOnly) {
-      filtered = filtered.filter(section =>
-        selectedFile.savedParties &&
-        selectedFile.savedParties[section.partyCode]
-      );
-    }
+      return matchesSearch && matchesVisitFilter && matchesUserFilter;
+    });
+    
+    console.log('Filtered sections result:', {
+      filteredCount: filtered.length,
+      firstFiltered: filtered[0]
+    });
 
     return filtered;
-  }, [selectedFile, searchTerm, showSavedOnly]);
+  }, [selectedFile, searchTerm, visitFilter, userFilter]);
 
   const handlePartyExpand = (partyCode: string) => {
     setExpandedParties(prev => {
@@ -456,7 +619,7 @@ export default function StatementExcelPage() {
 
   // Function to handle save
   const handleSave = async (partyCode: string) => {
-    if (!selectedFile) return;
+    if (!selectedFile || !session?.user) return;
 
     setIsSaving(partyCode);
 
@@ -464,13 +627,18 @@ export default function StatementExcelPage() {
       // Get current location
       const locationData = await getCurrentLocation();
 
+      // Get the user's name from the session - use full name when available
+      const userName = session.user.name || session.user.username || 'Unknown User';
+      console.log("Saving statement with userName:", userName);
+
       // Prepare data for API call
       const saveData = {
         statementId: selectedFile.id,
         partyCode: partyCode,
-        images : capturedImages[partyCode] || [],
+        images: capturedImages[partyCode] || [],
         location: locationData,
-        address: await getAddressFromCoordinates(locationData.lat, locationData.lng)
+        address: await getAddressFromCoordinates(locationData.lat, locationData.lng),
+        visitedBy: userName
       };
 
       // Send data to API
@@ -490,12 +658,13 @@ export default function StatementExcelPage() {
 
       // Update local state
       const updatedSavedParties = {
-        ...(selectedFile.savedParties || {}), // Ensure savedParties exists
+        ...(selectedFile.savedParties || {}),
         [partyCode]: {
           images: capturedImages[partyCode] || [],
           location: locationData,
           timestamp: new Date(),
-          address: saveData.address
+          address: saveData.address,
+          visitedBy: userName
         }
       };
 
@@ -525,6 +694,13 @@ export default function StatementExcelPage() {
         title: "Success",
         description: "Statement saved successfully",
       });
+      
+      // Refresh the statements list to ensure all statements are visible
+      // but wait a moment to ensure server has processed the save
+      setTimeout(() => {
+        fetchStatements();
+      }, 500);
+      
     } catch (error) {
       console.error('Error saving statement:', error);
       toast({
@@ -629,7 +805,10 @@ export default function StatementExcelPage() {
       return (
         <PDFViewer width="100%" height="600px">
           <StatementPDF
-            section={section}
+            section={{
+              ...section,
+              data: section.data,
+            }}
             fileName={selectedFile.name}
             totalDebits={calculateTotal(section.data, 'col5')}
             totalAdjustments={calculateTotal(section.data, 'col6')}
@@ -876,7 +1055,6 @@ export default function StatementExcelPage() {
   }, [filteredSections.length, itemsPerPage]);
 
   // Fetch statements for the selected date
-  useEffect(() => {
     const fetchStatements = async () => {
       setIsLoadingStatements(true);
       try {
@@ -897,24 +1075,48 @@ export default function StatementExcelPage() {
         console.log(`Received ${data.length} statements for date: ${selectedDate.toISOString()}`);
 
         // Convert API response to StatementFile format
-        const formattedFiles: StatementFile[] = data.map((statement: any) => ({
+        const formattedFiles: StatementFile[] = data.map((statement: any) => {
+          // Log the first savedParty to check if visitedBy is included
+          if (statement.savedParties && Object.keys(statement.savedParties).length > 0) {
+            const firstPartyCode = Object.keys(statement.savedParties)[0];
+            console.log(`First saved party for ${statement.name}:`, {
+              partyCode: firstPartyCode,
+              visitedBy: statement.savedParties[firstPartyCode]?.visitedBy
+            });
+          }
+
+          return {
           id: statement.id,
           name: statement.name,
           uploadDate: new Date(statement.uploadDate),
           statementDate: new Date(statement.statementDate),
-          partySections: statement.partySections.map((section: any) => ({
+            partySections: Array.isArray(statement.partySections) ? statement.partySections.map((section: any) => ({
             partyCode: section.partyCode,
             partyName: section.partyName,
             location: section.location || '',
             contact: section.contact || '',
             creditDays: section.creditDays || '',
-            data: [] // Data will be fetched when statement is selected
-          })),
+              data: section.data || [] // Ensure data is set to empty array if missing
+            })) : [],
           headers: [],
           savedParties: statement.savedParties || {}
-        }));
+          };
+        });
+
+        console.log('Formatted files:', formattedFiles);
+        
+        // If we have a currently selected file, make sure to keep it selected
+        let currentSelectedFileId = selectedFile?.id;
 
         setFiles(formattedFiles);
+        
+        // If we had a selected file, find it in the new list and select it again
+        if (currentSelectedFileId) {
+          const fileToSelect = formattedFiles.find(f => f.id === currentSelectedFileId);
+          if (fileToSelect) {
+            handleFileSelect(fileToSelect);
+          }
+        }
       } catch (error) {
         console.error('Error fetching statements:', error);
         // Don't show error toast if it's just that there are no statements yet
@@ -933,8 +1135,487 @@ export default function StatementExcelPage() {
       }
     };
 
+  // Fetch statements when date changes
+  useEffect(() => {
     fetchStatements();
-  }, [selectedDate, toast]);
+  }, [selectedDate]);
+
+  // Add validation for userFilter when files change
+  useEffect(() => {
+    // If user filter is set to a specific user, make sure that user exists in the current files
+    if (userFilter !== 'all') {
+      const users = new Set<string>();
+      files.forEach(file => {
+        if (file.savedParties) {
+          Object.values(file.savedParties).forEach(data => {
+            if (data.visitedBy) {
+              users.add(data.visitedBy);
+            }
+          });
+        }
+      });
+      
+      // If the current filter is not in the users list, reset to 'all'
+      if (!users.has(userFilter)) {
+        console.log('Selected user filter no longer exists in current files, resetting to "all"');
+        setUserFilter('all');
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('statementUserFilter', 'all');
+        }
+      }
+    }
+  }, [files, userFilter]);
+
+  // Helper function to format numbers safely with a maximum limit
+  const formatNumberSafely = (value: number | string): number => {
+    if (typeof value === 'string') {
+      // Remove commas and convert to number
+      value = value.replace(/,/g, '');
+    }
+    const num = Number(value);
+    
+    // Check if the number is invalid
+    if (isNaN(num) || !isFinite(num)) {
+      return 0;
+    }
+
+    // Set a reasonable maximum limit to prevent overflow
+    const MAX_SAFE_VALUE = 999999; // 6 digits
+    const MIN_SAFE_VALUE = -999999; // 6 digits
+
+    // Handle extremely large numbers
+    if (num > MAX_SAFE_VALUE) {
+      console.warn(`Number ${num} exceeds maximum safe value, truncating to ${MAX_SAFE_VALUE}`);
+      return MAX_SAFE_VALUE;
+    }
+    if (num < MIN_SAFE_VALUE) {
+      console.warn(`Number ${num} exceeds minimum safe value, truncating to ${MIN_SAFE_VALUE}`);
+      return MIN_SAFE_VALUE;
+    }
+
+    // Round to 2 decimal places to prevent floating point issues
+    return Math.round(num * 100) / 100;
+  };
+
+  // Function to generate and download all PDFs
+  const handleDownloadAllPDFs = async () => {
+    if (!selectedFile || !selectedFile.partySections) return;
+
+    setIsDownloading(true);
+    setDownloadProgress(0);
+    setFailedDownloads([]);
+    setShowSuccessMessage(false);
+    const zip = new JSZip();
+    const BATCH_SIZE = 10; // Increased batch size for faster processing
+    const totalSections = selectedFile.partySections.length;
+    let processedCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Create PDF folder only once
+      const pdfFolder = zip.folder(selectedFile.name.replace(/\.[^/.]+$/, ''));
+      if (!pdfFolder) throw new Error("Failed to create zip folder");
+      
+      // Pre-process all data once to avoid redundant calculations
+      console.time('Pre-processing');
+      const processedSections = selectedFile.partySections.map(section => {
+        // Process each row in the data to ensure numbers are safe
+        const safeData = section.data.map(row => {
+          // Create a new row with safe numbers
+          const safeRow = { ...row };
+          // Format all numeric columns
+          ['col5', 'col6', 'col7', 'col8', 'col10'].forEach(col => {
+            if (safeRow[col] !== undefined) {
+              safeRow[col] = formatNumberSafely(safeRow[col]);
+            }
+          });
+          return safeRow;
+        });
+
+        return {
+          section: section,
+          data: safeData,
+          totals: {
+            debits: formatNumberSafely(calculateTotal(safeData, 'col5')),
+            adjustments: formatNumberSafely(calculateTotal(safeData, 'col6')),
+            balance: formatNumberSafely(calculateTotal(safeData, 'col7')),
+            discount: formatNumberSafely(calculateTotal(safeData, 'col10'))
+          }
+        };
+      });
+      console.timeEnd('Pre-processing');
+
+      // Process all sections in parallel batches
+      console.time('PDF Generation');
+      for (let i = 0; i < processedSections.length; i += BATCH_SIZE) {
+        const batch = processedSections.slice(i, i + BATCH_SIZE);
+        
+        // Process a batch in parallel
+        const results = await Promise.all(batch.map(async ({ section, data, totals }) => {
+          try {
+            const pdfDoc = (
+              <StatementPDF
+                section={{
+                  ...section,
+                  data: data,
+                }}
+                fileName={selectedFile.name}
+                totalDebits={totals.debits}
+                totalAdjustments={totals.adjustments}
+                outstandingBalance={totals.balance}
+                totalDiscount={totals.discount}
+              />
+            );
+
+            const pdfBlob = await pdf(pdfDoc).toBlob();
+            
+            // Add file to zip
+            if (pdfFolder) {
+              const sanitizedPartyName = section.partyName.replace(/[^a-zA-Z0-9-_]/g, '_');
+              pdfFolder.file(`${section.partyCode}-${sanitizedPartyName}.pdf`, pdfBlob);
+            }
+            
+            processedCount++;
+            setDownloadProgress(Math.round((processedCount / totalSections) * 100));
+            
+            return { success: true, section };
+          } catch (error) {
+            console.error(`Error generating PDF for ${section.partyCode}:`, error);
+            return { 
+              success: false, 
+              section,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            };
+          }
+        }));
+        
+        // Process results
+        for (const result of results) {
+          if (!result.success) {
+            errorCount++;
+            setFailedDownloads(prev => [...prev, {
+              partyCode: result.section.partyCode,
+              partyName: result.section.partyName,
+              error: 'error' in result ? result.error : 'Failed to generate PDF'
+            }]);
+          }
+        }
+
+        // No delay between batches - process as fast as possible
+        // Force UI update by yielding to event loop
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      console.timeEnd('PDF Generation');
+
+      if (processedCount === 0) {
+        throw new Error("Failed to generate any PDFs");
+      }
+
+      // Generate zip file efficiently
+      console.time('Zip Generation');
+      const zipContent = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 3  // Lower compression level for faster processing
+        }
+      });
+      console.timeEnd('Zip Generation');
+      
+      const zipFileName = `${selectedFile.name.replace(/\.[^/.]+$/, '')}-statements.zip`;
+      saveAs(zipContent, zipFileName);
+
+      if (errorCount > 0) {
+        toast({
+          title: "Partial Success",
+          description: `Generated ${processedCount} PDFs. ${errorCount} failed.`,
+          variant: "destructive",
+          duration: Infinity
+        });
+      } else {
+        setSuccessMessage(`All ${processedCount} party statements downloaded successfully`);
+        setShowSuccessMessage(true);
+        toast({
+          title: "Success",
+          description: `Generated all ${processedCount} PDFs successfully.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error generating PDFs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDFs. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
+  };
+
+  const handleDownloadExcel = async (file: StatementFile) => {
+    if (!session?.user?.type || session.user.type !== 'ADMIN') {
+      toast({
+        title: "Access Denied",
+        description: "Only administrators can download Excel reports.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+
+      // Create header rows with statistics on the right
+      const headerRows = [
+        ['SANJIVAN MEDICO TRADERS', '', '', '', '', '', '', ''],
+        ['STATEMENT TRACKING REPORT', '', '', '', '', '', '', ''],
+        [''],
+        ['Statement Name:', file.name, '', '', 'STATISTICS:', '', '', ''],
+        ['Upload Date:', moment(file.uploadDate).format('DD MMM YYYY, hh:mm A'), '', '', 'Total Parties:', file.partySections.length, '', ''],
+        ['Download Date:', moment().format('DD MMM YYYY, hh:mm A'), '', '', 'Visited Parties:', Object.keys(file.savedParties || {}).length, '', ''],
+        ['', '', '', '', 'Not Visited Parties:', file.partySections.length - Object.keys(file.savedParties || {}).length, '', ''],
+        [''],
+        [''],
+        // Column headers - all caps for better visibility
+        ['SR.NO.', 'STATUS', 'PARTY CODE', 'PARTY NAME', 'LOCATION', 'VISIT TIME', 'VISITED BY', 'MAP LOCATION'], //center align the headers
+        // Add a separator line
+        ['---', '---', '---', '---', '---', '---', '---', '---']
+      ];
+
+      // Create worksheet from header rows
+      const ws = XLSX.utils.aoa_to_sheet(headerRows);
+
+      // Merge cells for company name, report title, and info fields
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },  // Company name
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },  // Report title
+        { s: { r: 3, c: 1 }, e: { r: 3, c: 3 } },  // Statement name value
+        { s: { r: 4, c: 1 }, e: { r: 4, c: 3 } },  // Upload date value
+        { s: { r: 5, c: 1 }, e: { r: 5, c: 3 } },  // Download date value
+      ];
+
+      // Prepare and sort data rows
+      const visitedRows: any[] = [];
+      const unvisitedRows: any[] = [];
+      
+      file.partySections.forEach((section) => {
+        const savedData = file.savedParties?.[section.partyCode];
+        const isVisited = !!savedData;
+        const visitTime = savedData?.timestamp ? moment(savedData.timestamp).format('DD MMM YYYY, hh:mm A') : '';
+        
+        // Check for valid username (allow "admin" but exclude empty/Unknown User)
+        let visitedBy = 'Not Visited';
+        if (isVisited) {
+          if (savedData?.visitedBy && savedData.visitedBy !== 'Unknown User') {
+            visitedBy = savedData.visitedBy;
+          }
+        }
+        
+        // Create a clickable map link
+        const mapLink = savedData?.location ? 
+          {
+            v: `maps.google.com/?q=${savedData.location.lat},${savedData.location.lng}`,
+            l: { Target: `https://maps.google.com/?q=${savedData.location.lat},${savedData.location.lng}` }
+          } : '';
+
+        const row = [
+          0, // Placeholder for S.No., will be filled after sorting
+          isVisited ? 'Visited' : 'Not Visited',
+          section.partyCode,
+          section.partyName,
+          section.location,
+          visitTime,
+          visitedBy,
+          mapLink
+        ];
+
+        if (isVisited) {
+          // For visited rows, store additional metadata for sorting
+          visitedRows.push({
+            row,
+            user: visitedBy,
+            timestamp: savedData?.timestamp ? new Date(savedData.timestamp) : new Date(0)
+          });
+        } else {
+          unvisitedRows.push(row);
+        }
+      });
+
+      // Sort visited rows by user first, then by visit time
+      visitedRows.sort((a, b) => {
+        // First compare by user
+        if (a.user !== b.user) {
+          return a.user.localeCompare(b.user);
+        }
+        // If same user, sort by timestamp (most recent first)
+        return b.timestamp.getTime() - a.timestamp.getTime();
+      });
+
+      // Log how many rows were processed to help with debugging
+      console.log(`Excel Report: Processing ${visitedRows.length} visited parties and ${unvisitedRows.length} unvisited parties`);
+      
+      // Log the first few visited rows for debugging
+      if (visitedRows.length > 0) {
+        console.log('First visited row:', {
+          user: visitedRows[0].user,
+          time: visitedRows[0].timestamp,
+          partyCode: visitedRows[0].row[2]
+        });
+      }
+
+      // Extract just the row data from the sorted visited rows
+      const sortedVisitedRows = visitedRows.map(item => item.row);
+
+      // Combine sorted rows and add proper S.No.
+      const sortedRows = [
+        ...sortedVisitedRows,
+        ...unvisitedRows
+      ].map((row, index) => {
+        row[0] = index + 1; // Set proper S.No.
+        return row;
+      });
+
+      // Add data rows to worksheet
+      XLSX.utils.sheet_add_aoa(ws, sortedRows, { origin: 'A11' }); // Changed from A10 to A11 to accommodate the separator line
+
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 },     // SR.NO.
+        { wch: 15 },    // STATUS (Visited/Not Visited)
+        { wch: 12 },    // PARTY CODE
+        { wch: 45 },    // PARTY NAME
+        { wch: 38 },    // LOCATION (reduced by 15% from 45)
+        { wch: 25 },    // VISIT TIME
+        { wch: 25 },    // VISITED BY
+        { wch: 80 }     // MAP LOCATION
+      ];
+
+      // Set row heights for better spacing
+      ws['!rows'] = [
+        { hpt: 30 },  // Company name
+        { hpt: 25 },  // Report title
+        { hpt: 15 },  // Empty row
+        { hpt: 25 },  // Statement name row
+        { hpt: 25 },  // Upload date row
+        { hpt: 25 },  // Download date row
+        { hpt: 25 },  // Not visited parties row
+        { hpt: 15 },  // Empty row
+        { hpt: 15 },  // Empty row
+        { hpt: 35 },  // Column headers
+        { hpt: 25 },  // Separator line
+      ];
+
+      // Style the worksheet
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+
+      // Company name and report title styling
+      ws['A1'].s = { 
+        font: { bold: true, sz: 16 },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      };
+      ws['A2'].s = { 
+        font: { bold: true, sz: 14 },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      };
+
+      // Column headers styling (including the separator line)
+      for (let c = 0; c <= 7; c++) {
+        // Style the column headers
+        const headerCell = XLSX.utils.encode_cell({ r: 9, c });
+        ws[headerCell].s = {
+          font: { bold: true, sz: 11 },
+          fill: { fgColor: { rgb: "E0E0E0" } },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+          }
+        };
+
+        // Style the separator line
+        const separatorCell = XLSX.utils.encode_cell({ r: 10, c });
+        ws[separatorCell].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: "F0F0F0" } },
+          alignment: { horizontal: 'center' },
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+          }
+        };
+      }
+
+      // Center align S.No. column
+      for (let r = 11; r <= range.e.r; r++) {
+        const cell = XLSX.utils.encode_cell({ r, c: 0 });
+        if (!ws[cell]) ws[cell] = {};
+        if (!ws[cell].s) ws[cell].s = {};
+        ws[cell].s.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Statement Report');
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(wb, { 
+        bookType: 'xlsx',
+        type: 'array',
+        cellStyles: true
+      });
+      
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      // Download file with formatted name
+      const fileName = `${file.name.replace(/\.[^/.]+$/, '')}-tracking-report.xlsx`;
+      saveAs(blob, fileName);
+
+      toast({
+        title: "Success",
+        description: "Excel report downloaded successfully.",
+      });
+    } catch (error) {
+      console.error('Error generating Excel report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate Excel report.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to handle when user selects different filter
+  const handleUserFilterChange = (value: string) => {
+    setUserFilter(value);
+    // Store in localStorage as well
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('statementUserFilter', value);
+    }
+    
+    // If there are no users yet, reset to "all" to prevent empty results
+    if (value !== 'all' && uniqueUsers.length === 0) {
+      console.log('No users have visited any medical stores yet');
+      toast({
+        title: "No visited stores",
+        description: "No users have visited any medical stores yet. Showing all parties.",
+        duration: 3000,
+      });
+      setUserFilter('all');
+      localStorage.setItem('statementUserFilter', 'all');
+    }
+  };
+
+  // Function to format date as YYYY-MM-DD
+  const formatDateForAPI = (date: Date): string => {
+    return format(date, 'yyyy-MM-dd'); // Use date-fns for internal consistency
+  };
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -945,6 +1626,73 @@ export default function StatementExcelPage() {
               <CardTitle className="text-lg sm:text-xl">Statement Management</CardTitle>
               <CardDescription className="text-sm">Upload and view party statements from Excel files</CardDescription>
             </div>
+            <div className="flex items-center gap-2">
+              {isAdmin && selectedFile && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadExcel(selectedFile)}
+                    className="flex items-center gap-2 min-w-[160px]"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Download Excel Report
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadAllPDFs}
+                    disabled={isDownloading}
+                    className="flex items-center gap-2 min-w-[160px] relative"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <div className="relative w-4 h-4">
+                          <div className="absolute inset-0 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                        <span className="ml-2">{downloadProgress}%</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileDown className="h-4 w-4" />
+                        Download All PDFs
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchStatements}
+                disabled={isLoadingStatements}
+                className="flex items-center gap-2"
+              >
+                {isLoadingStatements ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="h-4 w-4"
+                    >
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                      <path d="M8 16H3v5"/>
+                    </svg>
+                  </>
+                )}
+                Refresh
+              </Button>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -956,8 +1704,7 @@ export default function StatementExcelPage() {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {/* Use moment for date formatting */}
-                  {selectedDate ? moment(selectedDate).format("LL") : <span>Pick a date</span>}
+                  {selectedDate ? format(selectedDate, "d MMM yyyy") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -967,10 +1714,8 @@ export default function StatementExcelPage() {
                   onSelect={(date) => {
                     if (date) {
                       setSelectedDate(date);
-                      // Clear selected file and expanded parties when changing date
                       setSelectedFile(null);
                       setExpandedParties(new Set());
-                      // Reset other states
                       setSearchTerm('');
                       setShowSavedOnly(false);
                       setCurrentPage(1);
@@ -980,6 +1725,7 @@ export default function StatementExcelPage() {
                 />
               </PopoverContent>
             </Popover>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
@@ -1078,7 +1824,7 @@ export default function StatementExcelPage() {
                     <TableIcon className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
                       {/* Use moment for date formatting */}
-                      No statements uploaded on {moment(selectedDate).format("LL")}
+                      No statements uploaded on {selectedDate ? format(selectedDate, "d MMM yyyy") : 'this date'}
                     </p>
                   </div>
                 ) : (
@@ -1151,6 +1897,19 @@ export default function StatementExcelPage() {
                                 >
                                   <Edit2 className="h-3.5 w-3.5" />
                                 </Button>
+                                {!isAdmin ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 w-5 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowAccessDeniedDialog(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </Button>
+                                ) : (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -1162,6 +1921,7 @@ export default function StatementExcelPage() {
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
+                                )}
                               </>
                             )}
                           </div>
@@ -1188,46 +1948,73 @@ export default function StatementExcelPage() {
           </div>
 
           <div className="space-y-4 pt-4 border-t border-border/40">
-            {/* Only show these elements if there is a selected file, regardless of search results */}
             {selectedFile && (
               <>
                 <div className="relative">
-                  <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <span className="text-base font-medium">
                       Current Statements : {selectedFile.name} ({filteredSections.length} of {selectedFile.partySections.length})
                     </span>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                      <div className="relative flex-1 sm:flex-initial sm:w-64">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1">
+                        <Label htmlFor="search" className="text-sm font-medium mb-1.5 block">Search</Label>
                         <Input
-                          placeholder="Search party name, code..."
+                          id="search"
+                          type="text"
+                          placeholder="Search by party name, location, or contact..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-8 pr-8"
+                          className="w-full"
                         />
-                        {searchTerm && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1.5 h-5 w-5"
-                            onClick={() => setSearchTerm('')}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="default"
-                        className={cn(
-                          "whitespace-nowrap w-full sm:w-auto",
-                          showSavedOnly && "bg-primary/10"
-                        )}
-                        onClick={() => setShowSavedOnly(!showSavedOnly)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        {showSavedOnly ? "Show All" : "Show Saved Only"}
-                      </Button>
+                      <div className="flex-1">
+                        <Label htmlFor="visitFilter" className="text-sm font-medium mb-1.5 block">Visit Status</Label>
+                        <Select
+                          value={visitFilter}
+                          onValueChange={(value: 'all' | 'visited' | 'unvisited') => setVisitFilter(value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Filter by visit status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Parties</SelectItem>
+                            <SelectItem value="visited">Visited Parties</SelectItem>
+                            <SelectItem value="unvisited">Unvisited Parties</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Label htmlFor="userFilter" className="text-sm font-medium mb-1.5 block">Visited By</Label>
+                        <Select
+                          value={userFilter}
+                          onValueChange={handleUserFilterChange}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Filter by user" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Users</SelectItem>
+                            {uniqueUsers.length > 0 ? (
+                              uniqueUsers.map(user => {
+                                // Calculate count from currently selected file only
+                                const partyCount = userStats[user] || 0;
+                                
+                                return (
+                                  <SelectItem key={user} value={user}>
+                                    {user} ({partyCount} visits)
+                                  </SelectItem>
+                                );
+                              })
+                            ) : (
+                              <div className="text-xs text-muted-foreground px-2 py-1.5">
+                                No users have visited any medical stores in this statement
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1236,15 +2023,39 @@ export default function StatementExcelPage() {
 
             {selectedFile && (
               <div className="space-y-4 sm:space-y-6">
-                {filteredSections.length === 0 ? (
+                {isLoadingDetails ? (
+                  // Loading skeleton UI
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Card key={i} className="animate-pulse">
+                        <CardHeader className="p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            <div className="w-full">
+                              <div className="flex items-center space-x-2">
+                                <div className="h-4 w-4 bg-muted rounded" />
+                                <div className="h-4 w-48 bg-muted rounded" />
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                <div className="h-3 w-24 bg-muted rounded" />
+                                <div className="h-3 w-32 bg-muted rounded" />
+                                <div className="h-3 w-28 bg-muted rounded" />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-12 bg-muted rounded" />
+                              <div className="h-8 w-12 bg-muted rounded" />
+                              <div className="h-8 w-12 bg-muted rounded" />
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </div>
+                ) : filteredSections.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg">
                     <TableIcon className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      {showSavedOnly
-                        ? searchTerm
-                          ? 'No saved statements match your search.'
-                          : 'No saved statements found.'
-                        : searchTerm
+                      {searchTerm
                           ? 'No matching party statements found. Try adjusting your search.'
                           : 'No party statements found.'
                       }
@@ -1419,8 +2230,11 @@ export default function StatementExcelPage() {
                                     <PDFDownloadLink
                                       document={
                                         <StatementPDF
-                                          section={section}
-                                          fileName={`${section.partyCode}-${moment().format('YYYY-MM-DD')}`}
+                                          section={{
+                                            ...section,
+                                            data: section.data,
+                                          }}
+                                          fileName={selectedFile.name}
                                           totalDebits={calculateTotal(section.data, 'col5')}
                                           totalAdjustments={calculateTotal(section.data, 'col6')}
                                           outstandingBalance={calculateTotal(section.data, 'col7')}
@@ -1618,6 +2432,65 @@ export default function StatementExcelPage() {
           </AlertDialog>
         </CardContent>
       </Card>
+
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <Card className="mt-4 border-green-500">
+          <CardHeader className="p-4">
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-500" />
+              <CardTitle className="text-green-500">Success</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <p className="text-green-500 font-medium">{successMessage}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Failed Downloads List */}
+      {failedDownloads.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-destructive">Failed Downloads</CardTitle>
+            <CardDescription>These statements could not be generated:</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {failedDownloads.map((failed, index) => (
+                <div key={index} className="flex items-center justify-between p-2 bg-destructive/10 rounded-md">
+                  <div>
+                    <span className="font-medium">{failed.partyCode}</span>
+                    <span className="text-muted-foreground ml-2">- {failed.partyName}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFailedDownloads(prev => prev.filter((_, i) => i !== index))}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Access Denied Dialog */}
+      <AlertDialog open={showAccessDeniedDialog} onOpenChange={setShowAccessDeniedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Access Denied</AlertDialogTitle>
+            <AlertDialogDescription>
+              Only administrators can delete statements. Please contact an administrator if you need to delete a statement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Understood</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

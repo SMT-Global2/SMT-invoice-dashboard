@@ -11,13 +11,20 @@ import { ActivityHeatmap } from "./activity-heatmap";
 import { UserPerformance } from "./user-performance";
 import AdminInvoiceTable from "./admin-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InventoryAnalytics } from "./inventory-analytics";
+import { DeliveryMemoAnalytics } from "./delivery-memo-analytics";
+import { ExpiryAnalytics } from "./expiry-analytics";
+import { StatementAnalytics } from "./statement-analytics";
+import { BillingAnalytics } from "./billing-analytics";
+import { ReceiptAnalytics } from "./receipt-analytics";
 
 export default function AnalyticsPage() {
-  const { fetchAnalytics } = useAnalyticsStore();
+  const { fetchAnalytics, fetchExtendedAnalytics } = useAnalyticsStore();
 
   useEffect(() => {
     fetchAnalytics();
-  }, [fetchAnalytics]);
+    fetchExtendedAnalytics();
+  }, [fetchAnalytics, fetchExtendedAnalytics]);
 
   return (
     <div className="flex-1 w-full max-w-full space-y-6 px-1 sm:px-4 py-4">
@@ -26,27 +33,27 @@ export default function AnalyticsPage() {
       </div>
 
       <Tabs defaultValue="dashboards" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
-          <TabsTrigger value="table">Invoices Table</TabsTrigger>
-          <TabsTrigger value="dashboards">Invoice Analytics</TabsTrigger>
-          <TabsTrigger value="users">User Performance</TabsTrigger>
+        <TabsList className="flex w-full mb-6">
+          <TabsTrigger value="dashboards" className="flex-1">Invoice Analytics</TabsTrigger>
+          <TabsTrigger value="users" className="flex-1">User Performance</TabsTrigger>
+          <TabsTrigger value="table" className="flex-1">Invoices Table</TabsTrigger>
+          <TabsTrigger value="receipt" className="flex-1">Receipt</TabsTrigger>
+          <TabsTrigger value="inventory" className="flex-1">Inventory</TabsTrigger>
+          <TabsTrigger value="deliverymemo" className="flex-1">Delivery Memo</TabsTrigger>
+          <TabsTrigger value="expiry" className="flex-1">Expiry</TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboards" className="space-y-6">
           <StatsCards />
-
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             <TrendChart />
           </div>
-          
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             <StatusBreakdown />
             <UserActivity />
           </div>
           <TopParties />
-          
           <ActivityHeatmap />
-
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
@@ -55,6 +62,22 @@ export default function AnalyticsPage() {
         
         <TabsContent value="table">
           <AdminInvoiceTable />
+        </TabsContent>
+
+        <TabsContent value="receipt" className="space-y-6">
+          <ReceiptAnalytics />
+        </TabsContent>
+        
+        <TabsContent value="inventory" className="space-y-6">
+          <InventoryAnalytics />
+        </TabsContent>
+        
+        <TabsContent value="deliverymemo" className="space-y-6">
+          <DeliveryMemoAnalytics />
+        </TabsContent>
+        
+        <TabsContent value="expiry" className="space-y-6">
+          <ExpiryAnalytics />
         </TabsContent>
       </Tabs>
     </div>

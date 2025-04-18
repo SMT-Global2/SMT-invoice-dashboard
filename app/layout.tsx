@@ -1,11 +1,7 @@
 import './globals.css';
-import { Analytics } from '@vercel/analytics/react';
-import AuthProvider from '@/components/auth-provider';
-import { Toaster } from '@/components/ui/toaster';
-import moment from 'moment-timezone';
-import React from 'react';
-import { ThemeProvider } from '@/components/theme-provider';
-import SessionCheck from '../components/auth/session';
+import SessionProviderWrapper from '@/components/providers/session-provider';
+import ThemeProviderWrapper from '@/components/providers/theme-provider';
+import { Toaster } from 'sonner';
 
 export const metadata = {
   title: 'Sanjivan Medico Traders',
@@ -17,28 +13,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
-  moment.tz.setDefault('Asia/Kolkata');
-
   return (
-    <html lang="en">
-      <body className="flex min-h-screen w-full flex-col max-w-[100vw]">
-        <React.StrictMode>
-          <Analytics /> 
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <AuthProvider>
-              <SessionCheck>
-                {children}
-              </SessionCheck>
-              <Toaster />
-            </AuthProvider>
-          </ThemeProvider>
-        </React.StrictMode>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProviderWrapper>
+          <SessionProviderWrapper>
+            {children}
+            <Toaster />
+          </SessionProviderWrapper>
+        </ThemeProviderWrapper>
       </body>
     </html>
   );

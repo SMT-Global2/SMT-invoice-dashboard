@@ -154,10 +154,18 @@ model Inventory {
   //Need for creating Inventory
   agencyCode        String
   agency            AgencyCode  @relation(fields: [agencyCode], references: [code] , onDelete: NoAction)
-  invoiceNumber     Int
+  invoiceNumber     String
   invoiceDate       DateTime
-  orderNumber       Int
-  orderDate         DateTime
+  dueDate           DateTime?
+  lrNumber          String?
+  lrDate            DateTime?
+  through           String?
+  packages          String?
+  
+  // Keeping these for backward compatibility but making them optional
+  orderNumber       Int?
+  orderDate         DateTime?
+  
   inventoryCheckUsername   String?
   inventoryCheckTimestamp  DateTime?
 
@@ -210,6 +218,7 @@ model ReportSection {
   isSaved           Boolean   @default(false)
   savedTimestamp    DateTime?
   savedUsername     String?
+  visitedBy         String?   // Field to track which user visited the party
   
   // Image data
   images            String[]
@@ -330,4 +339,25 @@ enum BilledStatus {
 enum DayStartType {
   INVOICE
   DELIVERY_MEMO
+}
+
+model ContactForm {
+  id                String    @id @map("_id") @default(auto()) @db.ObjectId
+  medicalName       String
+  city             String?
+  invoiceNumber    String
+  issueType        String
+  images           String[]
+  comments         String?
+  isUrgent         Boolean   @default(false)
+  rating           Int?      @default(0)
+  status           FormStatus @default(PENDING)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+enum FormStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
 }
