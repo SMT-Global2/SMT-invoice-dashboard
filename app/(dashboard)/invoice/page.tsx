@@ -56,12 +56,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { format } from "date-fns"
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Download, FilterX } from 'lucide-react';
 
 export default function InvoicePage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
   const { toast } = useToast();
   const [invoiceSearchTerm, setInvoiceSearchTerm] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const {
     invoices,
@@ -82,7 +86,6 @@ export default function InvoicePage() {
     handleInvoices();
   }, [handleInvoices, selectedDate]);
 
-  //prefixKeyId ? `invoice#${prefixKeyId}#${fileNameWithoutType}` : fileNameWithoutType) + new Date().toISOString() + '.' + fileType,
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setLastInteractedInvoice(invoiceNumber);
@@ -157,13 +160,11 @@ export default function InvoicePage() {
     try {
       setLastInteractedInvoice(invoiceNumber);
       
-      // Find the invoice to validate required fields
       const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
       if (!invoice) {
         throw new Error('Invoice not found');
       }
       
-      // Client-side validation
       if (!invoice.partyCode) {
         throw new Error('Party code is required');
       }
@@ -197,13 +198,11 @@ export default function InvoicePage() {
     try {
       setLastInteractedInvoice(invoiceNumber);
       
-      // Find the invoice to validate required fields
       const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
       if (!invoice) {
         throw new Error('Invoice not found');
       }
       
-      // Client-side validation
       if (!invoice.partyCode) {
         throw new Error('Party code is required');
       }
@@ -212,7 +211,6 @@ export default function InvoicePage() {
         throw new Error('Payment mode is required');
       }
       
-      // Check if image exists
       if (!invoice.image || invoice.image.length === 0) {
         toast({
           variant: 'destructive',
@@ -220,7 +218,7 @@ export default function InvoicePage() {
           description: 'Please upload at least one image before saving as OTC.',
           duration: 3000,
         });
-        return; // Stop execution if no image
+        return;
       }
       
       await saveInvoice(invoiceNumber, true);
@@ -240,7 +238,6 @@ export default function InvoicePage() {
     }
   }
 
-  // Update filtering logic for invoices based on invoice search term
   const filteredInvoices = invoices.filter(invoice => 
     invoice.invoiceNumber.toString().includes(invoiceSearchTerm.trim())
   );
@@ -256,36 +253,206 @@ export default function InvoicePage() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!selectedDate) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a date to download the PDF.",
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      const params = new URLSearchParams();
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      params.append('date', formattedDate);
+
+      const response = await fetch(`/api/analytics/invoices-for-pdf?${params.toString()}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch invoices for PDF');
+      }
+      const data = await response.json();
+      if (!data.success || !data.invoices) {
+        throw new Error(data.message || 'Failed to parse invoice data for PDF');
+      }
+      const invoicesToDownload = data.invoices;
+
+      if (invoicesToDownload.length === 0) {
+        toast({
+          variant: "default",
+          title: "No Data",
+          description: "No invoices found for the selected date to generate PDF.",
+        });
+        setIsDownloading(false);
+        return;
+      }
+
+      const doc = new jsPDF();
+      const tableRows: any[] = [];
+      const tableColumns = [
+        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", "Current Status"
+      ];
+
+      invoicesToDownload.forEach((invoice: any, index: number) => {
+        // Determine detailed status based on timestamps (using corrected field names)
+        let currentStatus = 'Generated'; // Default to Generated if invoice exists
+        if (invoice.deliveredTimestamp) {
+          currentStatus = 'Delivered';
+        } else if (invoice.pickupTimestamp) {
+          currentStatus = 'In Transit';
+        } else if (invoice.packageTimestamp) { // Corrected field name
+          currentStatus = 'Packed';
+        } else if (invoice.checkTimestamp) { // Corrected field name
+          currentStatus = 'Checked';
+        }
+
+        const invoiceData = [
+          index + 1,
+          invoice.invoiceNumber,
+          format(new Date(invoice.generatedDate!), 'dd/MM/yy'),
+          invoice.partyCode,
+          invoice.partyName || '-',
+          invoice.cityName || '-',
+          invoice.regionalCode || '-',
+          invoice.paymodeMode,
+          currentStatus
+        ];
+        tableRows.push(invoiceData);
+      });
+
+      const reportDate = format(new Date(selectedDate!), 'dd MMM yyyy');
+      
+      const headerText = 'Sanjivan Medico Traders';
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const headerFontSize = 16;
+      const subHeaderFontSize = 12;
+
+      doc.setFontSize(headerFontSize);
+      doc.setFont('helvetica', 'bold');
+      const headerWidth = doc.getTextWidth(headerText);
+      const headerX = (pageWidth - headerWidth) / 2;
+      doc.text(headerText, headerX, 15);
+
+      doc.setFontSize(subHeaderFontSize);
+      doc.setFont('helvetica', 'normal');
+
+      const dateText = `Invoice Report - ${reportDate}`;
+      const margin = 14;
+      const dateTextX = margin;
+      const subHeaderY = 22;
+
+      doc.text(dateText, dateTextX, subHeaderY);
+
+      autoTable(doc, {
+        head: [tableColumns],
+        body: tableRows,
+        startY: subHeaderY + 5,
+        theme: 'grid',
+        styles: {
+          fontSize: 8.5, 
+          cellPadding: 2, 
+        },
+        headStyles: { 
+          fillColor: [29, 78, 216], 
+          textColor: 255, 
+          fontSize: 9, 
+          fontStyle: 'bold' 
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245] 
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 15 },
+          2: { cellWidth: 16 },
+          3: { cellWidth: 16 },
+          7: { cellWidth: 15 },
+          8: { cellWidth: 20 }
+        },
+        didDrawPage: (data) => {
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(
+            `Page ${data.pageNumber}`,
+            data.settings.margin.left,
+            doc.internal.pageSize.height - 6
+          );
+        }
+      });
+
+      doc.save(`Invoice-Report-${reportDate.replace(/ /g, '_')}.pdf`);
+
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
-    <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+    <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Invoice Generation</h1>
       </div>
       <Card>
         <CardHeader>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <CardTitle>Invoices</CardTitle>
-          <div className="flex flex-col sm:flex-row gap-2">
-              <div className="w-full sm:max-w-[300px]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <CardTitle>Generated Invoices</CardTitle>
+            <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
+              <div className="w-full">
                 <Input
                   type="text"
                   placeholder="Search invoice number..."
                   value={invoiceSearchTerm}
                   onChange={(e) => setInvoiceSearchTerm(e.target.value)}
-                  className="w-full"
+                  className="w-full h-9"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <DatePicker date={selectedDate} setDate={setSelectedDate} />
                 <Button
-                  variant={'outline'}
-                  disabled={!selectedDate || moment(selectedDate).isSame(moment(), 'day')}
-                  onClick={() => setSelectedDate(moment().startOf('day').toDate())}
-                >Clear Date</Button>
+                  variant="outline"
+                  onClick={handleDownloadPDF}
+                  disabled={!selectedDate || isDownloading}
+                  className="h-9 flex items-center gap-1"
+                >
+                  {isDownloading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </>
+                  )}
+                </Button>
+                {(selectedDate && !moment(selectedDate).isSame(moment(), 'day')) ? (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setSelectedDate(moment().startOf('day').toDate())} 
+                    title="Reset to today's date"
+                    className="h-9 w-9"
+                  >
+                    <FilterX className="h-4 w-4" />
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
-
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -300,6 +467,7 @@ export default function InvoicePage() {
                     <TableHead>Party Code</TableHead>
                     <TableHead>Medical Name</TableHead>
                     <TableHead>City</TableHead>
+                    <TableHead>Region</TableHead>
                     <TableHead>Paymode</TableHead>
                     <TableHead>Image</TableHead>
                     <TableHead>Actions</TableHead>
@@ -359,7 +527,7 @@ export default function InvoicePage() {
                           </TableCell>
                           <TableCell>{row.medicalName}</TableCell>
                           <TableCell>{row.city}</TableCell>
-                          
+                          <TableCell>{row.regionalCode || '-'}</TableCell>
                           <TableCell>
                             <Select
                               disabled={row.isDisabled || row.invoiceTimestamp !== null}
@@ -514,7 +682,6 @@ export default function InvoicePage() {
                   />
                 </PaginationItem>
 
-                {/* First page */}
                 {totalPages > 0 && (
                   <PaginationItem className={currentPage === 1 ? 'hidden sm:block' : ''}>
                     <PaginationLink
@@ -526,21 +693,18 @@ export default function InvoicePage() {
                   </PaginationItem>
                 )}
 
-                {/* Left ellipsis */}
                 {currentPage > 3 && (
                   <PaginationItem className="hidden sm:block">
                     <PaginationLink className="cursor-default">...</PaginationLink>
                   </PaginationItem>
                 )}
 
-                {/* Mobile: Show only current page */}
                 {currentPage !== 1 && currentPage !== totalPages && (
                   <PaginationItem className="sm:hidden">
                     <PaginationLink isActive>{currentPage}</PaginationLink>
                   </PaginationItem>
                 )}
 
-                {/* Desktop: Show surrounding pages */}
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(page => {
                     if (totalPages <= 5) return true;
@@ -558,14 +722,12 @@ export default function InvoicePage() {
                     </PaginationItem>
                   ))}
 
-                {/* Right ellipsis */}
                 {currentPage < totalPages - 2 && (
                   <PaginationItem className="hidden sm:block">
                     <PaginationLink className="cursor-default">...</PaginationLink>
                   </PaginationItem>
                 )}
 
-                {/* Last page */}
                 {totalPages > 1 && (
                   <PaginationItem className={currentPage === totalPages ? 'hidden sm:block' : ''}>
                     <PaginationLink

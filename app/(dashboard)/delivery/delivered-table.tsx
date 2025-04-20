@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { format } from 'date-fns';
+import { useState, useEffect } from 'react';
 
 export function DeliveredTable() {
   const { 
@@ -59,6 +60,10 @@ export function DeliveredTable() {
     deliveredSelectedRegionalCodes,
     availableRegionalCodes,
     setDeliveredSelectedRegionalCodes,
+
+    // Transporter state (add these)
+    transporters,
+    fetchTransporters,
     
     // Pagination
     deliveredPage,
@@ -67,7 +72,22 @@ export function DeliveredTable() {
     itemsPerPage,
     setItemsPerPage
   } = useDeliveryInvoiceStore();
+
+  // Add state for the transporter filter
+  const [transporterFilter, setTransporterFilter] = useState<string>('all');
+
+  // Fetch transporters when component mounts
+  useEffect(() => {
+    fetchTransporters();
+  }, [fetchTransporters]);
   
+  // Filter invoices by selected transporter
+  const filteredInvoices = deliveredInvoices.filter(invoice => {
+    if (transporterFilter === 'all') return true;
+    if (transporterFilter === 'none') return !invoice.transportationId;
+    return invoice.transportationId === transporterFilter;
+  });
+
   // Helper function to display pagination pages
   const displayedPages = (currentPage: number, totalPages: number) => {
     const delta = 1;
@@ -117,11 +137,6 @@ export function DeliveredTable() {
 
             <div className="flex flex-row gap-2">
               <DatePicker date={deliveredSelectedDate} setDate={setDeliveredSelectedDate} />
-              {/* <Button
-                variant={'outline'}
-                disabled={!deliveredSelectedDate || moment(deliveredSelectedDate).isSame(moment(), 'day')}
-                onClick={() => setDeliveredSelectedDate(undefined)}
-              >Clear Date</Button> */}
             </div>
 
             <div className="flex items-center gap-2">
@@ -131,10 +146,30 @@ export function DeliveredTable() {
                 setSelectedRegionalCodes={setDeliveredSelectedRegionalCodes}
                 label="Regions"
               />
+              
+              <Select 
+                value={transporterFilter} 
+                onValueChange={setTransporterFilter}
+              >
+                <SelectTrigger className="h-8 w-[180px]">
+                  <SelectValue placeholder="Transporter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="none">No Transporter</SelectItem>
+                  {transporters?.map(transporter => (
+                    <SelectItem key={transporter.id} value={transporter.id}>
+                      {transporter.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
               <Button 
                 variant="outline" 
                 onClick={() => {
                   clearAllFilters();
+                  setTransporterFilter('all');
                 }}
                 className="flex items-center gap-1 ml-auto"
                 size="sm"
@@ -167,14 +202,14 @@ export function DeliveredTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && deliveredInvoices?.length === 0 ? (
+              {isLoading && filteredInvoices?.length === 0 ? (
                 <TableSkeleton rows={5} cols={10} />
-              ) : deliveredInvoices?.length === 0 ? (
+              ) : filteredInvoices?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center">No delivered packages</TableCell>
                 </TableRow>
               ) : (
-                deliveredInvoices?.map((invoice, index) => (
+                filteredInvoices?.map((invoice, index) => (
                   <TableRow key={invoice.invoiceNumber}>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>
@@ -189,10 +224,20 @@ export function DeliveredTable() {
                     <TableCell>{tweleHrFormatDateString(invoice.deliveredTimestamp!)}</TableCell>
                     <TableCell>{invoice.paymodeMode}</TableCell>
                     <TableCell>
-                      <ShowImage images={invoice.image} />
+                      <div className="flex items-center gap-2">
+                        <ShowImage images={invoice.image} text={`View`} />
+                        {invoice.isOtc && !invoice.transportationId && (
+                          <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
+                            <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                            </svg>
+                            OTC
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      {invoice.deliveredLocationLink ? (
+                      {!invoice.transportationId && invoice.deliveredLocationLink ? (
                         <Button variant="default" asChild>
                           <Link 
                             href={`https://www.google.com/maps?q=${invoice.deliveredLocationLink!.replace(',', '+')}`}
@@ -204,13 +249,10 @@ export function DeliveredTable() {
                             Open in Map
                           </Link>
                         </Button>
+                      ) : invoice.transportationId ? (
+                        <span>{invoice.transportationName}</span>
                       ) : (
-                        <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-700 rounded-full inline-flex items-center">
-                          <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                          </svg>
-                          OTC
-                        </span>
+                        <span>-</span>
                       )}
                     </TableCell>
                   </TableRow>

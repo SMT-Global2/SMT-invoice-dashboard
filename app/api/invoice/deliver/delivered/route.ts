@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
             },
             include: {
                 party: true,
+                transportation: true
             },
             orderBy: orderBy,
             skip,

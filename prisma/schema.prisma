@@ -132,6 +132,9 @@ model Invoice {
   pickupTimestamp   DateTime?
   // pickedUpBy        User? @relation("PickupToUser",fields: [pickupUsername], references: [username] , onDelete: NoAction)
 
+  transportationId  String?    @db.ObjectId
+  transportation    Transportation? @relation(fields: [transportationId], references: [id], onDelete: SetNull)
+
   deliveredUsername         String?
   deliveredTimestamp        DateTime?
   // deliveredBy               User? @relation("DeliveryToUser",fields: [deliveredUsername], references: [username] , onDelete: NoAction)
@@ -361,4 +364,19 @@ enum FormStatus {
   PENDING
   IN_PROGRESS
   RESOLVED
+}
+
+model Transportation {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  companyName       String
+  contactPersonName String?
+  contactNumber     String
+  email             String?
+  city              String
+  remarks           String?
+
+  invoices          Invoice[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }

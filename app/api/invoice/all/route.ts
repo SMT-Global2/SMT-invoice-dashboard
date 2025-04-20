@@ -21,15 +21,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '0')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const search = searchParams.get('search') || ''
-    const date = searchParams.get('date')
-    const sortField = searchParams.get('sortField') || 'invoiceTimestamp'
-    const sortOrder = searchParams.get('sortOrder') || 'desc'
-    const progressStage = searchParams.get('progressStage') || 'all'
-    const regionalCodesParam = searchParams.get('regionalCodes')
+    const searchParams = new URL(request.url).searchParams;
+    const page = parseInt(searchParams.get('page') || '0');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+    const sortField = searchParams.get('sortField') || 'invoiceTimestamp';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const progressStage = searchParams.get('progressStage') || 'all';
+    const date = searchParams.get('date');
+    const regionalCodesParam = searchParams.get('regionalCodes');
+    const transporterFilter = searchParams.get('transporterFilter') || 'all';
     const fetchAll = searchParams.get('fetchAll') === 'true'
 
     // Build where clause
@@ -134,6 +135,21 @@ export async function GET(request: Request) {
         break
     }
 
+    // Add transportation filter if specified
+    if (transporterFilter && transporterFilter !== 'all') {
+      if (transporterFilter === 'none') {
+        // Only invoices without transportation
+        where.AND.push({
+          transportationId: null
+        });
+      } else {
+        // Specific transporter
+        where.AND.push({
+          transportationId: transporterFilter
+        });
+      }
+    }
+
     // For analytics, fetch counts of invoices by status
     const [
       total, 
@@ -143,7 +159,8 @@ export async function GET(request: Request) {
       totalPickedUp,
       totalDelivered,
       totalBilled,
-      totalOTC
+      totalOTC,
+      totalTransportDeliveries
     ] = await Promise.all([
       prisma.invoice.count({ where }),
       prisma.invoice.findMany({
@@ -151,7 +168,8 @@ export async function GET(request: Request) {
         skip: page * limit,
         take: limit,
         include: {
-          party: true
+          party: true,
+          transportation: true
         },
         orderBy: {
           [sortField]: sortOrder
@@ -192,11 +210,21 @@ export async function GET(request: Request) {
           ...where,
           isOtc: true
         }
+      }),
+      prisma.invoice.count({ 
+        where: {
+          ...where,
+          deliveryStatus: DeliveryStatus.DELIVERED,
+          transportationId: { not: null }
+        }
       })
     ])
 
     return NextResponse.json({
-      invoices,
+      invoices: invoices.map(invoice => ({
+        ...invoice,
+        transportationName: invoice.transportation?.companyName || null
+      })),
       total,
       page,
       limit,
@@ -207,6 +235,7 @@ export async function GET(request: Request) {
         totalPacked,
         totalPickedUp,
         totalDelivered,
+        totalTransportDeliveries,
         totalBilled,
         totalOTC
       }

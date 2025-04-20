@@ -4,7 +4,7 @@ import moment from 'moment'
 
 export interface DeliveryMemoData {
   dmNumber: number
-  partyCode: string
+  partyCode: string | null
   medicalName: string
   city: string
   regionalCode: string
@@ -235,7 +235,7 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
               finalDeliveryMemos.push({
                 dmNumber: currentNo,
                 generatedDate: moment(date).startOf('day').toDate(),
-                partyCode: '',
+                partyCode: null,
                 medicalName: '-',
                 city: '-',
                 regionalCode: '-',
@@ -252,7 +252,7 @@ export const useDeliveryMemoStore = create<DeliveryMemoState>()(
               finalDeliveryMemos.push({
                 dmNumber: currentNo,
                 generatedDate: moment(date).startOf('day').toDate(),
-                partyCode: '',
+                partyCode: null,
                 medicalName: '-',
                 city: '-',
                 regionalCode: '-',

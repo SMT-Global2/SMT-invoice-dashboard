@@ -11,8 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { PlusIcon, Pencil, Trash2, Search } from "lucide-react"
-import { useAgencyStore } from "@/store/useAgencyStore"
-import { AgencyDialog } from "./agency-dialog"
+import { useTransportationStore } from "@/store/useTransportationStore"
+import { TransportationDialog } from "./transportation-dialog"
 import {
   Card,
   CardContent,
@@ -39,124 +39,103 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 
-export default function AgencyPage() {
+export default function TransportationPage() {
   const { 
-    agencies, 
-    fetchAgencies, 
-    deleteAgency, 
-    setSelectedAgency, 
+    transportations, 
+    fetchTransportations, 
+    deleteTransportation, 
+    setSelectedTransportation, 
     isLoading,
     pagination,
     totalPages,
     setPage,
     setItemsPerPage
-  } = useAgencyStore()
+  } = useTransportationStore()
 
   const [searchQuery, setSearchQuery] = useState("")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [agencyToDelete, setAgencyToDelete] = useState<string | null>(null)
+  const [transportationToDelete, setTransportationToDelete] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchAgencies(searchQuery)
-  }, [fetchAgencies, pagination.page, pagination.limit, searchQuery])
+    fetchTransportations(searchQuery)
+  }, [fetchTransportations, pagination.page, pagination.limit, searchQuery])
 
-  const handleEdit = (agency: any) => {
-    setSelectedAgency(agency)
+  const handleEdit = (transportation: any) => {
+    setSelectedTransportation(transportation)
   }
 
   const handleDelete = async (id: string) => {
-    await deleteAgency(id)
-    await fetchAgencies()
+    await deleteTransportation(id)
+    await fetchTransportations()
   }
 
   const handleAddNew = () => {
-    setSelectedAgency({
-      code: "",
+    setSelectedTransportation({
       companyName: "",
-      shortName: "",
+      contactPersonName: "",
+      contactNumber: "",
+      email: "",
+      city: "",
+      remarks: ""
     })
   }
 
-  const handleSearch = (value: string) => {
-    setSearchQuery(value)
-    setPage(0) // Reset to first page on search
-  }
-
-  const handleDeleteClick = (agencyId: string) => {
-    setAgencyToDelete(agencyId)
+  const handleDeleteClick = (transportationId: string) => {
+    setTransportationToDelete(transportationId)
     setIsDeleteDialogOpen(true)
   }
 
   const handleConfirmDelete = async () => {
-    if (agencyToDelete) {
-      await handleDelete(agencyToDelete)
+    if (transportationToDelete) {
+      await handleDelete(transportationToDelete)
       setIsDeleteDialogOpen(false)
-      setAgencyToDelete(null)
+      setTransportationToDelete(null)
     }
   }
 
+  const filteredTransportations = transportations;
+
   const displayedPages = () => {
-    const currentPage = pagination.page
-    const total = totalPages
-    const delta = 1 // Number of pages to show on each side of current page
-    
-    const range = []
-    for (
-      let i = Math.max(0, currentPage - delta);
-      i <= Math.min(total - 1, currentPage + delta);
-      i++
-    ) {
-      range.push(i)
+    const pages = [];
+    let start = Math.max(pagination.page - 2, 0);
+    let end = Math.min(pagination.page + 2, totalPages - 1);
+
+    if (start > 0) {
+      pages.push(-1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    if (end < totalPages - 1) {
+      pages.push(-1);
     }
 
-    if (range[0] > 0) {
-      if (range[0] > 1) {
-        range.unshift(-1) // -1 represents dots
-      }
-      range.unshift(0)
-    }
-
-    if (range[range.length - 1] < total - 1) {
-      if (range[range.length - 1] < total - 2) {
-        range.push(-1)
-      }
-      range.push(total - 1)
-    }
-
-    return range
+    return pages;
   }
 
   return (
     <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Agency Management</h1>
+        <h1 className="text-2xl font-bold">Transportation Management</h1>
       </div>
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
-          <CardTitle className="m-2">Agency List</CardTitle>
+          <CardTitle className="m-2">Transportation Companies</CardTitle>
           <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2 sm:gap-4">
             <div className="relative w-full sm:w-64 flex items-center">
               <Search className="absolute left-2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search by code..."
+                placeholder="Search transportation..."
                 className="pl-8 h-8 text-sm"
                 value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Button onClick={handleAddNew} size="sm" className="h-8 px-2 text-xs">
               <PlusIcon className="h-3 w-3 mr-1" />
-              Add Agency
+              Add Transportation
             </Button>
           </div>
         </CardHeader>
@@ -166,46 +145,48 @@ export default function AgencyPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Sr. No.</TableHead>
-                  <TableHead>Agency Code</TableHead>
                   <TableHead>Company Name</TableHead>
-                  <TableHead>Short Name</TableHead>
+                  <TableHead>Contact Person</TableHead>
+                  <TableHead>Contact Number</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>City</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && agencies?.length === 0 ? (
-                  <TableSkeleton rows={5} cols={5} />
-                ) : agencies?.length === 0 ? (
+                {isLoading && filteredTransportations?.length === 0 ? (
+                  <TableSkeleton rows={5} cols={7} />
+                ) : filteredTransportations?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                      No agencies found
+                    <TableCell colSpan={8} className="text-center">
+                      No transportation companies found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  agencies.map((agency, index) => (
-                    <TableRow key={agency.id}>
+                  filteredTransportations.map((transportation, index) => (
+                    <TableRow key={transportation.id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{transportation.companyName}</TableCell>
+                      <TableCell>{transportation.contactPersonName || '-'}</TableCell>
+                      <TableCell>{transportation.contactNumber}</TableCell>
+                      <TableCell>{transportation.email || '-'}</TableCell>
+                      <TableCell>{transportation.city}</TableCell>
                       <TableCell>
-                        {pagination.page * pagination.limit + index + 1}
-                      </TableCell>
-                      <TableCell>{agency.code}</TableCell>
-                      <TableCell>{agency.companyName || '-'}</TableCell>
-                      <TableCell>{agency.shortName || '-'}</TableCell>
-                      <TableCell>
-                        {agency.createdAt && format(new Date(agency.createdAt), 'd MMM yyyy')}
+                        {transportation.createdAt ? format(new Date(transportation.createdAt), 'd MMM yyyy') : '-'}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleEdit(agency)}
+                          onClick={() => handleEdit(transportation)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteClick(agency.id!)}
+                          onClick={() => handleDeleteClick(transportation.id!)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -216,7 +197,6 @@ export default function AgencyPage() {
               </TableBody>
             </Table>
           </div>
-
           <div className="mt-4 flex justify-center">
             <Pagination>
               <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
@@ -248,45 +228,31 @@ export default function AgencyPage() {
                     className={pagination.page >= totalPages - 1 ? 'pointer-events-none opacity-50' : ''}
                   />
                 </PaginationItem>
-
-                <div className="ml-4 border-l pl-4">
-                  <Select
-                    value={pagination.limit.toString()}
-                    onValueChange={(value) => setItemsPerPage(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-[100px] h-8">
-                      <SelectValue placeholder="Per page" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 / page</SelectItem>
-                      <SelectItem value="10">10 / page</SelectItem>
-                      <SelectItem value="20">20 / page</SelectItem>
-                      <SelectItem value="50">50 / page</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </PaginationContent>
             </Pagination>
           </div>
         </CardContent>
       </Card>
 
-      <AgencyDialog />
+      <TransportationDialog />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the agency code.
+              This action cannot be undone. This will permanently delete the
+              transportation company from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete}>
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   )
-}
+} 

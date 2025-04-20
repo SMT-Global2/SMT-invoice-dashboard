@@ -16,10 +16,10 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import useAnalyticsStore from '@/store/useAnalyticsStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Capsule } from '@/components/capsule';
 import { Input } from "@/components/ui/input"
-import { CheckCircle, CreditCard, FileText, Package, Search, Store, Truck, X } from "lucide-react"
+import { CheckCircle, CreditCard, FileText, Package, Search, Store, Truck, X, Download } from "lucide-react"
 import TableSkeleton from "@/components/table-skeleton"
 import {
   Pagination,
@@ -46,11 +46,15 @@ import { InvoiceCard } from "./invoice-card"
 import { tweleHrFormatDateString } from '@/lib/helper';
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
 import { FilterX } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function AdminInvoiceTable() {
   const {
     fetchAnalytics,
     fetchAvailableRegionalCodes,
+    fetchTransporters,
     allInvoices,
     analytics,
     filteredAnalytics,
@@ -62,8 +66,12 @@ export default function AdminInvoiceTable() {
     totalPages,
     availableRegionalCodes,
     setSelectedRegionalCodes,
-    clearAllFilters
+    transporters,
+    clearAllFilters,
+    fetchInvoicesForPDF
   } = useAnalyticsStore()
+  const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     fetchAnalytics()
@@ -71,7 +79,8 @@ export default function AdminInvoiceTable() {
   
   useEffect(() => {
     fetchAvailableRegionalCodes()
-  }, [fetchAvailableRegionalCodes])
+    fetchTransporters()
+  }, [fetchAvailableRegionalCodes, fetchTransporters])
 
   const displayedPages = () => {
     const currentPage = pagination.page
@@ -150,10 +159,10 @@ export default function AdminInvoiceTable() {
     completed++;
     
     stages++;
-    if (invoice.checkStatus === 'CHECKED') completed++;
+    if (invoice.checkTimestamp) completed++;
     
     stages++;
-    if (invoice.packageStatus === 'PACKED') completed++;
+    if (invoice.packageTimestamp) completed++;
     
     stages += 2;
     if (invoice.deliveryStatus === 'PICKED_UP') completed++;
@@ -163,6 +172,151 @@ export default function AdminInvoiceTable() {
     if (invoice.billedStatus === 'BILLED') completed++;
     
     return Math.round((completed / stages) * 100);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!filters.date) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a date to download the PDF.",
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      const invoicesToDownload = await fetchInvoicesForPDF(
+        filters.date,
+        filters.selectedRegionalCodes
+      );
+
+      if (invoicesToDownload.length === 0) {
+        toast({
+          variant: "default",
+          title: "No Data",
+          description: "No invoices found for the selected date and filters.",
+        });
+        return;
+      }
+
+      const doc = new jsPDF();
+      const tableRows: any[] = [];
+      const tableColumns = [
+        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", "Current Status"
+      ];
+
+      invoicesToDownload.forEach((invoice: any, index: number) => {
+        // Determine detailed status based on timestamps (using corrected field names)
+        let currentStatus = 'Generated'; // Default to Generated if invoice exists
+        if (invoice.deliveredTimestamp) {
+          currentStatus = 'Delivered';
+        } else if (invoice.pickupTimestamp) {
+          currentStatus = 'In Transit';
+        } else if (invoice.packageTimestamp) { // Corrected field name
+          currentStatus = 'Packed';
+        } else if (invoice.checkTimestamp) { // Corrected field name
+          currentStatus = 'Checked';
+        }
+
+        const invoiceData = [
+          index + 1,
+          invoice.invoiceNumber,
+          format(new Date(invoice.generatedDate!), 'dd/MM/yy'),
+          invoice.partyCode,
+          invoice.partyName || '-',
+          invoice.cityName || '-',
+          invoice.regionalCode || '-',
+          invoice.paymodeMode,
+          currentStatus
+        ];
+        tableRows.push(invoiceData);
+      });
+
+      const reportDate = format(new Date(filters.date), 'dd MMM yyyy');
+      
+      // --- PDF Header --- 
+      const headerText = 'Sanjivan Medico Traders';
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const headerFontSize = 16;
+      const subHeaderFontSize = 12; // Use a consistent font size for the sub-header line
+
+      doc.setFontSize(headerFontSize);
+      doc.setFont('helvetica', 'bold');
+      const headerWidth = doc.getTextWidth(headerText);
+      const headerX = (pageWidth - headerWidth) / 2;
+      doc.text(headerText, headerX, 15);
+
+      doc.setFontSize(subHeaderFontSize); // Set font size for the sub-header line
+      doc.setFont('helvetica', 'normal'); // Reset font style if needed
+
+      // Sub-header line: Title on left, Regions on right
+      const dateText = `Invoice Report - ${reportDate}`;
+      const regionsText = `Regions: ${
+        filters.selectedRegionalCodes.length > 0 ? filters.selectedRegionalCodes.join(', ') : 'All'
+      }`;
+
+      const regionsTextWidth = doc.getTextWidth(regionsText);
+
+      const margin = 14; // Left and right margin for the page
+      const dateTextX = margin; // Position date text at left margin
+      const regionsTextX = pageWidth - margin - regionsTextWidth; // Position regions text aligned to the right margin
+      const subHeaderY = 22; // Y position for this single line containing both texts
+
+      // Draw both text elements at the same Y coordinate (subHeaderY)
+      doc.text(dateText, dateTextX, subHeaderY);
+      doc.text(regionsText, regionsTextX, subHeaderY);
+
+      // --- PDF Table --- 
+      autoTable(doc, {
+        head: [tableColumns],
+        body: tableRows,
+        startY: subHeaderY + 5,
+        theme: 'grid',
+        styles: {
+          fontSize: 8.5,
+          cellPadding: 2,
+        },
+        headStyles: { 
+          fillColor: [29, 78, 216], 
+          textColor: 255, 
+          fontSize: 9, 
+          fontStyle: 'bold' 
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245] 
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 15 },
+          2: { cellWidth: 16 },
+          3: { cellWidth: 16 },
+          7: { cellWidth: 15 },
+          8: { cellWidth: 20 }
+        },
+        didDrawPage: (data) => {
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(
+            `Page ${data.pageNumber}`,
+            data.settings.margin.left,
+            doc.internal.pageSize.height - 6
+          );
+        }
+      });
+
+      doc.save(`Invoice-Report-${reportDate.replace(/ /g, '_')}.pdf`);
+
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -225,6 +379,29 @@ export default function AdminInvoiceTable() {
             </div>
 
             <Select
+              value={filters.transporterFilter}
+              onValueChange={(value) => {
+                setFilters({
+                  ...filters,
+                  transporterFilter: value
+                });
+                setPagination({ ...pagination, page: 0 });
+              }}
+            >
+              <SelectTrigger className="w-full md:w-auto h-9">
+                <SelectValue placeholder="Transport Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {transporters.map((transporter) => (
+                  <SelectItem key={transporter.id} value={transporter.id}>
+                    {transporter.companyName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
               value={filters.progressStage || 'all'}
               onValueChange={(value) => {
                 setFilters({
@@ -245,8 +422,6 @@ export default function AdminInvoiceTable() {
                 <SelectItem value="picked_up">Picked Up</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
                 <SelectItem value="billed">Billed</SelectItem>
-                {/* <SelectItem value="incomplete">Incomplete (&lt; 100%)</SelectItem>
-                <SelectItem value="complete">Complete (100%)</SelectItem> */}
               </SelectContent>
             </Select>
 
@@ -276,13 +451,35 @@ export default function AdminInvoiceTable() {
 
               <Button
                 variant="outline"
-                onClick={clearAllFilters}
+                onClick={handleDownloadPDF}
+                disabled={!filters.date || isDownloading}
                 className="h-9 flex items-center gap-1"
               >
-                <FilterX className="h-4 w-4" />
-                Clear
+                {isDownloading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download PDF
+                  </>
+                )}
               </Button>
             </div>
+
+            <Button
+              variant="outline"
+              onClick={clearAllFilters}
+              className="h-9 flex items-center gap-1"
+            >
+              <FilterX className="h-4 w-4" />
+              Clear
+            </Button>
           </div>
         </CardHeader>
 
@@ -294,12 +491,12 @@ export default function AdminInvoiceTable() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? filteredAnalytics.totalGenerated 
                   : analytics.totalGenerated}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? 'Filtered Invoices' 
                   : 'Invoices Generated'}
               </p>
@@ -313,12 +510,12 @@ export default function AdminInvoiceTable() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? filteredAnalytics.totalChecked 
                   : analytics.totalChecked}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? 'Filtered Checked' 
                   : 'Invoices Checked'}
               </p>
@@ -332,12 +529,12 @@ export default function AdminInvoiceTable() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? filteredAnalytics.totalPacked 
                   : analytics.totalPacked}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? 'Filtered Packed' 
                   : 'Invoices Packed'}
               </p>
@@ -351,14 +548,33 @@ export default function AdminInvoiceTable() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? filteredAnalytics.totalPickedUp 
                   : analytics.totalPickedUp}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? 'Filtered Picked Up' 
                   : 'Invoices Picked Up'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[13px] sm:text-sm font-medium truncate mr-2">Transport Deliveries</CardTitle>
+              <Truck className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
+                  ? filteredAnalytics.totalTransportDeliveries 
+                  : analytics.totalTransportDeliveries}
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
+                  ? 'Filtered Transport' 
+                  : 'Via Transport'}
               </p>
             </CardContent>
           </Card>
@@ -370,12 +586,12 @@ export default function AdminInvoiceTable() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? filteredAnalytics.totalDelivered 
                   : analytics.totalDelivered}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? 'Filtered Delivered' 
                   : 'Invoices Delivered'}
               </p>
@@ -389,12 +605,12 @@ export default function AdminInvoiceTable() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? filteredAnalytics.totalOTC 
                   : analytics.totalOTC}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? 'Filtered OTC' 
                   : 'Invoices OTC'}
               </p>
@@ -408,12 +624,12 @@ export default function AdminInvoiceTable() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? filteredAnalytics.totalBilled 
                   : analytics.totalBilled}
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 
+                {filters.progressStage !== 'all' || filters.searchQuery || filters.date || filters.selectedRegionalCodes.length > 0 || filters.transporterFilter !== 'all'
                   ? 'Filtered Billed' 
                   : 'Invoices Billed'}
               </p>

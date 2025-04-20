@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const from = searchParams.get('from') || moment().subtract(30, 'days').format('YYYY-MM-DD');
     const to = searchParams.get('to') || moment().format('YYYY-MM-DD');
-    const type = searchParams.get('type') || 'all'; // inventory, deliveryMemo, expiry, statement
+    const type = searchParams.get('type') || 'all'; // inventory, deliverymemo, expiry, statement
 
     const startDate = new Date(from);
     const endDate = new Date(to);
@@ -150,7 +150,7 @@ export async function GET(request: Request) {
       };
     }
 
-    if (type === 'all' || type === 'deliveryMemo') {
+    if (type === 'all' || type === 'deliverymemo') {
       // Get delivery memo analytics
       const [
         totalDmCount,

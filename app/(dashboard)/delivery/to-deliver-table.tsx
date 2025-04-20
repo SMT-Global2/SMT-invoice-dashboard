@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ShowImage } from '@/components/show-image';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
-import { FilterX, Printer } from 'lucide-react';
+import { FilterX, Printer, Truck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import {
@@ -38,17 +38,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { toDeliverPrintContent } from './to-deliver-pdf';
 import { format } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function ToDeliverTable() {
   const { toast } = useToast();
   const {
     toDeliverInvoices,
     pickupInvoice,
+    deliverWithTransportation,
     isLoading,
     clearAllFilters,
+
+    // Selection state
+    selectedInvoices,
+    setSelectedInvoices,
+    transporters,
+    fetchTransporters,
 
     toDeliverInvoicesForPrinting,
     fetchToDeliverInvoicesForPrinting,
@@ -73,6 +92,13 @@ export function ToDeliverTable() {
     setItemsPerPage
   } = useDeliveryInvoiceStore();
   const printRef = useRef<HTMLDivElement>(null);
+  const [selectedTransporterId, setSelectedTransporterId] = useState<string>('');
+  const [isTransportDialogOpen, setIsTransportDialogOpen] = useState(false);
+
+  // Fetch transporters when component mounts
+  useEffect(() => {
+    fetchTransporters();
+  }, [fetchTransporters]);
 
   const handlePickup = async (invoiceNumber: number) => {
     try {
@@ -91,6 +117,64 @@ export function ToDeliverTable() {
       });
     }
   }
+
+  const handleDeliverWithTransportation = async () => {
+    try {
+      if (!selectedTransporterId) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Please select a transportation company',
+          duration: 2000,
+        });
+        return;
+      }
+
+      if (selectedInvoices.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Please select at least one invoice',
+          duration: 2000,
+        });
+        return;
+      }
+
+      await deliverWithTransportation(selectedInvoices, selectedTransporterId);
+      setIsTransportDialogOpen(false);
+      
+      toast({
+        title: 'Success',
+        description: `${selectedInvoices.length} invoices delivered via transportation`,
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed',
+        description: error instanceof Error ? error.message : 'Failed to deliver with transportation',
+        duration: 2000,
+      });
+    }
+  };
+
+  const handleToggleSelectInvoice = (invoiceNumber: number) => {
+    setSelectedInvoices(
+      selectedInvoices.includes(invoiceNumber)
+        ? selectedInvoices.filter(num => num !== invoiceNumber)
+        : [...selectedInvoices, invoiceNumber]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedInvoices.length === toDeliverInvoices.length) {
+      // If all are selected, deselect all
+      setSelectedInvoices([]);
+    } else {
+      // Otherwise, select all
+      setSelectedInvoices(toDeliverInvoices.map(invoice => invoice.invoiceNumber));
+    }
+  };
 
   const handlePrintInvoices = async () => {
     try {
@@ -157,11 +241,6 @@ export function ToDeliverTable() {
 
             <div className="flex flex-row gap-2">
               <DatePicker date={toDeliverSelectedDate} setDate={setToDeliverSelectedDate} />
-              {/* <Button
-                variant={'outline'}
-                disabled={!toDeliverSelectedDate || moment(toDeliverSelectedDate).isSame(moment(), 'day')}
-                onClick={() => setToDeliverSelectedDate(undefined)}
-              >Clear Date</Button> */}
             </div>
 
             <div className="flex items-center gap-2">
@@ -189,6 +268,45 @@ export function ToDeliverTable() {
                 <Printer className="h-4 w-4" />
                 <span>Print</span>
               </Button>
+              
+              {selectedInvoices.length > 0 && (
+                <AlertDialog open={isTransportDialogOpen} onOpenChange={setIsTransportDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="default" className="gap-1">
+                      <Truck className="h-4 w-4" />
+                      Deliver with Transport
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Deliver with Transportation</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Select a transportation company to deliver {selectedInvoices.length} invoices.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="py-4">
+                      <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select transportation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.isArray(transporters) && transporters.map((transporter) => (
+                            <SelectItem key={transporter.id} value={transporter.id}>
+                              {transporter.companyName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeliverWithTransportation}>
+                        Deliver
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
 
@@ -199,6 +317,12 @@ export function ToDeliverTable() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={selectedInvoices.length === toDeliverInvoices.length && toDeliverInvoices.length > 0}
+                    onCheckedChange={handleToggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Sr. No.</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Invoice No.</TableHead>
@@ -216,11 +340,17 @@ export function ToDeliverTable() {
                 <TableSkeleton rows={5} cols={8} />
               ) : toDeliverInvoices?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">No packages to be delivered</TableCell>
+                  <TableCell colSpan={11} className="text-center">No packages to be delivered</TableCell>
                 </TableRow>
               ) : (
                 toDeliverInvoices?.map((invoice, index) => (
                   <TableRow key={invoice.invoiceNumber}>
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selectedInvoices.includes(invoice.invoiceNumber)}
+                        onCheckedChange={() => handleToggleSelectInvoice(invoice.invoiceNumber)}
+                      />
+                    </TableCell>
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}</TableCell>
                     <TableCell>{invoice.invoiceNumber}</TableCell>

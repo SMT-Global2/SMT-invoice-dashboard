@@ -84,8 +84,8 @@ export const InvoiceCard = ({ invoice }: { invoice: IInvoice }) => {
               <div className="space-y-1 text-sm">
                 <p><span className="text-muted-foreground">Generated:</span> {invoice.generatedDate ? format(new Date(invoice.generatedDate), 'd MMM yyyy') : 'N/A'}</p>
                 <p><span className="text-muted-foreground">OTC:</span> {invoice.isOtc ? "Yes" : "No"}</p>
-                {/* Provide default for comparison if invoiceTimestamp is missing */}
                 <p><span className="text-muted-foreground">Delayed:</span> {moment(invoice.generatedDate).isSame(moment(invoice.invoiceTimestamp || invoice.generatedDate), 'day') ? "No" : "Yes"}</p>
+                <p><span className="text-muted-foreground">Transported:</span> {invoice.transportationId ? `Yes (${invoice.transportationName || 'N/A'})` : 'No'}</p>
                 {invoice.image && invoice.image.length > 0 && (
                   <div className="pt-2">
                     <ShowImage images={invoice.image} text="View Invoice Images"/>

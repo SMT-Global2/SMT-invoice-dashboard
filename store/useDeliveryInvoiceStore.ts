@@ -13,6 +13,9 @@ export interface DeliveryInvoiceData extends InvoiceData {
   deliveredTimestamp: Date | null
   deliveredLocationLink: string | null
   
+  transportationId: string | null
+  transportationName: string | null
+  
   deliveryStatus: DeliveryStatus
 }
 
@@ -88,6 +91,17 @@ interface DeliveryInvoiceState {
   
   pickupInvoice: (invoiceNumber: number) => Promise<void>
   deliverInvoice: (invoiceNumber: number, location: { latitude: number, longitude: number }) => Promise<void>
+
+  // Selection state for bulk actions
+  selectedInvoices: number[]
+  transporters: { id: string, companyName: string }[]
+
+  // Selection actions
+  setSelectedInvoices: (invoiceNumbers: number[]) => void
+  fetchTransporters: () => Promise<void>
+  
+  // Transportation delivery
+  deliverWithTransportation: (invoiceNumbers: number[], transportationId: string) => Promise<void>
 }
 
 export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
@@ -453,6 +467,7 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
               medicalName: item?.party?.customerName || '-',
               city: item?.party?.city || '-',
               regionalCode: item?.party?.regionalCode || '-',
+              transportationName: item?.transportation?.companyName || '-',
             })),
             deliveredTotalPages: totalPages || 1,
             isLoading: false 
@@ -547,6 +562,72 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : 'Failed to deliver invoice', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      // Selection state
+      selectedInvoices: [],
+      transporters: [],
+
+      // Selection actions
+      setSelectedInvoices: (invoiceNumbers) => {
+        set({ selectedInvoices: invoiceNumbers });
+      },
+      
+      fetchTransporters: async () => {
+        try {
+          set({ isLoading: true });
+          const response = await fetch('/api/transportation');
+          if (!response.ok) throw new Error('Failed to fetch transporters');
+          
+          const result = await response.json();
+          // Extract the data array from the response
+          const transporterData = result.data || [];
+          set({ transporters: transporterData, isLoading: false });
+        } catch (error) {
+          console.error('Error fetching transporters:', error);
+          set({ transporters: [], isLoading: false });
+        }
+      },
+
+      deliverWithTransportation: async (invoiceNumbers: number[], transportationId: string) => {
+        try {
+          set({ isLoading: true });
+          
+          if (invoiceNumbers.length === 0) {
+            throw new Error('No invoices selected');
+          }
+
+          const response = await fetch('/api/invoice/deliver/transportation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              invoiceNumbers,
+              transportationId
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to deliver with transportation');
+          }
+
+          // Refresh all delivery invoices
+          await get().fetchAllDeliveryInvoices();
+          
+          // Clear selection
+          set({ selectedInvoices: [] });
+
+          set({ isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to deliver with transportation', 
             isLoading: false 
           });
           throw error;

@@ -139,7 +139,8 @@ export async function GET(request: Request) {
       checkers,
       packers,
       deliverers,
-      billers
+      billers,
+      totalTransportDeliveries
     ] = await Promise.all([
       prisma.invoice.count({ where }), // Total invoices generated
       prisma.invoice.count({ where: { ...where, checkStatus: CheckStatus.CHECKED } }),
@@ -194,7 +195,15 @@ export async function GET(request: Request) {
         },
         select: { billedUsername: true },
         distinct: ['billedUsername']
-      }).then(users => users.length)
+      }).then(users => users.length),
+      // Count invoices delivered via transportation
+      prisma.invoice.count({ 
+        where: { 
+          ...where, 
+          deliveryStatus: DeliveryStatus.DELIVERED,
+          transportationId: { not: null } 
+        } 
+      })
     ]);
 
     // Get previous period data for comparison
@@ -302,6 +311,7 @@ export async function GET(request: Request) {
         totalDelivered: totalDelivered ?? 0,
         totalOTC: totalOTC ?? 0,
         totalBilled: totalBilled ?? 0,
+        totalTransportDeliveries: totalTransportDeliveries ?? 0,
         processingEfficiency,
         billingRate,
         paymentDistribution: {

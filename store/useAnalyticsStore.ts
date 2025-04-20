@@ -2,15 +2,20 @@ import { create } from 'zustand'
 import { Invoice, CheckStatus, PackageStatus, DeliveryStatus, BilledStatus, PartyCode, User } from '@prisma/client'
 import { DateRange } from 'react-day-picker'
 import moment from 'moment'
+import { format } from 'date-fns'
 
 export interface IInvoice extends Invoice {
   party : PartyCode;
+  partyName?: string;
+  cityName?: string;
+  regionalCode?: string;
   invoicedBy ?: User;
   checkedBy ?: User;
   packedBy ?: User;
   pickedBy ?: User;
   deliveredBy ?: User;
   billedBy ?: User;
+  transportationName?: string;
 }
 
 // Analytics API response types
@@ -23,6 +28,7 @@ interface AnalyticsResponse {
     totalDelivered: number;
     totalOTC: number;
     totalBilled: number;
+    totalTransportDeliveries: number;
     processingEfficiency: number;
     billingRate: number;
     paymentDistribution: {
@@ -153,6 +159,7 @@ interface Analytics {
   totalPacked: number;
   totalPickedUp: number;
   totalDelivered: number;
+  totalTransportDeliveries: number;
   totalOTC: number;
   totalBilled: number;
   processingEfficiency: number;
@@ -178,6 +185,7 @@ interface FilterState {
   progressStage: ProgressStage;
   dateRange?: DateRange;
   selectedRegionalCodes: string[];
+  transporterFilter: string;
 }
 
 interface ExtendedAnalyticsResponse {
@@ -279,10 +287,13 @@ interface AnalyticsState {
   filters: FilterState;
   totalPages: number;
   availableRegionalCodes: string[];
+  transporters: { id: string, companyName: string }[];
   
   // Actions
   fetchAnalytics: () => Promise<void>;
   fetchAvailableRegionalCodes: () => Promise<void>;
+  fetchTransporters: () => Promise<void>;
+  fetchInvoicesForPDF: (date: string, regionalCodes?: string[]) => Promise<IInvoice[]>;
   
   // Analytics API functions
   fetchAnalyticsData: (dateRange?: DateRange) => Promise<AnalyticsResponse>;
@@ -332,6 +343,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     totalPacked: 0,
     totalPickedUp: 0,
     totalDelivered: 0,
+    totalTransportDeliveries: 0,
     totalOTC: 0,
     totalBilled: 0,
     processingEfficiency: 0,
@@ -351,6 +363,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     totalPacked: 0,
     totalPickedUp: 0,
     totalDelivered: 0,
+    totalTransportDeliveries: 0,
     totalOTC: 0,
     totalBilled: 0,
     processingEfficiency: 0,
@@ -365,19 +378,21 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
 
   pagination: {
     page: 0,
-    limit: 10
+    limit: 25
   },
   filters: {
     searchQuery: '',
-    date: new Date().toISOString(),
+    date: format(new Date(), 'yyyy-MM-dd'),
     sortField: 'invoiceTimestamp',
     sortOrder: 'desc',
     progressStage: 'all',
     dateRange: undefined,
-    selectedRegionalCodes: []
+    selectedRegionalCodes: [],
+    transporterFilter: 'all'
   },
   totalPages: 0,
   availableRegionalCodes: [],
+  transporters: [],
 
   setPagination: (pagination) => set({ pagination }),
   setFilters: (filters) => set({ filters }),
@@ -392,9 +407,10 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     filters: {
       ...state.filters,
       searchQuery: '',
-      date: new Date().toISOString(),
+      date: format(new Date(), 'yyyy-MM-dd'),
       selectedRegionalCodes: [],
       progressStage: 'all',
+      transporterFilter: 'all',
       sortField: 'invoiceTimestamp',
       sortOrder: 'desc'
     },
@@ -416,6 +432,19 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       set({ availableRegionalCodes: data.regionalCodes || [] });
     } catch (error) {
       console.error('Error fetching regional codes:', error);
+    }
+  },
+
+  fetchTransporters: async () => {
+    try {
+      const response = await fetch('/api/transportation');
+      if (!response.ok) throw new Error('Failed to fetch transporters');
+      
+      const result = await response.json();
+      set({ transporters: result.data || [] });
+    } catch (error) {
+      console.error('Error fetching transporters:', error);
+      set({ transporters: [] });
     }
   },
 
@@ -515,7 +544,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   fetchAnalytics: async () => {
     try {
       set({ isLoading: true, error: null });
-      const { dateRange, selectedRegionalCodes } = get().filters;
+      const { dateRange, selectedRegionalCodes, transporterFilter } = get().filters;
       
       // Create query parameters
       const params = new URLSearchParams();
@@ -533,6 +562,11 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       // Add regional codes if selected
       if (selectedRegionalCodes.length > 0) {
         params.append('regionalCodes', JSON.stringify(selectedRegionalCodes));
+      }
+      
+      // Add transporter filter if specified
+      if (transporterFilter !== 'all') {
+        params.append('transporterFilter', transporterFilter);
       }
       
       // Use the store's API functions to fetch data
@@ -586,6 +620,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         totalPacked: 0,
         totalPickedUp: 0,
         totalDelivered: 0,
+        totalTransportDeliveries: 0,
         totalOTC: 0,
         totalBilled: 0,
       };
@@ -614,6 +649,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
           totalPacked: 0,
           totalPickedUp: 0,
           totalDelivered: 0,
+          totalTransportDeliveries: 0,
           totalOTC: 0,
           totalBilled: 0,
           processingEfficiency: 0,
@@ -705,6 +741,30 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
           error: error instanceof Error ? error.message : 'An error occurred'
         }
       }));
+    }
+  },
+
+  fetchInvoicesForPDF: async (date, regionalCodes) => {
+    try {
+      const params = new URLSearchParams();
+      params.append('date', date); // Assumes date is already YYYY-MM-DD
+      if (regionalCodes && regionalCodes.length > 0) {
+        params.append('regionalCodes', JSON.stringify(regionalCodes));
+      }
+
+      const response = await fetch(`/api/analytics/invoices-for-pdf?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoices for PDF');
+      }
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch invoices for PDF');
+      }
+      return data.invoices || [];
+    } catch (error) {
+      console.error("Error in fetchInvoicesForPDF:", error);
+      // Optionally show a toast or set an error state here
+      return []; // Return empty array on error
     }
   },
 
