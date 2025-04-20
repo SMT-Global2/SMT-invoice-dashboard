@@ -31,16 +31,17 @@ export default function AnalyticsPage() {
       </div>
 
       <Tabs defaultValue="dashboards" className="w-full">
-        <TabsList className="flex w-full mb-6">
-          <TabsTrigger value="dashboards" className="flex-1">Invoice Analytics</TabsTrigger>
-          <TabsTrigger value="users" className="flex-1">User Performance</TabsTrigger>
-          <TabsTrigger value="table" className="flex-1">Invoices Table</TabsTrigger>
-          <TabsTrigger value="receipt" className="flex-1">Receipt</TabsTrigger>
-          <TabsTrigger value="inventory" className="flex-1">Inventory</TabsTrigger>
-          <TabsTrigger value="deliverymemo" className="flex-1">Delivery Memo</TabsTrigger>
-          <TabsTrigger value="expiry" className="flex-1">Expiry</TabsTrigger>
-        </TabsList>
         
+        <TabsList className="flex mb-6 overflow-x-auto scrollbar-hide">
+          <TabsTrigger value="dashboards" className="whitespace-nowrap px-2 sm:px-4">Invoice Analytics</TabsTrigger>
+          <TabsTrigger value="users" className="whitespace-nowrap px-2 sm:px-4">User Performance</TabsTrigger>
+          <TabsTrigger value="table" className="whitespace-nowrap px-2 sm:px-4">Invoices Table</TabsTrigger>
+          <TabsTrigger value="receipt" className="whitespace-nowrap px-2 sm:px-4">Receipt</TabsTrigger>
+          <TabsTrigger value="inventory" className="whitespace-nowrap px-2 sm:px-4">Inventory</TabsTrigger>
+          <TabsTrigger value="deliverymemo" className="whitespace-nowrap px-2 sm:px-4">Delivery Memo</TabsTrigger>
+          <TabsTrigger value="expiry" className="whitespace-nowrap px-2 sm:px-4">Expiry</TabsTrigger>
+        </TabsList>
+
         <TabsContent value="dashboards" className="space-y-6">
           <StatsCards />
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

@@ -126,56 +126,59 @@ export function UserPerformance() {
 
   return (
     <Card className="col-span-1 md:col-span-3">
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <UserRoundCog className="h-5 w-5" />
-            User Performance Analytics
-          </CardTitle>
-          <CardDescription>
-            Detailed analysis of user productivity and efficiency
-          </CardDescription>
-        </div>
-        <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-center">
-          <Input 
-            type="text"
-            placeholder="Search user..."
-            value={userSearchTerm}
-            onChange={(e) => setUserSearchTerm(e.target.value)}
-            className="w-[200px]"
-          />
-          <Select
-            value={selectedDepartment}
-            onValueChange={setSelectedDepartment}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Departments</SelectItem>
-              <SelectItem value="RECEIPT_MANAGEMENT">Receipt Management</SelectItem>
-              <SelectItem value="INVOICE_MANAGEMENT">Invoice Management</SelectItem>
-              <SelectItem value="PURCHASE_MANAGEMENT">Purchase Management</SelectItem>
-              <SelectItem value="DELIVERY_MEMO_MANAGEMENT">Delivery Memo Management</SelectItem>
-              <SelectItem value="ALL_ROUNDER">All-rounders</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={sortOption}
-            onValueChange={(value) => setSortOption(value as SortOption)}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Sort by..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="totalDesc">Highest Activity</SelectItem>
-              <SelectItem value="totalAsc">Lowest Activity</SelectItem>
-            </SelectContent>
-          </Select>
-          <DatePickerWithRange 
-            date={dateRange} 
-            setDate={setDateRange}
-          />
+      <CardHeader className="flex flex-col md:flex-row items-start justify-between">
+        <div className="flex flex-col gap-4 w-full">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserRoundCog className="h-5 w-5" />
+              User Performance Analytics
+            </CardTitle>
+            <CardDescription>
+              Detailed analysis of user productivity and efficiency
+            </CardDescription>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 w-full">
+            <Input 
+              type="text"
+              placeholder="Search user..."
+              value={userSearchTerm}
+              onChange={(e) => setUserSearchTerm(e.target.value)}
+              className="w-full"
+            />
+            <Select
+              value={selectedDepartment}
+              onValueChange={setSelectedDepartment}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Departments</SelectItem>
+                <SelectItem value="RECEIPT_MANAGEMENT">Receipt Management</SelectItem>
+                <SelectItem value="INVOICE_MANAGEMENT">Invoice Management</SelectItem>
+                <SelectItem value="PURCHASE_MANAGEMENT">Purchase Management</SelectItem>
+                <SelectItem value="DELIVERY_MEMO_MANAGEMENT">Delivery Memo Management</SelectItem>
+                <SelectItem value="ALL_ROUNDER">All-rounders</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={sortOption}
+              onValueChange={(value) => setSortOption(value as SortOption)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="totalDesc">Highest Activity</SelectItem>
+                <SelectItem value="totalAsc">Lowest Activity</SelectItem>
+              </SelectContent>
+            </Select>
+            <DatePickerWithRange 
+              date={dateRange} 
+              setDate={setDateRange}
+              className="w-full"
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
