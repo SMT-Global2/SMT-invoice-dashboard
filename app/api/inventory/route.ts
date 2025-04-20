@@ -102,7 +102,6 @@ export async function GET(req: NextRequest) {
       whereConditions.push({ inventoryCheckTimestamp: { not: null } });
       
       // Status filter (vouchered/checked)
-      console.log(status);
       if(status === "All Status") {
       } else if (status === "vouchered") {
         whereConditions.push({ inventoryVoucherTimestamp  : { not: null } });
@@ -113,7 +112,6 @@ export async function GET(req: NextRequest) {
       }
       
       // Image filter (uploaded/remaining)
-      console.log(image);
       if(image === "All Images") {
       } else if (image === "uploaded") {
         whereConditions.push({ 
@@ -130,8 +128,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(whereConditions);
-    
     // Search by agency code, invoice number, etc.
     if (search) {
       whereConditions.push({
