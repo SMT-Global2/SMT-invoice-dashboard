@@ -138,6 +138,12 @@ export async function GET(req: NextRequest) {
               mode: 'insensitive' 
             } 
           },
+          {
+            invoiceNumber: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
           { 
             agency: {
               OR: [

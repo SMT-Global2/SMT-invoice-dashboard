@@ -141,7 +141,7 @@ export default function ContactFormsPage() {
 
   const updateStatus = async (formId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/contact-form/${formId}`, {
+      const response = await fetch(`/api/contact-form?id=${formId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

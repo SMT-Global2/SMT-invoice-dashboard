@@ -296,6 +296,16 @@ export default function InvoicePage() {
         "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", "Current Status"
       ];
 
+      // Sort invoices by city
+      invoicesToDownload.sort((a : any, b : any) => {
+        const cityA = a.cityName ? a.cityName.toLowerCase() : '';
+        const cityB = b.cityName ? b.cityName.toLowerCase() : '';
+        if (cityA === cityB) {
+          return a.invoiceNumber - b.invoiceNumber;
+        }
+        return cityA.localeCompare(cityB);
+      });
+
       invoicesToDownload.forEach((invoice: any, index: number) => {
         // Determine detailed status based on timestamps (using corrected field names)
         let currentStatus = 'Generated'; // Default to Generated if invoice exists

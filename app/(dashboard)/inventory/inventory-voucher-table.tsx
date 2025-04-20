@@ -214,18 +214,23 @@ export function InventoryVoucherTable({
       </CardHeader>
       <CardContent>
         <div className="w-full border rounded-lg">
-          <div className="overflow-auto max-h-[65vh] relative">
+          <div className="overflow-auto max-h-[75vh] relative">
             <Table className="w-full">
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   <TableHead className="w-[60px]">Sr No.</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Generated Date</TableHead>
                   <TableHead>Agency Code</TableHead>
+                  <TableHead>Agency Short Name</TableHead>
                   <TableHead>Agency Name</TableHead>
                   <TableHead>Invoice No.</TableHead>
                   <TableHead>Invoice Date</TableHead>
-                  <TableHead>Order No.</TableHead>
-                  <TableHead>Order Date</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>LR. No.</TableHead>
+                  <TableHead>LR. Date</TableHead>
+                  <TableHead>Through</TableHead>
+                  <TableHead>Packages</TableHead>
                   <TableHead>Images</TableHead>
                   <TableHead>Voucher No.</TableHead>
                   <TableHead>Actions</TableHead>
@@ -261,12 +266,17 @@ export function InventoryVoucherTable({
                           />
                         )}
                       </TableCell>
+                      <TableCell>{inventory.generatedDate ? format(new Date(inventory.generatedDate), 'yyyy-MM-dd') : '-'}</TableCell>
                       <TableCell>{inventory.agencyCode}</TableCell>
-                      <TableCell>{inventory.agency?.companyName || inventory.agency?.shortName}</TableCell>
+                      <TableCell>{inventory.agency?.shortName}</TableCell>
+                      <TableCell>{inventory.agency?.companyName}</TableCell>
                       <TableCell>{inventory.invoiceNumber}</TableCell>
                       <TableCell>{format(new Date(inventory.invoiceDate), 'yyyy-MM-dd')}</TableCell>
-                      <TableCell>{inventory.orderNumber}</TableCell>
-                      <TableCell>{inventory.orderDate ? format(new Date(inventory.orderDate), 'yyyy-MM-dd') : '-'}</TableCell>
+                      <TableCell>{inventory?.dueDate ? format(new Date(inventory?.dueDate), 'yyyy-MM-dd') : '-'}</TableCell>
+                      <TableCell>{inventory.lrNumber}</TableCell>
+                      <TableCell>{inventory?.lrDate ? format(new Date(inventory?.lrDate), 'yyyy-MM-dd') : '-'}</TableCell>
+                      <TableCell>{inventory.through}</TableCell>
+                      <TableCell>{inventory.packages}</TableCell>
                       <TableCell>
                         <TakeImage
                           handleImageUpload={handleImageUpload}
