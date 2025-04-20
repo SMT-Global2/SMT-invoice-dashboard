@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useMemo } from 'react';
-import { Calendar, RotateCcw } from 'lucide-react';
+import { Calendar, RotateCcw, FilterX } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
@@ -121,8 +121,9 @@ export function BilledTable() {
       <CardHeader>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <CardTitle>Billed Invoices</CardTitle>
-          <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
-            <div className="w-full">
+          
+          <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row">
+            <div className="w-full md:w-[250px]">
               <Input
                 type="text"
                 placeholder="Search invoice number..."
@@ -131,7 +132,8 @@ export function BilledTable() {
                 className="w-full"
               />
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+
+            <div className="flex items-center gap-2">
               <Select
                 defaultValue="all"
                 onValueChange={(value) => {
@@ -160,11 +162,15 @@ export function BilledTable() {
               />
               <Button 
                 variant="outline" 
-                onClick={() => setBilledSelectedDate(undefined)}
+                onClick={() => {
+                  setBilledSelectedDate(undefined);
+                  setBilledSearchTerm("");
+                }}
                 className="flex items-center gap-1"
+                size="sm"
               >
-                <Calendar className="h-4 w-4" />
-                <span>Clear</span>
+                <FilterX className="h-4 w-4" />
+                <span>Clear All</span>
               </Button>
             </div>
           </div>
