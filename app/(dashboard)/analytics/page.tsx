@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useAnalyticsStore from "@/store/useAnalyticsStore";
 import { StatsCards } from "./stats-cards";
 import { TrendChart } from "./trend-chart";
@@ -15,14 +15,20 @@ import { InventoryAnalytics } from "./inventory-analytics";
 import { DeliveryMemoAnalytics } from "./delivery-memo-analytics";
 import { ExpiryAnalytics } from "./expiry-analytics";
 import { ReceiptAnalytics } from "./receipt-analytics";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AnalyticsPage() {
   const { fetchAnalytics, fetchExtendedAnalytics } = useAnalyticsStore();
+  const [activeTab, setActiveTab] = useState("dashboards");
 
   useEffect(() => {
     fetchAnalytics();
     fetchExtendedAnalytics();
   }, [fetchAnalytics, fetchExtendedAnalytics]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
 
   return (
     <div className="flex-1 w-full max-w-full space-y-6 px-1 sm:px-4 py-4">
@@ -30,16 +36,34 @@ export default function AnalyticsPage() {
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
       </div>
 
-      <Tabs defaultValue="dashboards" className="w-full">
-        
-        <TabsList className="flex mb-6 overflow-x-auto scrollbar-hide">
-          <TabsTrigger value="dashboards" className="whitespace-nowrap px-2 sm:px-4">Invoice Analytics</TabsTrigger>
-          <TabsTrigger value="users" className="whitespace-nowrap px-2 sm:px-4">User Performance</TabsTrigger>
-          <TabsTrigger value="table" className="whitespace-nowrap px-2 sm:px-4">Invoices Table</TabsTrigger>
-          <TabsTrigger value="receipt" className="whitespace-nowrap px-2 sm:px-4">Receipt</TabsTrigger>
-          <TabsTrigger value="inventory" className="whitespace-nowrap px-2 sm:px-4">Inventory</TabsTrigger>
-          <TabsTrigger value="deliverymemo" className="whitespace-nowrap px-2 sm:px-4">Delivery Memo</TabsTrigger>
-          <TabsTrigger value="expiry" className="whitespace-nowrap px-2 sm:px-4">Expiry</TabsTrigger>
+      {/* Mobile dropdown */}
+      <div className="md:hidden w-full mb-6">
+        <Select value={activeTab} onValueChange={handleTabChange}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select view" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="dashboards">Invoice Analytics</SelectItem>
+            <SelectItem value="users">User Performance</SelectItem>
+            <SelectItem value="table">Invoices Table</SelectItem>
+            <SelectItem value="receipt">Receipt</SelectItem>
+            <SelectItem value="inventory">Inventory</SelectItem>
+            <SelectItem value="deliverymemo">Delivery Memo</SelectItem>
+            <SelectItem value="expiry">Expiry</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        {/* Desktop tabs - hidden on mobile */}
+        <TabsList className="hidden md:flex mb-6 px-1 gap-2">
+          <TabsTrigger value="dashboards" className="px-4 py-2">Invoice Analytics</TabsTrigger>
+          <TabsTrigger value="users" className="px-4 py-2">User Performance</TabsTrigger>
+          <TabsTrigger value="table" className="px-4 py-2">Invoices Table</TabsTrigger>
+          <TabsTrigger value="receipt" className="px-4 py-2">Receipt</TabsTrigger>
+          <TabsTrigger value="inventory" className="px-4 py-2">Inventory</TabsTrigger>
+          <TabsTrigger value="deliverymemo" className="px-4 py-2">Delivery Memo</TabsTrigger>
+          <TabsTrigger value="expiry" className="px-4 py-2">Expiry</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboards" className="space-y-6">

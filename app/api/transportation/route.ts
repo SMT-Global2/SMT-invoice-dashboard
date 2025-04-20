@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { z } from 'zod'
@@ -45,9 +46,9 @@ export async function GET(request: NextRequest) {
         where: { id }
       })
       
-      if (!transportation) {
-        return NextResponse.json({ error: 'Transportation not found' }, { status: 404 })
-      }
+      // if (!transportation) {
+      //   return NextResponse.json({ error: 'Transportation not found' }, { status: 404 })
+      // }
       
       return NextResponse.json(transportation)
     }
@@ -56,9 +57,9 @@ export async function GET(request: NextRequest) {
     const where = search
       ? {
           OR: [
-            { companyName: { contains: search, mode: 'insensitive' } },
-            { city: { contains: search, mode: 'insensitive' } },
-            { contactPersonName: { contains: search, mode: 'insensitive' } }
+            { companyName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { city: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { contactPersonName: { contains: search, mode: Prisma.QueryMode.insensitive } }
           ],
         }
       : {}
