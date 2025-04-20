@@ -59,6 +59,7 @@ import { format } from "date-fns"
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Download, FilterX } from 'lucide-react';
+import { RegionalCodeFilter } from '@/components/regional-code-filter';
 
 export default function InvoicePage() {
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
@@ -80,11 +81,16 @@ export default function InvoicePage() {
     saveInvoice,
     resetInvoice,
     handleInvoices,
+    availableRegionalCodes,
+    selectedRegionalCodes,
+    setSelectedRegionalCodes,
+    fetchAvailableRegionalCodes,
   } = useInvoiceStore();
 
   useEffect(() => {
     handleInvoices();
-  }, [handleInvoices, selectedDate]);
+    fetchAvailableRegionalCodes();
+  }, [handleInvoices, selectedDate, fetchAvailableRegionalCodes]);
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -238,9 +244,17 @@ export default function InvoicePage() {
     }
   }
 
-  const filteredInvoices = invoices.filter(invoice => 
+  const filteredInvoicesByRegionalCode = invoices.filter(invoice => {
+    if(selectedRegionalCodes.length === 0) {
+      return true;
+    }
+    return selectedRegionalCodes.includes(invoice.regionalCode || '');
+  });
+
+  const filteredInvoices = filteredInvoicesByRegionalCode.filter(invoice => 
     invoice.invoiceNumber.toString().includes(invoiceSearchTerm.trim())
   );
+
 
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -268,6 +282,7 @@ export default function InvoicePage() {
       const params = new URLSearchParams();
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       params.append('date', formattedDate);
+      params.append('regionalCodes', JSON.stringify(selectedRegionalCodes));
 
       const response = await fetch(`/api/analytics/invoices-for-pdf?${params.toString()}`);
       if (!response.ok) {
@@ -426,6 +441,14 @@ export default function InvoicePage() {
                   className="w-full h-9"
                 />
               </div>
+              <div className='max-w-[200px]'>
+                <RegionalCodeFilter
+                  selectedRegionalCodes={selectedRegionalCodes}
+                  availableRegionalCodes={availableRegionalCodes}
+                  setSelectedRegionalCodes={setSelectedRegionalCodes}
+                  label="Regions"
+                />
+              </div>
               <div className="flex items-center justify-end gap-2">
                 <DatePicker date={selectedDate} setDate={setSelectedDate} />
                 <Button
@@ -449,17 +472,27 @@ export default function InvoicePage() {
                     </>
                   )}
                 </Button>
-                {(selectedDate && !moment(selectedDate).isSame(moment(), 'day')) ? (
+                {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setSelectedDate(moment().startOf('day').toDate())} 
+                    onClick={() => {
+                      if(selectedDate && !moment(selectedDate).isSame(moment(), 'day')) {
+                        setSelectedDate(moment().startOf('day').toDate())
+                      }
+
+                      if(selectedRegionalCodes.length > 0) {
+                        setSelectedRegionalCodes([])
+                      }
+                      
+                      setInvoiceSearchTerm('')
+                    }} 
                     title="Reset to today's date"
-                    className="h-9 w-9"
+                    className="h-9 w-16"
                   >
-                    <FilterX className="h-4 w-4" />
+                    <FilterX className="h-4 w-4" /> Clear
                   </Button>
-                ) : null}
+                }
               </div>
             </div>
           </div>

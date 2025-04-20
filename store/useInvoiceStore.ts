@@ -45,6 +45,11 @@ interface InvoiceState {
   fetchInvoices: (date?: Date | null) => Promise<void>
   saveInvoice: (invoiceNumber: number, isOtc?: boolean) => Promise<void>
   resetInvoice: (invoiceNumber: number) => Promise<void>
+
+  availableRegionalCodes: string[];
+  selectedRegionalCodes: string[];
+  setSelectedRegionalCodes: (codes: string[]) => void;
+  fetchAvailableRegionalCodes: () => Promise<void>;
 }
 
 export const useInvoiceStore = create<InvoiceState>()(
@@ -57,6 +62,10 @@ export const useInvoiceStore = create<InvoiceState>()(
       currentPage: 1,
       itemsPerPage: 100,
       isLoading: false,
+
+      availableRegionalCodes: [],
+      selectedRegionalCodes: [],
+      setSelectedRegionalCodes: (codes: string[]) => set({ selectedRegionalCodes: codes }),
 
       setInvoices: (invoices) => set({ invoices }),
       setSelectedDate: (date) => {
@@ -76,6 +85,22 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ invoices })
         }
       },
+
+      fetchAvailableRegionalCodes: async () => {
+        try {
+          const res = await fetch('/api/party-codes/regional-codes');
+          
+          if (!res.ok) {
+            throw new Error('Failed to fetch regional codes');
+          }
+          
+          const data = await res.json();
+          set({ availableRegionalCodes: data.regionalCodes || [] });
+        } catch (error) {
+          console.error('Error fetching regional codes:', error);
+        }
+      },
+    
 
       fetchInvoices: async (date = get().selectedDate) => {
         try {
