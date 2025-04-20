@@ -246,4 +246,15 @@ input[type="number"]::-webkit-outer-spin-button {
   margin: 0;
 }
 
+/* Hide arrows from number input */
+.hide-number-spinners::-webkit-outer-spin-button,
+.hide-number-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hide-number-spinners[type='number'] {
+  -moz-appearance: textfield;
+}
+
 

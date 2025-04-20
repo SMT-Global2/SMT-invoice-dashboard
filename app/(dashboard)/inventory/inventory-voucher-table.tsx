@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Search, Loader2, Save, RotateCcw } from 'lucide-react';
+import { CalendarIcon, Search, Loader2, Save, RotateCcw, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InventoryData } from '@/store/useInventoryStore';
 import { TakeImage } from '@/components/take-image';
@@ -57,7 +57,7 @@ import {
 interface InventoryVoucherTableProps {
   inventoryItems: InventoryData[];
   isLoading: boolean;
-  uploadingImage: number | null;
+  uploadingImage: string | null;
   searchTerm: string;
   setSearchTerm: (value: string) => void;
   selectedDate: Date | undefined;
@@ -69,7 +69,11 @@ interface InventoryVoucherTableProps {
   setItemsPerPage: (count: number) => void;
   onSaveVoucher: (id: string, voucherNumber: number) => Promise<void>;
   onResetVoucher: (id: string) => Promise<void>;
-  handleImageUpload: (id: number) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleImageUpload: (id: string) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+  statusFilter: string | null;
+  setStatusFilter: (status: string | null) => void;
+  imageFilter: string | null;
+  setImageFilter: (filter: string | null) => void;
 }
 
 export function InventoryVoucherTable({
@@ -88,6 +92,10 @@ export function InventoryVoucherTable({
   onSaveVoucher,
   onResetVoucher,
   handleImageUpload,
+  statusFilter,
+  setStatusFilter,
+  imageFilter,
+  setImageFilter,
 }: InventoryVoucherTableProps) {
   const [voucherNumbers, setVoucherNumbers] = useState<{ [key: string]: number }>({});
 
@@ -154,13 +162,47 @@ export function InventoryVoucherTable({
               </div>
             </div>
             <div className="flex items-center justify-end gap-2">
+              <Select
+                value={statusFilter || 'All Status'}
+                onValueChange={(value) => setStatusFilter(value === '' ? null : value)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Status">All Status</SelectItem>
+                  <SelectItem value="vouchered">Vouchered</SelectItem>
+                  {/* <SelectItem value="checked">Checked</SelectItem> */}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={imageFilter || 'All Images'}
+                onValueChange={(value) => setImageFilter(value === '' ? null : value)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Bill Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Images">All Bills</SelectItem>
+                  <SelectItem value="uploaded">Bill Uploaded</SelectItem>
+                  <SelectItem value="remaining">Bill Remaining</SelectItem>
+                </SelectContent>
+              </Select>
+            
               <DatePicker
                 date={selectedDate}
                 setDate={setSelectedDate}
               />
+              
               <Button 
                 variant="outline" 
-                onClick={() => setSelectedDate(undefined)}
+                onClick={() => {  
+                  setSelectedDate(undefined);
+                  setStatusFilter(null);
+                  setImageFilter(null);
+                  setSearchTerm('');
+                }}
                 className="flex items-center gap-1"
               >
                 <CalendarIcon className="h-4 w-4" />
@@ -224,13 +266,13 @@ export function InventoryVoucherTable({
                       <TableCell>{inventory.invoiceNumber}</TableCell>
                       <TableCell>{format(new Date(inventory.invoiceDate), 'yyyy-MM-dd')}</TableCell>
                       <TableCell>{inventory.orderNumber}</TableCell>
-                      <TableCell>{format(new Date(inventory.orderDate), 'yyyy-MM-dd')}</TableCell>
+                      <TableCell>{inventory.orderDate ? format(new Date(inventory.orderDate), 'yyyy-MM-dd') : '-'}</TableCell>
                       <TableCell>
                         <TakeImage
                           handleImageUpload={handleImageUpload}
                           imageKey={inventory.invoiceNumber}
                           isUploading={uploadingImage === inventory.invoiceNumber}
-                          isDisabled={!!inventory.voucherNumber}
+                          isDisabled={false}
                           showImages={inventory.image}
                           takeType="BOTH"
                         />
@@ -242,9 +284,9 @@ export function InventoryVoucherTable({
                           <Input
                             type="number"
                             placeholder="Enter voucher..."
-                            className="w-32"
                             value={voucherNumbers[inventory.id] || ''}
                             onChange={(e) => handleVoucherNumberChange(inventory.id, e.target.value)}
+                            className="hide-number-spinners w-[120px]"
                           />
                         )}
                       </TableCell>
@@ -254,7 +296,6 @@ export function InventoryVoucherTable({
                             variant="default"
                             size="sm"
                             onClick={() => handleSaveClick(inventory.id)}
-                            disabled={!voucherNumbers[inventory.id] || inventory.image.length === 0 || !!inventory.voucherNumber}
                             className="flex items-center gap-1"
                           >
                             <Save className="h-3 w-3" />

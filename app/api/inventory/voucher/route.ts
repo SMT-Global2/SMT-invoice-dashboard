@@ -2,16 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { z } from "zod";
+import { z } from 'zod';
 
-// Validation schemas
-const idParamSchema = z.object({
-  id: z.string()
-});
+
 
 const voucherSchema = z.object({
   voucherNumber: z.coerce.number().positive("Voucher number is required"),
-  image: z.array(z.string()).min(1, "Atleast one image is required")
+  image: z.array(z.string())
 });
 
 export async function POST(req: NextRequest) {

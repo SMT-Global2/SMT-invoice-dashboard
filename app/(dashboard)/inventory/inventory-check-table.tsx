@@ -137,7 +137,10 @@ export function InventoryCheckTable({
               />
               <Button 
                 variant="outline" 
-                onClick={() => setSelectedDate(undefined)}
+                onClick={() => {
+                  setSelectedDate(undefined);
+                  setSearchTerm('');
+                }}
                 className="flex items-center gap-1"
               >
                 <CalendarIcon className="h-4 w-4" />
@@ -183,7 +186,7 @@ export function InventoryCheckTable({
                       <TableCell>{inventory.invoiceNumber}</TableCell>
                       <TableCell>{tweleHrFormatDateString(inventory.invoiceDate)}</TableCell>
                       <TableCell>{inventory.orderNumber}</TableCell>
-                      <TableCell>{tweleHrFormatDateString(inventory.orderDate)}</TableCell>
+                      <TableCell>{inventory.orderDate ? tweleHrFormatDateString(inventory.orderDate) : '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

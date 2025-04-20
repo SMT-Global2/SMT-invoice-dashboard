@@ -4,7 +4,7 @@ import moment from 'moment'
 import { PaymodeMode } from '@prisma/client'
 
 export interface InvoiceData {
-  invoiceNumber: number
+  invoiceNumber: string
   partyCode: string
   medicalName: string
   isOtc: boolean
@@ -31,12 +31,12 @@ interface InvoiceState {
   setSelectedDate: (date: Date | undefined) => void
   setCurrentPage: (page: number) => void
 
-  updateInvoiceImage: (sr: number, image: string) => void
+  updateInvoiceImage: (sr: string, image: string) => void
   handleInvoices: () => Promise<void>
 
   fetchInvoices: (date?: Date | null) => Promise<void>
-  saveInvoice: (invoiceNumber: number, isOtc?: boolean) => Promise<void>
-  resetInvoice: (invoiceNumber: number) => Promise<void>
+  saveInvoice: (invoiceNumber: string, isOtc?: boolean) => Promise<void>
+  resetInvoice: (invoiceNumber: string) => Promise<void>
 }
 
 export const useInvoiceStore = create<InvoiceState>()(
@@ -188,7 +188,7 @@ export const useInvoiceStore = create<InvoiceState>()(
         }
       },
 
-      saveInvoice: async (invoiceNumber: number , isOtc?: boolean) => {
+      saveInvoice: async (invoiceNumber: string , isOtc?: boolean) => {
         try {
           set({ isLoading: true });
           
@@ -253,7 +253,7 @@ export const useInvoiceStore = create<InvoiceState>()(
         }
       },
 
-      resetInvoice: async (invoiceNumber: number) => {
+      resetInvoice: async (invoiceNumber: string) => {
         try {
           set({ isLoading: true });
           

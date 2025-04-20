@@ -13,7 +13,7 @@ import { compressImage, convertImage, uploadFileToS3 } from '@/lib/helper';
 
 export default function InventoryPage() {
   const { toast } = useToast();
-  const [uploadingImage, setUploadingImage] = useState<number | null>(null);
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   
   // Global state from inventory store
   const {
@@ -39,6 +39,17 @@ export default function InventoryPage() {
     addVoucher,
     resetVoucher,
     updateInventoryItemImage,
+
+    statusFilter,
+    setStatusFilter,
+    imageFilter,
+    setImageFilter,
+
+    selectedInventoryDate,
+    setSelectedInventoryDate,
+    selectedVoucherDate,
+    setSelectedVoucherDate,
+
     
     // Dialog state
     isDialogOpen,
@@ -53,8 +64,8 @@ export default function InventoryPage() {
   // Local state for search and filter
   const [searchTerm, setSearchTerm] = useState("");
   const [voucherSearchTerm, setVoucherSearchTerm] = useState("");
-  const [selectedInventoryDate, setSelectedInventoryDate] = useState<Date | undefined>(new Date());
-  const [selectedVoucherDate, setSelectedVoucherDate] = useState<Date | undefined>(undefined);
+  // const [selectedInventoryDate, setSelectedInventoryDate] = useState<Date | undefined>(new Date());
+  // const [selectedVoucherDate, setSelectedVoucherDate] = useState<Date | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("check");
 
   // Initial data fetch
@@ -72,6 +83,8 @@ export default function InventoryPage() {
         limit: voucherItemsPerPage,
         search: voucherSearchTerm,
         date: selectedVoucherDate,
+        statusFilter,
+        imageFilter
       });
     }
   }, [
@@ -84,6 +97,8 @@ export default function InventoryPage() {
     voucherSearchTerm,
     selectedInventoryDate,
     selectedVoucherDate,
+    statusFilter,
+    imageFilter
   ]);
 
   // Handle add button click
@@ -169,7 +184,7 @@ export default function InventoryPage() {
   };
 
   // Handle image upload
-  const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (invoiceNumber: string) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const file = event.target.files?.[0];
       if (!file) return;
@@ -268,6 +283,10 @@ export default function InventoryPage() {
             onSaveVoucher={handleSaveVoucher}
             onResetVoucher={handleResetVoucher}
             handleImageUpload={handleImageUpload}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            imageFilter={imageFilter}
+            setImageFilter={setImageFilter}
           />
         </TabsContent>
       </Tabs>

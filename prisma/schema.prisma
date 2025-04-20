@@ -157,6 +157,7 @@ model Inventory {
   invoiceNumber     String
   invoiceDate       DateTime
   dueDate           DateTime?
+  
   lrNumber          String?
   lrDate            DateTime?
   through           String?

@@ -14,6 +14,8 @@ const getQuerySchema = z.object({
   date: z.string().nullable().optional(),
   id: z.string().nullable().optional(), // Added ID parameter for individual item operations
   voucher: z.string().nullable().optional(), // Add voucher parameter
+  status: z.string().nullable().optional(), // Add status filter parameter
+  image: z.string().nullable().optional(), // Add image filter parameter
 });
 
 const createInventorySchema = z.object({
@@ -21,10 +23,10 @@ const createInventorySchema = z.object({
   invoiceNumber: z.string().min(1, "Bill / Order / Invoice No. is required"),
   invoiceDate: z.coerce.date().or(z.string().transform(str => new Date(str))),
   dueDate: z.coerce.date().or(z.string().transform(str => new Date(str))).optional(),
-  lrNumber: z.string().optional(),
-  lrDate: z.coerce.date().or(z.string().transform(str => new Date(str))).optional(),
-  through: z.string().optional(),
-  packages: z.string().optional(),
+  lrNumber: z.string().nullable().optional(),
+  lrDate: z.coerce.date().or(z.string().transform(str => new Date(str))).nullable().optional(),
+  through: z.string().nullable().optional(),
+  packages: z.string().nullable().optional(),
   generatedDate: z.coerce.date().or(z.string().transform(str => new Date(str))).default(new Date()),
 });
 
@@ -33,10 +35,10 @@ const updateInventorySchema = z.object({
   invoiceNumber: z.string().min(1, "Bill / Order / Invoice No. is required").optional(),
   invoiceDate: z.coerce.date().optional(),
   dueDate: z.coerce.date().optional(),
-  lrNumber: z.string().optional(),
-  lrDate: z.coerce.date().optional(),
-  through: z.string().optional(),
-  packages: z.string().optional(),
+  lrNumber: z.string().nullable().optional(),
+  lrDate: z.coerce.date().nullable().optional(),
+  through: z.string().nullable().optional(),
+  packages: z.string().nullable().optional(),
   generatedDate: z.coerce.date().optional(),
   image: z.array(z.string()).optional(),
 });
@@ -62,13 +64,15 @@ export async function GET(req: NextRequest) {
       date: url.searchParams.get("date"),
       id: url.searchParams.get("id"), // Get ID from query params
       voucher: url.searchParams.get("voucher"), // Get voucher parameter
+      status: url.searchParams.get("status"), // Get status filter
+      image: url.searchParams.get("image"), // Get image filter
     });
     
     if (!queryParsed.success) {
       return NextResponse.json({ message: 'Invalid query parameters', errors: queryParsed.error.flatten() }, { status: 400 });
     }
     
-    const { page, limit, search, date, id, voucher } = queryParsed.data;
+    const { page, limit, search, date, id, voucher, status, image } = queryParsed.data;
     
     // If ID is provided, return a single item
     if (id) {
@@ -90,54 +94,89 @@ export async function GET(req: NextRequest) {
     // Check if searching for voucher items (items that have been checked)
     const isVoucher = voucher === "true";
     
-    // Otherwise, return paginated list
-    const query: Prisma.InventoryFindManyArgs = {
-      where: {
-        AND: [ 
-          // Filter by voucher status
-          isVoucher ? 
-          { inventoryCheckUsername: { not: null } } : // Already checked items (for voucher table)
-          {}, // All items (for check table)
-          
-          // Search by agency code, invoice number, etc.
-          search ? {
-            OR: [
-              { 
-                agencyCode: { 
-                  contains: search, 
-                  mode: 'insensitive' 
-                } 
-              },
-              { 
-                agency: {
-                  OR: [
-                    { 
-                      companyName: { 
-                        contains: search, 
-                        mode: 'insensitive' 
-                      } 
-                    },
-                    { 
-                      shortName: { 
-                        contains: search, 
-                        mode: 'insensitive' 
-                      } 
-                    }
-                  ]
+    // Build the WHERE clause for the query
+    const whereConditions: Prisma.InventoryWhereInput[] = [];
+    
+    // Base condition for voucher items (always checked items)
+    if (isVoucher) {
+      whereConditions.push({ inventoryCheckTimestamp: { not: null } });
+      
+      // Status filter (vouchered/checked)
+      console.log(status);
+      if(status === "All Status") {
+      } else if (status === "vouchered") {
+        whereConditions.push({ inventoryVoucherTimestamp  : { not: null } });
+      } else if (status === "checked") {
+        whereConditions.push({ 
+          inventoryVoucherTimestamp: null 
+        });
+      }
+      
+      // Image filter (uploaded/remaining)
+      console.log(image);
+      if(image === "All Images") {
+      } else if (image === "uploaded") {
+        whereConditions.push({ 
+          image: { 
+            isEmpty: false 
+          } 
+        });
+      } else if (image === "remaining") {
+        whereConditions.push({ 
+          image: { 
+            isEmpty: true 
+          } 
+        });
+      }
+    }
+
+    console.log(whereConditions);
+    
+    // Search by agency code, invoice number, etc.
+    if (search) {
+      whereConditions.push({
+        OR: [
+          { 
+            agencyCode: { 
+              contains: search, 
+              mode: 'insensitive' 
+            } 
+          },
+          { 
+            agency: {
+              OR: [
+                { 
+                  companyName: { 
+                    contains: search, 
+                    mode: 'insensitive' 
+                  } 
+                },
+                { 
+                  shortName: { 
+                    contains: search, 
+                    mode: 'insensitive' 
+                  } 
                 }
-              }
-            ]
-          } : {},
-          
-          // Filter by date
-          date ? {
-            generatedDate: {
-              gte: moment(date).startOf('day').toDate(),
-              lt: moment(date).endOf('day').toDate()
+              ]
             }
-          } : {},
+          }
         ]
-      },
+      });
+    }
+    
+    // Filter by date
+    if (date) {
+      whereConditions.push({
+        generatedDate: {
+          gte: moment(date).startOf('day').toDate(),
+          lt: moment(date).endOf('day').toDate()
+        }
+      });
+    }
+    
+    // Build the final query
+    const query: Prisma.InventoryFindManyArgs = {
+      where: whereConditions.length > 0 ? { AND: whereConditions } : {},
       include: {
         agency: true
       },
@@ -163,8 +202,8 @@ export async function GET(req: NextRequest) {
       totalItems: total
     });
     
-  } catch (error) {
-    console.error("Error fetching inventory items:", error);
+  } catch (error : any) {
+    console.error("Error fetching inventory items:", error.message);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

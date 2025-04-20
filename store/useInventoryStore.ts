@@ -48,6 +48,16 @@ interface InventoryState {
   voucherCurrentPage: number
   voucherTotalPages: number
   voucherItemsPerPage: number
+
+  selectedInventoryDate: Date  | undefined
+  setSelectedInventoryDate: (date: Date  | undefined) => void
+  selectedVoucherDate: Date  | undefined
+  setSelectedVoucherDate: (date: Date  | undefined) => void
+
+  statusFilter: string | null
+  setStatusFilter: (status: string | null) => void
+  imageFilter: string | null
+  setImageFilter: (filter: string | null) => void
   
   // Actions
   fetchInventoryItems: (params: {
@@ -61,6 +71,8 @@ interface InventoryState {
     limit: number;
     search?: string;
     date?: Date;
+    statusFilter?: string | null;
+    imageFilter?: string | null;
   }) => Promise<void>
   fetchInventoryItemById: (id: string) => Promise<InventoryData | null>
   createInventoryItem: (data: Partial<InventoryData>) => Promise<void>
@@ -107,6 +119,14 @@ export const useInventoryStore = create<InventoryState>()(
       voucherCurrentPage: 1,
       voucherTotalPages: 1,
       voucherItemsPerPage: 10,
+
+      statusFilter: "All Status",
+      imageFilter: "All Images",
+
+      selectedInventoryDate: new Date(),
+      selectedVoucherDate: undefined,
+      setSelectedInventoryDate: (date) => set({ selectedInventoryDate: date }),
+      setSelectedVoucherDate: (date) => set({ selectedVoucherDate: date }),
       
       // Dialog actions
       setIsDialogOpen: (isOpen) => set({ isDialogOpen: isOpen }),
@@ -118,7 +138,10 @@ export const useInventoryStore = create<InventoryState>()(
       setItemsPerPage: (count) => set({ itemsPerPage: count, currentPage: 1 }),
       setVoucherCurrentPage: (page) => set({ voucherCurrentPage: page }),
       setVoucherItemsPerPage: (count) => set({ voucherItemsPerPage: count, voucherCurrentPage: 1 }),
-      
+      setStatusFilter: (status) => set({ statusFilter: status }),
+      setImageFilter: (filter) => set({ imageFilter: filter }),
+
+
       // API calls
       fetchInventoryItems: async ({ page, limit, search, date }) => {
         try {
@@ -155,7 +178,7 @@ export const useInventoryStore = create<InventoryState>()(
         }
       },
       
-      fetchVoucherItems: async ({ page, limit, search, date }) => {
+      fetchVoucherItems: async ({ page, limit, search, date, statusFilter, imageFilter }) => {
         try {
           set({ isLoading: true, error: null });
           
@@ -170,6 +193,14 @@ export const useInventoryStore = create<InventoryState>()(
           
           if (date) {
             url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
+          }
+          
+          if (statusFilter) {
+            url.searchParams.set('status', statusFilter);
+          }
+          
+          if (imageFilter) {
+            url.searchParams.set('image', imageFilter);
           }
           
           const response = await fetch(url.toString());
@@ -233,8 +264,8 @@ export const useInventoryStore = create<InventoryState>()(
           }
           
           // Refresh the list
-          const { currentPage, itemsPerPage } = get();
-          await get().fetchInventoryItems({ page: currentPage, limit: itemsPerPage });
+          const { currentPage, itemsPerPage , selectedInventoryDate } = get();
+          await get().fetchInventoryItems({ page: currentPage, limit: itemsPerPage , date: selectedInventoryDate });
           set({ isLoading: false, isDialogOpen: false });
           
         } catch (error) {
@@ -267,9 +298,24 @@ export const useInventoryStore = create<InventoryState>()(
           }
           
           // Refresh the lists
-          const { currentPage, itemsPerPage, voucherCurrentPage, voucherItemsPerPage } = get();
-          await get().fetchInventoryItems({ page: currentPage, limit: itemsPerPage });
-          await get().fetchVoucherItems({ page: voucherCurrentPage, limit: voucherItemsPerPage });
+          const { 
+            currentPage, 
+            itemsPerPage, 
+            voucherCurrentPage, 
+            voucherItemsPerPage , 
+            statusFilter, 
+            imageFilter , 
+            selectedInventoryDate , 
+            selectedVoucherDate 
+          } = get();
+          await get().fetchInventoryItems({ page: currentPage, limit: itemsPerPage , date: selectedInventoryDate });
+          await get().fetchVoucherItems({ 
+            page: voucherCurrentPage, 
+            limit: voucherItemsPerPage , 
+            statusFilter: statusFilter,
+            imageFilter: imageFilter,
+            date: selectedVoucherDate
+          });
           
           set({ isLoading: false, isDialogOpen: false });
           
@@ -299,8 +345,8 @@ export const useInventoryStore = create<InventoryState>()(
           }
           
           // Refresh the lists
-          const { currentPage, itemsPerPage } = get();
-          await get().fetchInventoryItems({ page: currentPage, limit: itemsPerPage });
+          const { currentPage, itemsPerPage , selectedInventoryDate } = get();
+          await get().fetchInventoryItems({ page: currentPage, limit: itemsPerPage , date: selectedInventoryDate });
           
           set({ isLoading: false });
           
@@ -326,12 +372,15 @@ export const useInventoryStore = create<InventoryState>()(
         try {
           set({ isLoading: true, error: null });
           const voucherItem = get().voucherItems.find((item) => item.id === id);
-          const image = voucherItem?.image;
+          let image = voucherItem?.image;
           
-          if(!image || image.length === 0) {
-            throw new Error('Atleast one image is required');
-          }
+          // if(!image || image.length === 0) {
+          //   throw new Error('Atleast one image is required');
+          // }
 
+          if(!image || image.length === 0) {
+            image = [];
+          }   
           const url = new URL('/api/inventory/voucher', window.location.origin);
           url.searchParams.set('id', id);
           
@@ -349,8 +398,14 @@ export const useInventoryStore = create<InventoryState>()(
           }
           
           // Refresh the lists
-          const { voucherCurrentPage, voucherItemsPerPage } = get();
-          await get().fetchVoucherItems({ page: voucherCurrentPage, limit: voucherItemsPerPage });
+          const { voucherCurrentPage, voucherItemsPerPage , statusFilter, imageFilter , selectedVoucherDate } = get();
+          await get().fetchVoucherItems({ 
+            page: voucherCurrentPage, 
+            limit: voucherItemsPerPage , 
+            statusFilter: statusFilter, 
+            imageFilter: imageFilter,
+            date: selectedVoucherDate
+          });
           
           set({ isLoading: false });
           
@@ -380,8 +435,14 @@ export const useInventoryStore = create<InventoryState>()(
           }
           
           // Refresh the lists
-          const { voucherCurrentPage, voucherItemsPerPage } = get();
-          await get().fetchVoucherItems({ page: voucherCurrentPage, limit: voucherItemsPerPage });
+          const { voucherCurrentPage, voucherItemsPerPage , statusFilter, imageFilter , selectedVoucherDate } = get();
+          await get().fetchVoucherItems({ 
+            page: voucherCurrentPage, 
+            limit: voucherItemsPerPage , 
+            statusFilter: statusFilter, 
+            imageFilter: imageFilter,
+            date: selectedVoucherDate
+          });
           
           set({ isLoading: false });
           
