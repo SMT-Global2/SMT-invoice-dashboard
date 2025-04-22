@@ -587,47 +587,58 @@ export default function StatementExcelPage() {
   };
 
   // Function to get current location
-  const getCurrentLocation = (): Promise<{lat: number, lng: number, address: string}> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported by your browser"));
-        return;
-      }
+  // const getCurrentLocation = (): Promise<{lat: number, lng: number, address: string}> => {
+  //   return new Promise((resolve, reject) => {
+  //     if (!navigator.geolocation) {
+  //       reject(new Error("Geolocation is not supported by your browser"));
+  //       return;
+  //     }
 
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
+  //     navigator.geolocation.getCurrentPosition(
+  //       async (position) => {
+  //         const lat = position.coords.latitude;
+  //         const lng = position.coords.longitude;
 
-          // Get address using reverse geocoding
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-            );
-            const data = await response.json();
-            const address = data.display_name || "Unknown location";
-            resolve({ lat, lng, address });
-          } catch (error) {
-            // If geocoding fails, still return coords
-            resolve({ lat, lng, address: "Location found" });
-          }
-        },
-        (error) => {
-          reject(error);
-        }
-      );
-    });
-  };
+  //         // Get address using reverse geocoding
+  //         try {
+  //           const response = await fetch(
+  //             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+  //           );
+  //           const data = await response.json();
+  //           const address = data.display_name || "Unknown location";
+  //           resolve({ lat, lng, address });
+  //         } catch (error) {
+  //           // If geocoding fails, still return coords
+  //           resolve({ lat, lng, address: "Location found" });
+  //         }
+  //       },
+  //       (error) => {
+  //         reject(error);
+  //       }
+  //     );
+  //   });
+  // };
 
   // Function to handle save
   const handleSave = async (partyCode: string) => {
     if (!selectedFile || !session?.user) return;
-
+    console.log("Saving statement for partyCode:", partyCode);
     setIsSaving(partyCode);
 
     try {
       // Get current location
-      const locationData = await getCurrentLocation();
+      // const locationData = await getCurrentLocation();
+      const locationData = await new Promise<GeolocationPosition>((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation is not supported by your browser'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      });
 
       // Get the user's name from the session - use full name when available
       const userName = session.user.name || session.user.username || 'Unknown User';
@@ -639,7 +650,7 @@ export default function StatementExcelPage() {
         partyCode: partyCode,
         images: capturedImages[partyCode] || [],
         location: locationData,
-        address: await getAddressFromCoordinates(locationData.lat, locationData.lng),
+        address: await getAddressFromCoordinates(locationData.coords.latitude, locationData.coords.longitude),
         visitedBy: userName
       };
 
@@ -663,7 +674,10 @@ export default function StatementExcelPage() {
         ...(selectedFile.savedParties || {}),
         [partyCode]: {
           images: capturedImages[partyCode] || [],
-          location: locationData,
+          location: {
+            lat: locationData.coords.latitude,
+            lng: locationData.coords.longitude
+          },
           timestamp: new Date(),
           address: saveData.address,
           visitedBy: userName
@@ -2072,7 +2086,7 @@ export default function StatementExcelPage() {
                       const savedPartyData = selectedFile.savedParties?.[section.partyCode];
                       const hasSavedTimestamp = savedPartyData?.timestamp;
 
-                      console.log({savedPartyData})
+                      // console.log({savedPartyData})
 
                       return (
                         <Card key={section.partyCode} className={cn(
