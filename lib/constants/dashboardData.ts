@@ -208,7 +208,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/transportation',
         icon: Truck,
         description: 'Transportation Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.PURCHASE_MANAGEMENT]
+        roles: ['ADMIN']
       },
       {
         id: 'party',

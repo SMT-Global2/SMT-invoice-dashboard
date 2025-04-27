@@ -60,6 +60,7 @@ export function ToDeliverTable() {
     toDeliverInvoices,
     pickupInvoice,
     deliverWithTransportation,
+    moveToTransit,
     isLoading,
     clearAllFilters,
 
@@ -94,6 +95,7 @@ export function ToDeliverTable() {
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>('');
   const [isTransportDialogOpen, setIsTransportDialogOpen] = useState(false);
+  const [isMoveToTransitDialogOpen, setIsMoveToTransitDialogOpen] = useState(false);
 
   // Fetch transporters when component mounts
   useEffect(() => {
@@ -153,6 +155,36 @@ export function ToDeliverTable() {
         variant: 'destructive',
         title: 'Failed',
         description: error instanceof Error ? error.message : 'Failed to deliver with transportation',
+        duration: 2000,
+      });
+    }
+  };
+
+  const handleMoveToTransit = async () => {
+    try {
+      if (selectedInvoices.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Please select at least one invoice',
+          duration: 2000,
+        });
+        return;
+      }
+
+      await moveToTransit(selectedInvoices);
+      setIsMoveToTransitDialogOpen(false);
+      
+      toast({
+        title: 'Success',
+        description: `${selectedInvoices.length} invoices moved to transit`,
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed',
+        description: error instanceof Error ? error.message : 'Failed to move to transit',
         duration: 2000,
       });
     }
@@ -270,42 +302,67 @@ export function ToDeliverTable() {
               </Button>
               
               {selectedInvoices.length > 0 && (
-                <AlertDialog open={isTransportDialogOpen} onOpenChange={setIsTransportDialogOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="default" className="gap-1">
-                      <Truck className="h-4 w-4" />
-                      Deliver with Transport
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Deliver with Transportation</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Select a transportation company to deliver {selectedInvoices.length} invoices.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="py-4">
-                      <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select transportation" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.isArray(transporters) && transporters.map((transporter) => (
-                            <SelectItem key={transporter.id} value={transporter.id}>
-                              {transporter.companyName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeliverWithTransportation}>
-                        Deliver
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <>
+                  <AlertDialog open={isMoveToTransitDialogOpen} onOpenChange={setIsMoveToTransitDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="default" className="gap-1">
+                        <Truck className="h-4 w-4" />
+                        Move to Transit
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Move to Transit</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to move {selectedInvoices.length} invoice(s) to transit status?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleMoveToTransit}>
+                          Confirm
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog open={isTransportDialogOpen} onOpenChange={setIsTransportDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="default" className="gap-1">
+                        <Truck className="h-4 w-4" />
+                        Deliver with Transport
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Deliver with Transportation</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Select a transportation company to deliver {selectedInvoices.length} invoices.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="py-4">
+                        <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select transportation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.isArray(transporters) && transporters.map((transporter) => (
+                              <SelectItem key={transporter.id} value={transporter.id}>
+                                {transporter.companyName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeliverWithTransportation}>
+                          Deliver
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               )}
             </div>
           </div>
@@ -351,7 +408,7 @@ export function ToDeliverTable() {
                         onCheckedChange={() => handleToggleSelectInvoice(invoice.invoiceNumber)}
                       />
                     </TableCell>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{(toDeliverPage - 1) * itemsPerPage + index + 1}</TableCell>
                     <TableCell>{invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}</TableCell>
                     <TableCell>{invoice.invoiceNumber}</TableCell>
                     <TableCell>{invoice.partyCode}</TableCell>

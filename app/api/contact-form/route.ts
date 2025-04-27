@@ -7,8 +7,8 @@ import moment from 'moment-timezone';
 
 export async function POST(request: Request) {
   try {
+
     const formData = await request.formData();
-    
     const medicalName = formData.get('medicalName') as string;
     const city = formData.get('city') as string;
     const invoiceNumber = formData.get('invoiceNumber') as string;
@@ -180,6 +180,61 @@ export async function PATCH(request: Request) {
     console.error('Error updating contact form:', error);
     return NextResponse.json(
       { error: 'Failed to update contact form' },
+      { status: 500 }
+    );
+  }
+} 
+
+export async function DELETE(request: Request) {
+  try {
+
+    // Check if logged in 
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    if (session.user.type !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Find and delete the contact form
+    const contactForm = await prisma.contactForm.findUnique({
+      where: { id }
+    });
+    
+    if (!contactForm) {
+      return NextResponse.json(
+        { error: 'Contact form not found' },
+        { status: 404 }
+      );
+    }
+
+    await prisma.contactForm.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting contact form:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete contact form' },
       { status: 500 }
     );
   }

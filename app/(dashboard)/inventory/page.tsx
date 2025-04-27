@@ -141,6 +141,7 @@ export default function InventoryPage() {
   const handleSaveVoucher = async (id: string, voucherNumber: number) => {
     try {
       await addVoucher(id, voucherNumber);
+
       toast({
         title: "Success",
         description: "Voucher added successfully",

@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { ShowImage } from '@/components/show-image';
 import { PartyCodeSelector } from '@/components/party-code-selector';
@@ -29,13 +28,14 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { ExpiryData } from '@/store/useExpiryStore';
 import { compressImage, convertImage, uploadFileToS3 } from '@/lib/helper';
+import { TakeImage } from '@/components/take-image';
 
 // Define the form schema with Zod
 const expiryFormSchema = z.object({
   partyCode: z.string().min(1, "Party code is required"),
   medicalName: z.string().optional(),
   city: z.string().optional(),
-  voucherNumber: z.string().min(1, "Voucher number is required"),
+  voucherNumber: z.string().optional(),
   expiryDate: z.date(),
   billImages: z.array(z.string()).min(1, "At least one bill image is required"),
   goodsImages: z.array(z.string()).min(1, "At least one goods image is required"),
@@ -62,7 +62,7 @@ export function ExpiryDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
-
+  
   // Initialize form with React Hook Form and Zod validation
   const form = useForm<ExpiryFormValues>({
     resolver: zodResolver(expiryFormSchema),
@@ -85,16 +85,9 @@ export function ExpiryDialog({
     form.setValue("city", party.city || '');
   };
   
-  // Handle image upload
+  // Handle image upload for both camera and upload
   const handleImageUpload = (type: 'bill' | 'goods') => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      if(!expiryItem?.voucherNumber) {
-        toast({
-          title: 'Error',
-          description: 'Please enter voucher number first',
-          variant: 'destructive'
-        });
-      }
       const file = event.target.files?.[0];
       if (!file) return;
   
@@ -102,7 +95,8 @@ export function ExpiryDialog({
   
       const changedFile = await convertImage(file);
       const compressedFile = await compressImage(changedFile);
-      const prefixKeyId = `expiry/voucher_number#${expiryItem?.voucherNumber}#${type}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
+      const voucherNumber = form.getValues('voucherNumber') || `temp-${Date.now()}`;
+      const prefixKeyId = `expiry/voucher_number#${voucherNumber}#${type}_${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
       const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
   
       if (type === 'bill') {
@@ -348,35 +342,14 @@ export function ExpiryDialog({
                 <FormItem className="grid grid-cols-4 items-center gap-2">
                   <FormLabel className="text-right">Bill Images</FormLabel>
                   <div className="col-span-3">
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <Button
-                          variant="outline"
-                          className="gap-2 z-10"
-                          disabled={!!uploadingImage}
-                          type="button"
-                        >
-                          {uploadingImage === 'bill' ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            'Upload Bill Image'
-                          )}
-                        </Button>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload('bill')}
-                          className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                          disabled={!!uploadingImage}
-                        />
-                      </div>
-                    </div>
-                    
-                    {field.value.length > 0 && (
-                      <div className="mt-2">
-                        <ShowImage images={field.value} />
-                      </div>
-                    )}
+                    <TakeImage
+                      imageKey="bill"
+                      handleImageUpload={handleImageUpload}
+                      isUploading={uploadingImage === 'bill'}
+                      isDisabled={uploadingImage !== null}
+                      showImages={field.value}
+                      takeType="BOTH"
+                    />
                     <FormMessage />
                   </div>
                 </FormItem>
@@ -391,35 +364,14 @@ export function ExpiryDialog({
                 <FormItem className="grid grid-cols-4 items-center gap-2">
                   <FormLabel className="text-right">Goods Images</FormLabel>
                   <div className="col-span-3">
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <Button
-                          variant="outline"
-                          className="gap-2 z-10"
-                          disabled={!!uploadingImage}
-                          type="button"
-                        >
-                          {uploadingImage === 'goods' ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            'Upload Goods Image'
-                          )}
-                        </Button>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload('goods')}
-                          className="absolute inset-0 opacity-0 w-full cursor-pointer z-0"
-                          disabled={!!uploadingImage}
-                        />
-                      </div>
-                    </div>
-                    
-                    {field.value.length > 0 && (
-                      <div className="mt-2">
-                        <ShowImage images={field.value} />
-                      </div>
-                    )}
+                    <TakeImage
+                      imageKey="goods"
+                      handleImageUpload={handleImageUpload}
+                      isUploading={uploadingImage === 'goods'}
+                      isDisabled={uploadingImage !== null}
+                      showImages={field.value}
+                      takeType="BOTH"
+                    />
                     <FormMessage />
                   </div>
                 </FormItem>

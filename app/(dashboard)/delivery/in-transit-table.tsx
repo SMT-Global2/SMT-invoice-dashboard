@@ -263,7 +263,7 @@ export function InTransitTable() {
                       lastInteractedInvoice === invoice.invoiceNumber && "bg-yellow-600 hover:bg-yellow-600"
                     )}
                   >
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{(inTransitPage - 1) * itemsPerPage + index + 1}</TableCell>
                     <TableCell>
                       {invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}
                     </TableCell>

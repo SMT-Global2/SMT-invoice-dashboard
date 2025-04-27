@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserRoundCog } from "lucide-react";
+import { UserRoundCog, Loader2 } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -27,7 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
-import useAnalyticsStore from "@/store/useAnalyticsStore";
+import useAnalyticsStore, { AnalyticsState } from "@/store/useAnalyticsStore";
 import { Input } from "@/components/ui/input";
 
 // Define sort options
@@ -57,16 +57,18 @@ interface UserPerformanceData {
 }
 
 export function UserPerformance() {
-  const { fetchUserPerformanceData } = useAnalyticsStore();
+  // Select state and actions individually for stability
+  const isLoading = useAnalyticsStore((state: AnalyticsState) => state.isLoading);
+  const fetchUserPerformanceData = useAnalyticsStore((state: AnalyticsState) => state.fetchUserPerformanceData);
+  
   const [userPerformance, setUserPerformance] = useState<UserPerformanceData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   });
   const [selectedDepartment, setSelectedDepartment] = useState<string>("ALL");
   const [userSearchTerm, setUserSearchTerm] = useState<string>("");
-  const [sortOption, setSortOption] = useState<SortOption>('totalDesc'); // State for sorting
+  const [sortOption, setSortOption] = useState<SortOption>('totalDesc');
 
   // Helper function to calculate total activity
   const calculateTotalActivity = (performance: UserPerformanceData['performance']): number => {
@@ -77,19 +79,15 @@ export function UserPerformance() {
 
   useEffect(() => {
     const fetchUserPerformance = async () => {
-      setIsLoading(true);
+      // Set global loading state to true
+      useAnalyticsStore.setState({ isLoading: true, error: null });
       try {
-        // Use the store function to get data
         const result = await fetchUserPerformanceData(dateRange);
-        
-        // The API now returns data in the format { users: UserPerformanceData[] }
         if (result && result.users) {
-          // Filter by department if needed
           const filteredUsers = selectedDepartment !== "ALL" 
             ? result.users.filter(user => user.department.includes(selectedDepartment))
             : result.users;
 
-          // Further filter by user search term
           const searchedUsers = userSearchTerm.trim() === ""
             ? filteredUsers
             : filteredUsers.filter(user => 
@@ -97,7 +95,6 @@ export function UserPerformance() {
                 user.username.toLowerCase().includes(userSearchTerm.toLowerCase())
               );
             
-          // Sort the users based on the selected sort option
           const sortedUsers = [...searchedUsers].sort((a, b) => {
             switch (sortOption) {
               case 'totalDesc':
@@ -108,21 +105,23 @@ export function UserPerformance() {
                 return 0;
             }
           });
-
-          setUserPerformance(sortedUsers); // Set the final sorted and filtered list
+          setUserPerformance(sortedUsers);
         } else {
           setUserPerformance([]);
         }
       } catch (error) {
         console.error("Failed to fetch user performance data:", error);
         setUserPerformance([]);
+        // Set global error state
+        useAnalyticsStore.setState({ error: "Failed to fetch user performance data." });
       } finally {
-        setIsLoading(false);
+        // Set global loading state to false
+        useAnalyticsStore.setState({ isLoading: false });
       }
     };
 
     fetchUserPerformance();
-  }, [dateRange, selectedDepartment, fetchUserPerformanceData, userSearchTerm, sortOption]); // Add sortOption dependency
+  }, [dateRange, selectedDepartment, fetchUserPerformanceData, userSearchTerm, sortOption]);
 
   return (
     <Card className="col-span-1 md:col-span-3">
@@ -184,7 +183,7 @@ export function UserPerformance() {
       <CardContent className="px-2 sm:px-6">
         {isLoading ? (
           <div className="flex items-center justify-center h-[400px]">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <div className="rounded-md border my-4 overflow-x-auto">
@@ -215,7 +214,7 @@ export function UserPerformance() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  userPerformance.map((user, index) => (
+                  userPerformance.map((user) => (
                     <TableRow key={user.username}>
                       <TableCell className="sticky left-0 bg-card z-5 min-w-[180px]">
                         <div className="font-medium">{user.fullName}</div>
@@ -248,24 +247,6 @@ export function UserPerformance() {
                       <TableCell className="text-center font-medium">{user.performance.dmChecks}</TableCell>
                       <TableCell className="text-center font-medium">{user.performance.expUploads}</TableCell>
                       <TableCell className="text-center font-medium">{user.performance.expCreditNotes}</TableCell>
-                      {/* <TableCell>
-                        <div className="flex flex-col items-center">
-                          <span className="font-medium">{user.performance.overall}/10</span>
-                          <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full rounded-full" 
-                              style={{ 
-                                width: `${(user.performance.overall / 10) * 100}%`,
-                                backgroundColor: user.performance.overall > 7 
-                                  ? '#10b981' 
-                                  : user.performance.overall > 5 
-                                    ? '#f59e0b' 
-                                    : '#ef4444'
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      </TableCell> */}
                     </TableRow>
                   ))
                 )}

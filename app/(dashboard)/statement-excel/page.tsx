@@ -127,6 +127,11 @@ export default function StatementExcelPage() {
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
+  const [savingProgress, setSavingProgress] = useState<number>(0);
+  const [pdfProgress, setPdfProgress] = useState<number>(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Update localStorage when userFilter changes
   useEffect(() => {
@@ -169,6 +174,15 @@ export default function StatementExcelPage() {
 
   const handleUpload = async (file: File) => {
     setIsLoading(true);
+    setUploadProgress(10); // Start with initial progress
+    
+    // Set up progress simulation
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev < 90) return prev + 10;
+        return prev;
+      });
+    }, 500);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -180,6 +194,7 @@ export default function StatementExcelPage() {
         body: formData,
       });
 
+      setUploadProgress(95); // Almost done
       const result = await response.json();
 
       if (!response.ok) {
@@ -193,10 +208,15 @@ export default function StatementExcelPage() {
           title: "Warning",
           description: "No party statements found in the file. Please check if this is the correct Excel file.",
         });
+        clearInterval(progressInterval);
+        setUploadProgress(0);
         setIsLoading(false);
         return;
       }
 
+      // Set progress to 100% when complete
+      setUploadProgress(100);
+      
       // Log the first few party sections to debug
       console.log('Upload response first sections:', result.partySections.slice(0, 3));
 
@@ -229,7 +249,11 @@ export default function StatementExcelPage() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setUploadProgress(0);
+        setIsLoading(false);
+      }, 500);
     }
   };
 
@@ -241,6 +265,16 @@ export default function StatementExcelPage() {
 
     const fetchStatementDetails = async (statementId: string) => {
       setIsLoadingDetails(true); // Start loading
+      setLoadingProgress(10); // Start with initial progress
+      
+      // Set up loading progress simulation
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev < 90) return prev + 5;
+          return prev;
+        });
+      }, 300);
+      
       try {
         const response = await fetch(`/api/statement-excel/oper?id=${statementId}`);
 
@@ -249,16 +283,8 @@ export default function StatementExcelPage() {
           throw new Error(errorData.error || 'Failed to fetch statement details');
         }
         
+        setLoadingProgress(95); // Almost done
         const data = await response.json();
-
-        // console.log('Statement details loaded:', {
-        //   id: data.id,
-        //   name: data.name,
-        //   sectionsCount: data.partySections?.length || 0,
-        //   partySectionsType: data.partySections ? typeof data.partySections : 'undefined',
-        //   isArray: Array.isArray(data.partySections),
-        //   firstSection: data.partySections?.[0],
-        // });
 
         // Validate partySections before proceeding
         if (!data.partySections || !Array.isArray(data.partySections) || data.partySections.length === 0) {
@@ -269,6 +295,8 @@ export default function StatementExcelPage() {
             variant: "destructive",
           });
           setIsLoadingDetails(false);
+          setLoadingProgress(0);
+          clearInterval(progressInterval);
           return;
         }
 
@@ -292,6 +320,9 @@ export default function StatementExcelPage() {
 
         console.log('Party sections processed:', completeFile.partySections.length);
 
+        // Complete the loading progress
+        setLoadingProgress(100);
+
         // Clear search term and filters when changing files
         setSearchTerm('');
         setVisitFilter('all');
@@ -312,7 +343,11 @@ export default function StatementExcelPage() {
           variant: "destructive",
         });
       } finally {
-        setIsLoadingDetails(false); // End loading
+        clearInterval(progressInterval);
+        setTimeout(() => {
+          setLoadingProgress(0);
+          setIsLoadingDetails(false); // End loading
+        }, 500);
       }
     };
 
@@ -624,10 +659,18 @@ export default function StatementExcelPage() {
     if (!selectedFile || !session?.user) return;
     console.log("Saving statement for partyCode:", partyCode);
     setIsSaving(partyCode);
+    
+    // Reset and start progress simulation
+    setSavingProgress(0);
+    const progressInterval = setInterval(() => {
+      setSavingProgress(prev => {
+        if (prev < 90) return prev + 10;
+        return prev;
+      });
+    }, 300);
 
     try {
       // Get current location
-      // const locationData = await getCurrentLocation();
       const locationData = await new Promise<GeolocationPosition>((resolve, reject) => {
         if (!navigator.geolocation) {
           reject(new Error('Geolocation is not supported by your browser'));
@@ -706,6 +749,9 @@ export default function StatementExcelPage() {
         };
       });
 
+      // Complete progress
+      setSavingProgress(100);
+      
       toast({
         title: "Success",
         description: "Statement saved successfully",
@@ -725,7 +771,11 @@ export default function StatementExcelPage() {
         variant: "destructive",
       });
     } finally {
-      setIsSaving(null);
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setSavingProgress(0);
+        setIsSaving(null);
+      }, 500);
     }
   };
 
@@ -905,12 +955,8 @@ export default function StatementExcelPage() {
       const formatExcelDate = (serialDate: number) => {
         if (!serialDate) return '';
         const date = new Date((serialDate - 25569) * 86400 * 1000);
-        // Using native toLocaleDateString for this specific Excel conversion is fine
-        return date.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: '2-digit'
-        }).replace(/ /g, '-');
+        // Using date-fns format for consistent date formatting
+        return format(date, 'd MMM yyyy');
       };
 
       // Format number to always show 2 decimal places for specific columns
@@ -1654,27 +1700,34 @@ export default function StatementExcelPage() {
                     <FileDown className="h-4 w-4" />
                     <span>Download Excel Report</span>
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownloadAllPDFs}
-                    disabled={isDownloading}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto relative"
-                  >
-                    {isDownloading ? (
-                      <>
-                        <div className="relative w-4 h-4">
-                          <div className="absolute inset-0 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                        <span className="ml-2">{downloadProgress}%</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileDown className="h-4 w-4" />
-                        <span>Download All PDFs</span>
-                      </>
+                  <div className="relative w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadAllPDFs}
+                      disabled={isDownloading}
+                      className="flex items-center justify-center gap-2 w-full relative"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <div className="relative w-4 h-4 flex items-center justify-center">
+                            <Loader2 className="w-4 h-4 animate-spin absolute" />
+                            <div className="text-[8px] font-bold">{downloadProgress}%</div>
+                          </div>
+                          <span>Downloading PDFs</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileDown className="h-4 w-4" />
+                          <span>Download All PDFs</span>
+                        </>
+                      )}
+                    </Button>
+                    {isDownloading && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-full transition-all duration-300" 
+                          style={{ width: `${downloadProgress}%` }}></div>
                     )}
-                  </Button>
+                  </div>
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
@@ -1775,6 +1828,19 @@ export default function StatementExcelPage() {
                 isUploadExpanded ? "block" : "hidden"
               )}>
                 <div className="flex-grow flex flex-col">
+                  {isLoading && (
+                    <div className="mb-4">
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary transition-all duration-300 rounded-full"
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-center text-sm text-muted-foreground mt-2">
+                        Uploading and processing statement... {uploadProgress}%
+                      </p>
+                    </div>
+                  )}
                   <FileUpload
                     onFilesSelected={handleFilesSelected}
                     isLoading={isLoading}
@@ -1782,6 +1848,7 @@ export default function StatementExcelPage() {
                     multiple={true}
                     className="w-full h-full"
                     buttonText="Upload Statements"
+                    loadingText={`Processing... ${uploadProgress}%`}
                     iconSize="lg"
                   />
                 </div>
@@ -2042,32 +2109,37 @@ export default function StatementExcelPage() {
             {selectedFile && (
               <div className="space-y-4 sm:space-y-6">
                 {isLoadingDetails ? (
-                  // Loading skeleton UI
                   <div className="space-y-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <Card key={i} className="animate-pulse">
-                        <CardHeader className="p-4 sm:p-6">
-                          <div className="flex flex-col sm:flex-row justify-between gap-4">
-                            <div className="w-full">
-                              <div className="flex items-center space-x-2">
-                                <div className="h-4 w-4 bg-muted rounded" />
-                                <div className="h-4 w-48 bg-muted rounded" />
-                              </div>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <div className="h-3 w-24 bg-muted rounded" />
-                                <div className="h-3 w-32 bg-muted rounded" />
-                                <div className="h-3 w-28 bg-muted rounded" />
-                              </div>
+                    {/* Loading progress bar */}
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300 rounded-full"
+                        style={{ width: `${loadingProgress}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-center text-sm text-muted-foreground mb-4">
+                      Loading statement data... {loadingProgress}%
+                    </div>
+                    
+                    {/* Skeleton loaders for party sections */}
+                    <div className="grid grid-cols-1 gap-4">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <div key={index} className="border rounded-lg p-4 animate-pulse">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2">
+                              <div className="h-5 w-48 bg-muted rounded"></div>
+                              <div className="h-4 w-32 bg-muted rounded"></div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <div className="h-8 w-12 bg-muted rounded" />
-                              <div className="h-8 w-12 bg-muted rounded" />
-                              <div className="h-8 w-12 bg-muted rounded" />
+                            <div className="flex space-x-2">
+                              <div className="h-8 w-20 bg-muted rounded"></div>
+                              <div className="h-8 w-20 bg-muted rounded"></div>
+                              <div className="h-8 w-20 bg-muted rounded"></div>
                             </div>
                           </div>
-                        </CardHeader>
-                      </Card>
-                    ))}
+                          <div className="mt-4 h-40 w-full bg-muted rounded-lg"></div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : filteredSections.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg">
@@ -2204,25 +2276,56 @@ export default function StatementExcelPage() {
                                       </AlertDialogContent>
                                     </AlertDialog>
                                   ) : capturedImages[section.partyCode] ? (
-                                    <Button
-                                      variant="default"
-                                      size="sm"
-                                      className="h-8 w-[4.5rem] flex items-center justify-center"
-                                      disabled={isSaving === section.partyCode}
-                                      onClick={() => handleSave(section.partyCode)}
-                                    >
-                                      {isSaving === section.partyCode ? (
-                                        <>
-                                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                                          Save
-                                        </>
+                                    <div className="relative">
+                                      {!savedPartyData ? (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 gap-2 flex items-center justify-center relative"
+                                          onClick={() => handleSave(section.partyCode)}
+                                          disabled={isSaving === section.partyCode}
+                                        >
+                                          {isSaving === section.partyCode ? (
+                                            <>
+                                              <div className="relative w-3.5 h-3.5 flex items-center justify-center">
+                                                <Loader2 className='w-3.5 h-3.5 animate-spin absolute' />
+                                                <div className="text-[7px] font-bold">{savingProgress}%</div>
+                                              </div>
+                                              <span>Saving</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Save className="h-3.5 w-3.5" />
+                                              <span>Save</span>
+                                            </>
+                                          )}
+                                        </Button>
                                       ) : (
-                                        <>
-                                          <Save className="h-3.5 w-3.5 mr-1" />
-                                          Save
-                                        </>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 gap-2 flex items-center justify-center"
+                                          onClick={() => handleReset(section.partyCode)}
+                                          disabled={isSaving === section.partyCode}
+                                        >
+                                          {isSaving === section.partyCode ? (
+                                            <>
+                                              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                              <span>Resetting</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                              <span>Reset</span>
+                                            </>
+                                          )}
+                                        </Button>
                                       )}
-                                    </Button>
+                                      {isSaving === section.partyCode && (
+                                        <div className="absolute bottom-0 left-0 h-1 bg-primary rounded-full transition-all duration-300" 
+                                            style={{ width: `${savingProgress}%` }}></div>
+                                      )}
+                                    </div>
                                   ) : null}
                                 </div>
 
@@ -2244,39 +2347,100 @@ export default function StatementExcelPage() {
 
                                 {/* PDF Button */}
                                 {savedPartyData && (
-                                  <div>
+                                  <div className="relative">
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       className="h-8 w-[4.5rem] flex items-center justify-center"
+                                      disabled={downloadingPdf === section.partyCode}
                                       onClick={async () => {
-                                        // Only generate PDF when clicked
-                                        const pdfDoc = (
-                                          <StatementPDF
-                                            section={{
-                                              ...section,
-                                              data: section.data,
-                                            }}
-                                            fileName={selectedFile.name}
-                                            totalDebits={calculateTotal(section.data, 'col5')}
-                                            totalAdjustments={calculateTotal(section.data, 'col6')}
-                                            outstandingBalance={calculateTotal(section.data, 'col7')}
-                                            totalDiscount={calculateTotal(section.data, 'col10')}
-                                          />
-                                        );
+                                        // Initialize with an empty interval that will be replaced
+                                        let progressInterval: NodeJS.Timeout | null = null;
                                         
-                                        const blob = await pdf(pdfDoc).toBlob();
-                                        const url = URL.createObjectURL(blob);
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = `${section.partyCode}-${moment().format('YYYY-MM-DD')}.pdf`;
-                                        a.click();
-                                        URL.revokeObjectURL(url);
+                                        try {
+                                          setDownloadingPdf(section.partyCode);
+                                          
+                                          // Start progress simulation
+                                          setPdfProgress(0);
+                                          progressInterval = setInterval(() => {
+                                            setPdfProgress(prev => {
+                                              if (prev < 90) return prev + 15;
+                                              return prev;
+                                            });
+                                          }, 400);
+                                          
+                                          // Only generate PDF when clicked
+                                          const pdfDoc = (
+                                            <StatementPDF
+                                              section={{
+                                                ...section,
+                                                data: section.data,
+                                              }}
+                                              fileName={selectedFile.name}
+                                              totalDebits={calculateTotal(section.data, 'col5')}
+                                              totalAdjustments={calculateTotal(section.data, 'col6')}
+                                              outstandingBalance={calculateTotal(section.data, 'col7')}
+                                              totalDiscount={calculateTotal(section.data, 'col10')}
+                                            />
+                                          );
+                                          
+                                          const blob = await pdf(pdfDoc).toBlob();
+                                          
+                                          // Set progress to 100% on completion
+                                          setPdfProgress(100);
+                                          
+                                          // Clear interval once PDF is generated
+                                          if (progressInterval) {
+                                            clearInterval(progressInterval);
+                                            progressInterval = null;
+                                          }
+                                          
+                                          const url = URL.createObjectURL(blob);
+                                          const a = document.createElement('a');
+                                          a.href = url;
+                                          a.download = `${section.partyCode}-${moment().format('YYYY-MM-DD')}.pdf`;
+                                          a.click();
+                                          URL.revokeObjectURL(url);
+                                        } catch (error) {
+                                          console.error(`Error generating PDF for ${section.partyCode}:`, error);
+                                          toast({
+                                            title: "Error",
+                                            description: "Failed to generate PDF. Please try again.",
+                                            variant: "destructive",
+                                          });
+                                          
+                                          // Clear interval if there was an error
+                                          if (progressInterval) {
+                                            clearInterval(progressInterval);
+                                            progressInterval = null;
+                                          }
+                                        } finally {
+                                          setTimeout(() => {
+                                            setPdfProgress(0);
+                                            setDownloadingPdf(null);
+                                          }, 500);
+                                        }
                                       }}
                                     >
-                                      <FileDown className="h-3.5 w-3.5 mr-1" />
-                                      PDF
+                                      {downloadingPdf === section.partyCode ? (
+                                        <>
+                                          <div className="relative w-3.5 h-3.5 flex items-center justify-center">
+                                            <Loader2 className="animate-spin w-3.5 h-3.5 absolute" />
+                                            <div className="text-[7px] font-bold">{pdfProgress}%</div>
+                                          </div>
+                                          <span className="ml-1">PDF</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <FileDown className="h-3.5 w-3.5 mr-1" />
+                                          PDF
+                                        </>
+                                      )}
                                     </Button>
+                                    {downloadingPdf === section.partyCode && (
+                                      <div className="absolute bottom-0 left-0 h-1 bg-primary rounded-full transition-all duration-300" 
+                                          style={{ width: `${pdfProgress}%` }}></div>
+                                    )}
                                   </div>
                                 )}
                               </div>

@@ -308,7 +308,7 @@ export default function InvoicePage() {
       const doc = new jsPDF();
       const tableRows: any[] = [];
       const tableColumns = [
-        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", "Current Status"
+        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", ""
       ];
 
       // Sort invoices by city
@@ -322,18 +322,7 @@ export default function InvoicePage() {
       });
 
       invoicesToDownload.forEach((invoice: any, index: number) => {
-        // Determine detailed status based on timestamps (using corrected field names)
-        let currentStatus = 'Generated'; // Default to Generated if invoice exists
-        if (invoice.deliveredTimestamp) {
-          currentStatus = 'Delivered';
-        } else if (invoice.pickupTimestamp) {
-          currentStatus = 'In Transit';
-        } else if (invoice.packageTimestamp) { // Corrected field name
-          currentStatus = 'Packed';
-        } else if (invoice.checkTimestamp) { // Corrected field name
-          currentStatus = 'Checked';
-        }
-
+        // Remove the currentStatus calculation and add an empty column at the end
         const invoiceData = [
           index + 1,
           invoice.invoiceNumber,
@@ -343,7 +332,7 @@ export default function InvoicePage() {
           invoice.cityName || '-',
           invoice.regionalCode || '-',
           invoice.paymodeMode,
-          currentStatus
+          '' // Empty column
         ];
         tableRows.push(invoiceData);
       });
@@ -423,59 +412,62 @@ export default function InvoicePage() {
   };
 
   return (
-    <div className="space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2">
+    <div className="space-y-4 overflow-hidden max-w-full px-2 sm:px-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Invoice Generation</h1>
       </div>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <Card className="overflow-hidden">
+        <CardHeader className="px-4 sm:px-6">
+          <div className="flex flex-col space-y-4 justify-between items-start">
             <CardTitle>Generated Invoices</CardTitle>
-            <div className="flex flex-col w-full md:w-auto gap-2 lg:flex-row md:flex-row">
+            <div className="flex flex-col w-full gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="w-full">
+                  <Input
+                    type="text"
+                    placeholder="Search invoice number..."
+                    value={invoiceSearchTerm}
+                    onChange={(e) => setInvoiceSearchTerm(e.target.value)}
+                    className="w-full h-9"
+                  />
+                </div>
+                <div className='w-full'>
+                  <RegionalCodeFilter
+                    selectedRegionalCodes={selectedRegionalCodes}
+                    availableRegionalCodes={availableRegionalCodes}
+                    setSelectedRegionalCodes={setSelectedRegionalCodes}
+                    label="Regions"
+                  />
+                </div>
+                <div className="w-full">
+                  <DatePicker date={selectedDate} setDate={setSelectedDate} />
+                </div>
+              </div>
               <div className="w-full">
-                <Input
-                  type="text"
-                  placeholder="Search invoice number..."
-                  value={invoiceSearchTerm}
-                  onChange={(e) => setInvoiceSearchTerm(e.target.value)}
-                  className="w-full h-9"
-                />
-              </div>
-              <div className='max-w-[200px]'>
-                <RegionalCodeFilter
-                  selectedRegionalCodes={selectedRegionalCodes}
-                  availableRegionalCodes={availableRegionalCodes}
-                  setSelectedRegionalCodes={setSelectedRegionalCodes}
-                  label="Regions"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <DatePicker date={selectedDate} setDate={setSelectedDate} />
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadPDF}
-                  disabled={!selectedDate || isDownloading}
-                  className="h-9 flex items-center gap-1"
-                >
-                  {isDownloading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      Download PDF
-                    </>
-                  )}
-                </Button>
-                {
+                <div className="inline-flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
-                    size="icon"
+                    onClick={handleDownloadPDF}
+                    disabled={!selectedDate || isDownloading}
+                    className="h-9 inline-flex items-center gap-1 px-3"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-1" />
+                        Download PDF
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       if(selectedDate && !moment(selectedDate).isSame(moment(), 'day')) {
                         setSelectedDate(moment().startOf('day').toDate())
@@ -488,18 +480,18 @@ export default function InvoicePage() {
                       setInvoiceSearchTerm('')
                     }} 
                     title="Reset to today's date"
-                    className="h-9 w-16"
+                    className="h-9 inline-flex items-center gap-1 px-3"
                   >
-                    <FilterX className="h-4 w-4" /> Clear
+                    <FilterX className="h-4 w-4 mr-1" /> Clear
                   </Button>
-                }
+                </div>
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <div className="space-y-4">
-            <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="overflow-x-auto w-full border rounded-lg max-w-full scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <Table className=''>
                 <TableHeader>
                   <TableRow>
@@ -716,80 +708,101 @@ export default function InvoicePage() {
                 </TableBody>
               </Table>
             </div>
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-
-                {totalPages > 0 && (
-                  <PaginationItem className={currentPage === 1 ? 'hidden sm:block' : ''}>
-                    <PaginationLink
-                      onClick={() => handlePageChange(1)}
-                      isActive={currentPage === 1}
-                    >
-                      1
-                    </PaginationLink>
+            <div className="mt-4 flex justify-center">
+              <Pagination>
+                <PaginationContent className="flex flex-wrap items-center justify-center gap-1">
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                    />
                   </PaginationItem>
-                )}
 
-                {currentPage > 3 && (
-                  <PaginationItem className="hidden sm:block">
-                    <PaginationLink className="cursor-default">...</PaginationLink>
-                  </PaginationItem>
-                )}
-
-                {currentPage !== 1 && currentPage !== totalPages && (
-                  <PaginationItem className="sm:hidden">
-                    <PaginationLink isActive>{currentPage}</PaginationLink>
-                  </PaginationItem>
-                )}
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(page => {
-                    if (totalPages <= 5) return true;
-                    return page === currentPage - 1 || page === currentPage || page === currentPage + 1;
-                  })
-                  .filter(page => page !== 1 && page !== totalPages)
-                  .map((page) => (
-                    <PaginationItem key={page} className="hidden sm:block">
+                  {totalPages > 0 && (
+                    <PaginationItem className="hidden sm:block">
                       <PaginationLink
-                        onClick={() => handlePageChange(page)}
-                        isActive={currentPage === page}
+                        onClick={() => handlePageChange(1)}
+                        isActive={currentPage === 1}
                       >
-                        {page}
+                        1
                       </PaginationLink>
                     </PaginationItem>
-                  ))}
+                  )}
 
-                {currentPage < totalPages - 2 && (
-                  <PaginationItem className="hidden sm:block">
-                    <PaginationLink className="cursor-default">...</PaginationLink>
+                  {currentPage > 3 && (
+                    <PaginationItem className="hidden sm:block">
+                      <span className="px-4 py-2">...</span>
+                    </PaginationItem>
+                  )}
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      if (totalPages <= 5) return page > 1 && page < totalPages;
+                      return page > 1 && page < totalPages && (page === currentPage - 1 || page === currentPage || page === currentPage + 1);
+                    })
+                    .map((page) => (
+                      <PaginationItem key={page} className="hidden sm:block">
+                        <PaginationLink
+                          onClick={() => handlePageChange(page)}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  
+                  {currentPage < totalPages - 2 && totalPages > 5 && (
+                    <PaginationItem className="hidden sm:block">
+                      <span className="px-4 py-2">...</span>
+                    </PaginationItem>
+                  )}
+
+                  {totalPages > 1 && (
+                    <PaginationItem className="hidden sm:block">
+                      <PaginationLink
+                        onClick={() => handlePageChange(totalPages)}
+                        isActive={currentPage === totalPages}
+                      >
+                        {totalPages}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )}
+                  
+                  <div className="sm:hidden mx-2">
+                    <span className="text-sm">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  </div>
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                    />
                   </PaginationItem>
-                )}
 
-                {totalPages > 1 && (
-                  <PaginationItem className={currentPage === totalPages ? 'hidden sm:block' : ''}>
-                    <PaginationLink
-                      onClick={() => handlePageChange(totalPages)}
-                      isActive={currentPage === totalPages}
+                  <div className="ml-2 sm:ml-4 border-l pl-2 sm:pl-4">
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(value) => {
+                        useInvoiceStore.setState({ itemsPerPage: Number(value), currentPage: 1 });
+                        handleInvoices();
+                      }}
                     >
-                      {totalPages}
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
-
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                      <SelectTrigger className="w-[100px] h-8">
+                        <SelectValue placeholder="Per page" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 / page</SelectItem>
+                        <SelectItem value="10">10 / page</SelectItem>
+                        <SelectItem value="20">20 / page</SelectItem>
+                        <SelectItem value="50">50 / page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </PaginationContent>
+              </Pagination>
+            </div>
           </div>
         </CardContent>
       </Card>

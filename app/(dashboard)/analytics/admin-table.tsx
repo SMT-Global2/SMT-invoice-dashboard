@@ -19,7 +19,7 @@ import useAnalyticsStore from '@/store/useAnalyticsStore';
 import { useEffect, useState } from 'react';
 import { Capsule } from '@/components/capsule';
 import { Input } from "@/components/ui/input"
-import { CheckCircle, CreditCard, FileText, Package, Search, Store, Truck, X, Download } from "lucide-react"
+import { CheckCircle, CreditCard, FileText, Package, Search, Store, Truck, X, Download, Loader2 } from "lucide-react"
 import TableSkeleton from "@/components/table-skeleton"
 import {
   Pagination,
@@ -49,6 +49,7 @@ import { FilterX } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Progress } from "@/components/ui/progress"
 
 export default function AdminInvoiceTable() {
   const {
@@ -203,22 +204,10 @@ export default function AdminInvoiceTable() {
       const doc = new jsPDF();
       const tableRows: any[] = [];
       const tableColumns = [
-        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", "Current Status"
+        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", ""
       ];
 
       invoicesToDownload.forEach((invoice: any, index: number) => {
-        // Determine detailed status based on timestamps (using corrected field names)
-        let currentStatus = 'Generated'; // Default to Generated if invoice exists
-        if (invoice.deliveredTimestamp) {
-          currentStatus = 'Delivered';
-        } else if (invoice.pickupTimestamp) {
-          currentStatus = 'In Transit';
-        } else if (invoice.packageTimestamp) { // Corrected field name
-          currentStatus = 'Packed';
-        } else if (invoice.checkTimestamp) { // Corrected field name
-          currentStatus = 'Checked';
-        }
-
         const invoiceData = [
           index + 1,
           invoice.invoiceNumber,
@@ -228,7 +217,7 @@ export default function AdminInvoiceTable() {
           invoice.cityName || '-',
           invoice.regionalCode || '-',
           invoice.paymodeMode,
-          currentStatus
+          ''
         ];
         tableRows.push(invoiceData);
       });
@@ -320,7 +309,8 @@ export default function AdminInvoiceTable() {
   };
 
   return (
-    <div className='w-full max-w-full overflow-x-hidden'>
+    <div className='w-full max-w-full overflow-x-hidden relative'>
+    
       <Card className="w-full">
         <CardHeader className="flex flex-col space-y-4 pb-4">
           <CardTitle className="text-xl md:text-2xl">Invoice Analytics</CardTitle>

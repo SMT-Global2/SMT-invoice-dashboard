@@ -102,6 +102,9 @@ interface DeliveryInvoiceState {
   
   // Transportation delivery
   deliverWithTransportation: (invoiceNumbers: number[], transportationId: string) => Promise<void>
+
+  // New action for moving to transit
+  moveToTransit: (invoiceNumbers: number[]) => Promise<void>
 }
 
 export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
@@ -628,6 +631,47 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : 'Failed to deliver with transportation', 
+            isLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      // New action for moving to transit
+      moveToTransit: async (invoiceNumbers: number[]) => {
+        try {
+          set({ isLoading: true });
+          
+          if (invoiceNumbers.length === 0) {
+            throw new Error('No invoices selected');
+          }
+
+          const response = await fetch('/api/invoice/deliver/move-to-transit', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              invoiceNumbers
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to move to transit');
+          }
+
+          // Refresh all delivery invoices
+          await get().fetchAllDeliveryInvoices();
+          
+          // Clear selection
+          set({ selectedInvoices: [] });
+
+          set({ isLoading: false });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to move to transit', 
             isLoading: false 
           });
           throw error;

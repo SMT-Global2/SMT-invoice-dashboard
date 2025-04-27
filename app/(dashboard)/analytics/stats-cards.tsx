@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
-import useAnalyticsStore from "@/store/useAnalyticsStore";
+import useAnalyticsStore, { AnalyticsState } from "@/store/useAnalyticsStore";
 
 interface StatsCardData {
   title: string;
@@ -18,22 +18,22 @@ interface StatsCardData {
 }
 
 export function StatsCards() {
-  const { fetchAnalyticsData } = useAnalyticsStore();
+  const isLoading = useAnalyticsStore((state: AnalyticsState) => state.isLoading);
+  const fetchAnalyticsData = useAnalyticsStore((state: AnalyticsState) => state.fetchAnalyticsData);
+
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
   });
   
   const [data, setData] = useState<StatsCardData[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
+      useAnalyticsStore.setState({ isLoading: true, error: null });
       try {
         const analyticsData = await fetchAnalyticsData(date);
         
-        // Transform to stats card format
         const statsData: StatsCardData[] = [
           {
             title: "Total Invoices",
@@ -72,8 +72,9 @@ export function StatsCards() {
         setData(statsData);
       } catch (error) {
         console.error('Error fetching analytics data:', error);
+        useAnalyticsStore.setState({ error: "Failed to fetch overview data." });
       } finally {
-        setLoading(false);
+        useAnalyticsStore.setState({ isLoading: false });
       }
     };
 
@@ -88,8 +89,7 @@ export function StatsCards() {
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {loading ? (
-          // Show skeleton loading state
+        {isLoading ? (
           Array(4).fill(0).map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

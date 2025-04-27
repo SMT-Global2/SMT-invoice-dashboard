@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     }
 
     let orderBy : any = {
-        packageTimestamp: 'asc'
+        invoiceNumber: 'asc'
     }
     if(regionalCodesParam){
         orderBy = {

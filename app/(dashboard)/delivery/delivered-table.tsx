@@ -211,7 +211,7 @@ export function DeliveredTable() {
               ) : (
                 filteredInvoices?.map((invoice, index) => (
                   <TableRow key={invoice.invoiceNumber}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{(deliveredPage - 1) * itemsPerPage + index + 1}</TableCell>
                     <TableCell>
                       {invoice.generatedDate && format(new Date(invoice.generatedDate), 'd MMM yyyy')}
                     </TableCell>

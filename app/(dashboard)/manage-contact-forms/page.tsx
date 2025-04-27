@@ -6,9 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Star, AlertCircle, CheckCircle, Clock, Filter, Search, Calendar as CalendarIcon, Expand, Copy } from 'lucide-react';
+import { Star, AlertCircle, CheckCircle, Clock, Filter, Search, Calendar as CalendarIcon, Expand, Copy, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { format, startOfToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -25,13 +25,24 @@ import {
 import { toast } from 'sonner';
 import {
   Dialog,
-  DialogContent,
+  // DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ShowImage } from '@/components/show-image';
 import { getS3BucketUrl } from '@/lib/helper';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const issueTypes = [
   'Missing Product',
@@ -62,12 +73,12 @@ export default function ContactFormsPage() {
     search: '',
     issueType: 'all',
     status: 'all',
-    startDate: format(startOfToday(), 'yyyy-MM-dd'),
-    endDate: format(startOfToday(), 'yyyy-MM-dd'),
+    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
     urgent: 'all'
   });
-  const [startDate, setStartDate] = useState<Date | undefined>(startOfToday());
-  const [endDate, setEndDate] = useState<Date | undefined>(startOfToday());
+  const [startDate, setStartDate] = useState<Date | undefined>(startOfMonth(new Date()));
+  const [endDate, setEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
 
   // Function to copy text to clipboard
   const copyToClipboard = (text: string) => {
@@ -162,6 +173,22 @@ export default function ContactFormsPage() {
     }
   };
 
+  const deleteForm = async (formId: string) => {
+    try {
+      const response = await fetch(`/api/contact-form?id=${formId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete form');
+
+      setForms(forms.filter(form => form.id !== formId));
+      toast.success('Form deleted successfully');
+    } catch (error) {
+      console.error('Error deleting form:', error);
+      toast.error('Failed to delete form');
+    }
+  };
+
   const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://invoice.sanjivanmedicotraders.in';
 
   return (
@@ -221,12 +248,12 @@ export default function ContactFormsPage() {
                   search: '',
                   issueType: 'all',
                   status: 'all',
-                  startDate: format(startOfToday(), 'yyyy-MM-dd'),
-                  endDate: format(startOfToday(), 'yyyy-MM-dd'),
+                  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+                  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
                   urgent: 'all'
                 });
-                setStartDate(startOfToday());
-                setEndDate(startOfToday());
+                setStartDate(startOfMonth(new Date()));
+                setEndDate(endOfMonth(new Date()));
               }}
             >
               Reset Filters
@@ -410,11 +437,33 @@ export default function ContactFormsPage() {
                         </p>
                         <div className="flex items-center gap-2">
                           {form.images.length > 0 && (
-                            <>
-                              <ShowImage images={form.images} />
-                            </>
+                            <ShowImage images={form.images} />
                           )}
-                          <DropdownMenu>  
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="py-[1rem]">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the contact form.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteForm(form.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="outline" size="sm" className="py-[1rem]">
                                 Update Status

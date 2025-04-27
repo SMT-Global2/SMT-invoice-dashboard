@@ -49,7 +49,7 @@ const convertExcelDate = (excelSerialDate: number): string => {
     const baseDate = new Date(Date.UTC(1899, 11, 30));
     const resultDate = addDays(baseDate, excelSerialDate);
     if (isValid(resultDate)) {
-      return format(resultDate, 'dd-MMM-yy');
+      return format(resultDate, 'd MMM yyyy');
     }
     return excelSerialDate.toString();
   } catch (error) {
@@ -430,7 +430,19 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
                 if (['col5', 'col6', 'col7', 'col8', 'col10'].includes(col.key)) {
                   displayValue = formatNumberSafely(cellValue).toFixed(2);
                 } else if (col.key === 'col1') { // Date column
-                  displayValue = typeof cellValue === 'number' ? convertExcelDate(cellValue) : String(cellValue || '');
+                  // Force numeric parsing for Excel dates which might come as strings
+                  const numericValue = typeof cellValue === 'string' ? 
+                    parseFloat(cellValue.replace(/,/g, '')) : 
+                    typeof cellValue === 'number' ? cellValue : 0;
+                  
+                  if (!isNaN(numericValue) && numericValue > 0) {
+                    // Convert Excel serial date to JS date
+                    const baseDate = new Date(Date.UTC(1899, 11, 30));
+                    const resultDate = new Date(baseDate.getTime() + (numericValue * 24 * 60 * 60 * 1000));
+                    displayValue = format(resultDate, 'd MMM yyyy');
+                  } else {
+                    displayValue = String(cellValue || '');
+                  }
                 } else {
                   displayValue = String(cellValue || '');
                 }

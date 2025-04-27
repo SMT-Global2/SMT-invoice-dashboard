@@ -5,7 +5,7 @@ import { Camera, CameraOff, Loader2, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ShowImage } from "./show-image";
-
+import { cn } from "@/lib/utils";
 
 type TakeType = 'BOTH' | 'CAMERA' | 'UPLOAD'
 
@@ -25,6 +25,29 @@ export function TakeImage({
     takeType : TakeType
 }) {
     const [cameraAvailable, setCameraAvailable] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    useEffect(() => {
+        // Reset progress when upload starts
+        if (isUploading) {
+            setUploadProgress(0);
+            const interval = setInterval(() => {
+                setUploadProgress(prev => {
+                    // Simulate progress up to 90% - the last 10% will happen when upload completes
+                    if (prev < 90) return prev + 10;
+                    return prev;
+                });
+            }, 600);
+            
+            return () => clearInterval(interval);
+        } else {
+            // When upload completes, set to 100% then reset after a delay
+            setUploadProgress(100);
+            const timeout = setTimeout(() => setUploadProgress(0), 500);
+            return () => clearTimeout(timeout);
+        }
+    }, [isUploading]);
+
     useEffect(() => {
         const checkCameraAvailability = async () => {
             try {
@@ -47,13 +70,27 @@ export function TakeImage({
                 <div className="relative">
                     <Button
                         variant="outline"
-                        className="gap-2 relative hover:opacity-90 transition-opacity"
+                        className={cn(
+                            "gap-2 relative hover:opacity-90 transition-opacity",
+                            isUploading && "border-primary text-primary"
+                        )}
                         disabled={isDisabled || isUploading}
                     >
-                    {
-                        isUploading ? <Loader2 className='w-5 h-5 animate-spin' /> : <Upload className='w-5 h-5'/>
-                    }
+                        {isUploading ? (
+                            <>
+                                <div className="relative w-5 h-5 flex items-center justify-center">
+                                    <Loader2 className='w-5 h-5 animate-spin absolute' />
+                                    <div className="text-[9px] font-bold">{uploadProgress}%</div>
+                                </div>
+                            </>
+                        ) : (
+                            <Upload className='w-5 h-5'/>
+                        )}
                     </Button>
+                    {isUploading && (
+                        <div className="absolute bottom-0 left-0 h-1 bg-primary rounded-full transition-all duration-300" 
+                             style={{ width: `${uploadProgress}%` }}></div>
+                    )}
                     <Input
                         type="file"
                         accept="image/*"
@@ -71,14 +108,27 @@ export function TakeImage({
                 <div className="relative">
                     <Button
                         variant="outline"
-                        className="gap-2 z-10"
+                        className={cn(
+                            "gap-2 z-10",
+                            isUploading && "border-primary text-primary"
+                        )}
                         disabled={isDisabled || isUploading}
                     >
-                        <Camera className='w-5 h-5'/> 
+                        {isUploading ? (
+                            <>
+                                <div className="relative w-5 h-5 flex items-center justify-center">
+                                    <Loader2 className='w-5 h-5 animate-spin absolute' />
+                                    <div className="text-[9px] font-bold">{uploadProgress}%</div>
+                                </div>
+                            </>
+                        ) : (
+                            <Camera className='w-5 h-5'/> 
+                        )}
                     </Button>
-                    {/* {
-                        isUploading ? <Loader2 className='w-5 h-5 animate-spin' /> : <Upload className='w-5 h-5'/>
-                    } */}
+                    {isUploading && (
+                        <div className="absolute bottom-0 left-0 h-1 bg-primary rounded-full transition-all duration-300" 
+                             style={{ width: `${uploadProgress}%` }}></div>
+                    )}
                     <Input
                         type="file"
                         accept="image/*"

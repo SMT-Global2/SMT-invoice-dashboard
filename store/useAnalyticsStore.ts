@@ -270,7 +270,7 @@ interface ReceiptAnalytics {
   amountByUser: Array<{ username: string, amount: number }>;
 }
 
-interface AnalyticsState {
+export interface AnalyticsState {
   isLoading: boolean;
   error: string | null;
   
