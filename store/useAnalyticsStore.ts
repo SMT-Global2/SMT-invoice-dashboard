@@ -324,7 +324,7 @@ export interface AnalyticsState {
   };
   
   // Add new fetch function
-  fetchExtendedAnalytics: (type?: string, dateRange?: DateRange) => Promise<void>;
+  fetchExtendedAnalytics: (type: string, dateRange: DateRange | undefined) => Promise<void>;
 }
 
 const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
@@ -687,7 +687,9 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     error: null
   },
   
-  fetchExtendedAnalytics: async (type = 'all', dateRange) => {
+  fetchExtendedAnalytics: async (type, dateRange) => {
+    if (!type) return;
+    
     try {
       set(state => ({
         extendedAnalytics: {
@@ -717,28 +719,24 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       const data: ExtendedAnalyticsResponse = await response.json();
       
       if (!data.success) {
-        throw new Error(data.data as any || 'Failed to fetch extended analytics');
+        throw new Error((data as any).message || 'Failed to fetch extended analytics');
       }
       
       set(state => ({
         extendedAnalytics: {
-          inventory: data.data.inventory || state.extendedAnalytics.inventory,
-          deliveryMemo: data.data.deliveryMemo || state.extendedAnalytics.deliveryMemo,
-          expiry: data.data.expiry || state.extendedAnalytics.expiry,
-          statement: data.data.statement || state.extendedAnalytics.statement,
-          billing: data.data.billing || state.extendedAnalytics.billing,
-          receipt: data.data.receipt || state.extendedAnalytics.receipt,
+          ...state.extendedAnalytics,
+          [type]: data.data[type as keyof ExtendedAnalyticsResponse['data']] || state.extendedAnalytics[type as keyof AnalyticsState['extendedAnalytics']],
           isLoading: false,
           error: null
         }
       }));
     } catch (error) {
-      console.error('Error fetching extended analytics:', error);
+      console.error(`Error fetching extended analytics for type ${type}:`, error);
       set(state => ({
         extendedAnalytics: {
           ...state.extendedAnalytics,
           isLoading: false,
-          error: error instanceof Error ? error.message : 'An error occurred'
+          error: error instanceof Error ? error.message : `An error occurred while fetching ${type} data`
         }
       }));
     }

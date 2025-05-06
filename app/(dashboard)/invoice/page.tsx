@@ -26,9 +26,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { InvoiceData, useInvoiceStore } from '@/store/useInvoiceStore';
-import {Check} from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useToast } from '@/components/ui/use-toast';
 import { compressImage, convertImage, tweleHrFormatDateString, uploadFileToS3 } from '@/lib/helper';
 import {
   AlertDialog,
@@ -60,14 +58,15 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Download, FilterX } from 'lucide-react';
 import { RegionalCodeFilter } from '@/components/regional-code-filter';
+import { useToast } from '@/components/ui/use-toast'
 
 export default function InvoicePage() {
+  const { toast } = useToast();
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
-  const { toast } = useToast();
   const [invoiceSearchTerm, setInvoiceSearchTerm] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
-
+  
   const {
     invoices,
     selectedDate,
@@ -105,7 +104,7 @@ export default function InvoicePage() {
       const prefixKeyId = `invoice/invoice_number#${invoiceNumber}#${new Date().toISOString()}.${compressedFile.name.split('.').pop()}`;
       const uploadedImage = await uploadFileToS3(compressedFile , prefixKeyId);
 
-      updateInvoiceImage(invoiceNumber , uploadedImage.key);
+      await updateInvoiceImage(invoiceNumber , uploadedImage.key);
 
       toast({
         title: 'Success',
@@ -189,7 +188,7 @@ export default function InvoicePage() {
         description: 'Invoice saved successfully',
         duration: 2000,
       });
-    } catch (error) {
+    } catch (error) { 
       console.error('Save error:', error);
       toast({
         variant: 'destructive',
@@ -308,7 +307,7 @@ export default function InvoicePage() {
       const doc = new jsPDF();
       const tableRows: any[] = [];
       const tableColumns = [
-        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", ""
+        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", "OTC"
       ];
 
       // Sort invoices by city
@@ -332,7 +331,7 @@ export default function InvoicePage() {
           invoice.cityName || '-',
           invoice.regionalCode || '-',
           invoice.paymodeMode,
-          '' // Empty column
+          invoice.isOtc ? 'Yes' : '-'
         ];
         tableRows.push(invoiceData);
       });
@@ -431,7 +430,7 @@ export default function InvoicePage() {
                     className="w-full h-9"
                   />
                 </div>
-                <div className='w-full'>
+                <div className="w-full">
                   <RegionalCodeFilter
                     selectedRegionalCodes={selectedRegionalCodes}
                     availableRegionalCodes={availableRegionalCodes}
@@ -598,7 +597,8 @@ export default function InvoicePage() {
                                 imageKey={row.invoiceNumber}
                                 handleImageUpload={handleImageUpload}
                                 isUploading={uploadingImage === row.invoiceNumber}
-                                isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                                // isDisabled={row.isDisabled || row.invoiceTimestamp !== null || uploadingImage === row.invoiceNumber}
+                                isDisabled={uploadingImage === row.invoiceNumber}
                                 showImages={[...row.image]}
                                 takeType='BOTH'
                               />

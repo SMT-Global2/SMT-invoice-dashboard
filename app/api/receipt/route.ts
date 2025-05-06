@@ -14,7 +14,7 @@ const getQuerySchema = z.object({
   date: z.string().nullable().optional(),
   paymentMethod: z.enum(["NONE", "CASH", "CHEQUE"]).nullable().optional(),
   id: z.string().nullable().optional(), // Added ID parameter for individual item operations
-  username: z.string().nullable().optional(), // Added username parameter for filtering by user
+  usernames: z.string().nullable().optional(), // Changed from username to usernames for multi-user filtering
 });
 
 // Schema for currency bills
@@ -106,14 +106,14 @@ export async function GET(req: NextRequest) {
       date: url.searchParams.get("date"),
       paymentMethod: url.searchParams.get("paymentMethod"),
       id: url.searchParams.get("id"), // Get ID from query params
-      username: url.searchParams.get("username"), // Get username from query params
+      usernames: url.searchParams.get("usernames"), // Get usernames from query params
     });
     
     if (!queryParsed.success) {
       return NextResponse.json({ message: 'Invalid query parameters', errors: queryParsed.error.flatten() }, { status: 400 });
     }
     
-    const { page, limit, search, date, paymentMethod, id, username } = queryParsed.data;
+    const { page, limit, search, date, paymentMethod, id, usernames } = queryParsed.data;
     
     // If ID is provided, return a single item
     if (id) {
@@ -166,9 +166,11 @@ export async function GET(req: NextRequest) {
             paymentMethod
           } : {},
           
-          // Filter by username
-          username ? {
-            receiptUsername: username
+          // Filter by usernames (comma-separated list)
+          usernames ? {
+            receiptUsername: {
+              in: usernames.split(',')
+            }
           } : {}
         ]
       },

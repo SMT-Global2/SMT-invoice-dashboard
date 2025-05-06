@@ -49,6 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { UserSelector, User } from '@/components/user-selector';
+import { MultiUserSelector } from '@/components/multi-user-selector';
 
 // Creating a payment method filter type that includes "ALL"
 export type PaymentMethodFilter = PaymentMethod | "ALL" | undefined;
@@ -62,8 +63,8 @@ interface RecordTableProps {
   setSelectedDate: (date: Date | undefined) => void;
   selectedPaymentMethod: PaymentMethodFilter;
   setSelectedPaymentMethod: (method: PaymentMethod | undefined) => void;
-  selectedUser: string | null;
-  setSelectedUser: (userId: string | null) => void;
+  selectedUser: string[] | null;
+  setSelectedUser: (userIds: string[] | null) => void;
   currentPage: number;
   totalPages: number;
   itemsPerPage: number;
@@ -202,9 +203,9 @@ export function RecordTable({
 
               {/* User Drop down */}
               <div className="w-full sm:w-[120px]">
-                <UserSelector
-                  value={selectedUser}
-                  onChange={(user) => setSelectedUser && setSelectedUser(user.username)}
+                <MultiUserSelector
+                  value={selectedUser || []}
+                  onChange={(users) => setSelectedUser && setSelectedUser(users.map(user => user.username))}
                   placeholder="Filter by user"
                 />
               </div>

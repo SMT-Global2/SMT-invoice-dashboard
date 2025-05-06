@@ -8,6 +8,7 @@ import { RecordTable, PaymentMethodFilter } from './record-table';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import PDFGenerator from './pdf-generator';
+import ExcelGenerator from './excel-generator';
 
 export default function ReceiptPage() {
   const { toast } = useToast();
@@ -33,8 +34,6 @@ export default function ReceiptPage() {
     setSelectedDate,
     selectedPaymentMethod,
     setSelectedPaymentMethod,
-    selectedUser,
-    setSelectedUser,
     
     // Dialog state
     isDialogOpen,
@@ -46,22 +45,32 @@ export default function ReceiptPage() {
     createReceiptItem,
   } = useReceiptStore();
 
-  // Local state for search and filter
-  // const [searchTerm, setSearchTerm] = useState("");
-  // const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  // const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodFilter>("ALL");
-  // const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  // Update from single user to multi-user selection
+  const [selectedUsers, setSelectedUsers] = useState<string[] | null>(null);
 
   // Initial data fetch
   useEffect(() => {
-    fetchReceiptItems();
+    // Pass selected users to the API if there are any
+    const fetchWithUsers = async () => {
+      if (selectedUsers && selectedUsers.length > 0) {
+        // Call API with usernames parameter
+        await fetchReceiptItems({
+          usernames: selectedUsers.join(',')
+        });
+      } else {
+        // Call API without usernames parameter
+        await fetchReceiptItems();
+      }
+    };
+    
+    fetchWithUsers();
   }, [
     currentPage,
     itemsPerPage,
     searchTerm,
     selectedDate,
     selectedPaymentMethod,
-    selectedUser,
+    selectedUsers,
     fetchReceiptItems
   ]);
 
@@ -73,49 +82,10 @@ export default function ReceiptPage() {
   };
 
   // Handle edit button click
-  const handleEditClick = async (id: string) => {
-    try {
-      // First set loading state
-      setIsDialogOpen(true);
-      setDialogType("edit");
-      
-      // Try to find the receipt in the local cache first as a fallback
-      const localReceiptItem = receiptItems.find(item => item.id === id);
-      
-      if (!localReceiptItem) {
-        toast({
-          title: "Error",
-          description: "Could not find receipt in local data",
-          variant: "destructive"
-        });
-        setIsDialogOpen(false);
-        return;
-      }
-      
-      // Set the local item first so the dialog can show something immediately
-      setCurrentReceiptItem(localReceiptItem);
-      
-      // Try to fetch fresh data
-      try {
-        const freshReceipt = await useReceiptStore.getState().fetchReceiptItemById(id);
-        if (freshReceipt) {
-          // Update with fresh data
-          setCurrentReceiptItem(freshReceipt);
-        }
-      } catch (fetchError) {
-        console.error("Error fetching fresh receipt data:", fetchError);
-        // Continue with local data, just log a warning
-        console.warn("Using cached receipt data instead of fresh data");
-      }
-    } catch (error) {
-      console.error("Error preparing receipt for edit:", error);
-      toast({
-        title: "Error",
-        description: "Failed to prepare receipt data for editing",
-        variant: "destructive"
-      });
-      setIsDialogOpen(false);
-    }
+  const handleEditClick = (id: string) => {
+    setDialogType("edit");
+    setCurrentReceiptItem(receiptItems.find(item => item.id === id));
+    setIsDialogOpen(true);
   };
 
   // Handle delete button click
@@ -125,14 +95,12 @@ export default function ReceiptPage() {
       toast({
         title: "Success",
         description: "Receipt deleted successfully",
-        variant: "default"
       });
     } catch (error) {
-      console.error("Error deleting receipt:", error);
       toast({
         title: "Error",
         description: "Failed to delete receipt",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -154,12 +122,21 @@ export default function ReceiptPage() {
         <h1 className="text-xl font-bold">Receipt Management</h1>
         <div className="flex flex-col md:flex-row gap-2">
 
-          {selectedDate && 
-          <PDFGenerator 
-            date={selectedDate} 
-            userFilter={selectedUser} 
-            paymentMethodFilter={selectedPaymentMethod} 
-          />}
+          {selectedDate && (
+            <>
+              <PDFGenerator 
+                date={selectedDate} 
+                userFilter={selectedUsers && selectedUsers.length === 1 ? selectedUsers[0] : null} 
+                paymentMethodFilter={selectedPaymentMethod} 
+              />
+              
+              <ExcelGenerator
+                date={selectedDate}
+                userFilter={selectedUsers}
+                paymentMethodFilter={selectedPaymentMethod}
+              />
+            </>
+          )}
 
           <Button 
             onClick={handleAddClick}
@@ -182,8 +159,8 @@ export default function ReceiptPage() {
         setSelectedDate={setSelectedDate}
         selectedPaymentMethod={selectedPaymentMethod}
         setSelectedPaymentMethod={setSelectedPaymentMethod as (method: PaymentMethod | undefined) => void}
-        selectedUser={selectedUser}
-        setSelectedUser={setSelectedUser}
+        selectedUser={selectedUsers}
+        setSelectedUser={setSelectedUsers}
         currentPage={currentPage}
         totalPages={totalPages}
         itemsPerPage={itemsPerPage}

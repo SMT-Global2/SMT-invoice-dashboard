@@ -39,7 +39,7 @@ interface InvoiceState {
   setSelectedDate: (date: Date | undefined) => void
   setCurrentPage: (page: number) => void
 
-  updateInvoiceImage: (sr: number, image: string) => void
+  updateInvoiceImage: (sr: number, image: string) => Promise<void>
   handleInvoices: () => Promise<void>
 
   fetchInvoices: (date?: Date | null) => Promise<void>
@@ -77,13 +77,51 @@ export const useInvoiceStore = create<InvoiceState>()(
       },
       setCurrentPage: (page) => set({ currentPage: page }),
       
-      updateInvoiceImage: (sr, image) => {
+      updateInvoiceImage: async (sr, image) => {
         const invoices = [...get().invoices]
         const index = invoices.findIndex(item => item.invoiceNumber === sr)
-        if (index !== -1) {
+
+        if (index === -1) {
+          throw new Error('Invoice not found')
+        }
+
+        //Check if the invoice is already saved
+        const invoice = get().invoices.find(inv => inv.invoiceNumber === sr)
+        if(invoice?.invoiceTimestamp) {
+          //Already saved
+          //Update image in backend
+          try {
+            const response = await fetch('/api/invoice/update-image', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                invoiceNumber: invoices[index].invoiceNumber, 
+                image: [...invoices[index].image, image]
+              }),
+            });
+
+            const data = await response.json();
+            // console.log(data)
+            if (data.success) {
+              // Image updated successfully
+              invoices[index].image.push(image)
+              set({ invoices })
+            }
+            else {
+              throw new Error('Failed to update invoice image')
+            }
+          } catch (error) {
+            throw new Error('Failed to update invoice image')
+          }
+        }
+        else {
+          //Not saved
           invoices[index].image.push(image)
           set({ invoices })
         }
+
       },
 
       fetchAvailableRegionalCodes: async () => {

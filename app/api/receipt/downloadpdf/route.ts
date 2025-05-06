@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
         receiptNumber: 'asc'
       }
     });
-    console.log(receipts);
+    // console.log(receipts);
     
     if (receipts.length === 0) {
       return NextResponse.json(

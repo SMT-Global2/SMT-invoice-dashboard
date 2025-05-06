@@ -17,7 +17,6 @@ model User {
   phoneNumber   String
   email         String?
   address       String?
-  department    Department[]
   type          UserType  @default(USER)
 
   // invoice       Invoice[] @relation("InvoiceToUser")
@@ -25,6 +24,9 @@ model User {
   // package       Invoice[] @relation("PackageToUser")
   // pickup        Invoice[] @relation("PickupToUser")
   // delivery      Invoice[] @relation("DeliveryToUser")
+
+  department    Department[]
+  backups       Backup[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -379,4 +381,33 @@ model Transportation {
 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+}
+
+
+enum BackupStatus {
+  PENDING
+  INPROGRESS
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+model Backup {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  filename          String
+  storageFilename   String?
+  createdBy         String      @db.ObjectId
+  fileSize          Int?
+  status            BackupStatus @default(PENDING)
+  progress          Int         @default(0)
+  progressDetails   String?     // Store JSON string of progress details
+  departments       String[]
+  dateRange         Json?       // Store the date range
+  filePath          String?
+  completedAt       DateTime?
+  downloadUrl       String?
+  failureReason     String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  user              User          @relation(fields: [createdBy], references: [id])
 }

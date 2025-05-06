@@ -55,7 +55,7 @@ interface ReceiptState {
   totalPages: number;
   itemsPerPage: number;
   // Actions
-  fetchReceiptItems: () => Promise<void>;
+  fetchReceiptItems: (params?: Record<string, string>) => Promise<void>;
   
   fetchReceiptItemById: (id: string) => Promise<ReceiptData | null>;
   createReceiptItem: (data: Partial<ReceiptData>) => Promise<void>;
@@ -78,8 +78,6 @@ interface ReceiptState {
   setSelectedDate: (date: Date | undefined) => void;
   selectedPaymentMethod: PaymentMethodFilter | undefined;
   setSelectedPaymentMethod: (method: PaymentMethodFilter | undefined) => void;
-  selectedUser: string | null;
-  setSelectedUser: (user: string | null) => void;
 }
 
 export const useReceiptStore = create<ReceiptState>()(
@@ -108,8 +106,6 @@ export const useReceiptStore = create<ReceiptState>()(
       setSelectedDate: (date) => set({ selectedDate: date }),
       selectedPaymentMethod: 'ALL',
       setSelectedPaymentMethod: (method) => set({ selectedPaymentMethod: method }),
-      selectedUser: '',
-      setSelectedUser: (user) => set({ selectedUser: user }),
       
       // Dialog actions
       setIsDialogOpen: (isOpen) => set({ isDialogOpen: isOpen }),
@@ -121,51 +117,58 @@ export const useReceiptStore = create<ReceiptState>()(
       setItemsPerPage: (count) => set({ itemsPerPage: count, currentPage: 1 }),
       
       // API calls
-      fetchReceiptItems: async () => {
+      fetchReceiptItems: async (params?: Record<string, string>) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
+          const { currentPage, itemsPerPage, searchTerm, selectedDate, selectedPaymentMethod } = get();
           
+          // Construct URL with query parameters
           const url = new URL('/api/receipt', window.location.origin);
-          url.searchParams.set('page', get().currentPage.toString());
-          url.searchParams.set('limit', get().itemsPerPage.toString());
-
-          const user = get().selectedUser;
-          const paymentMethod = get().selectedPaymentMethod === 'ALL' ? undefined : get().selectedPaymentMethod;
-          const date = get().selectedDate;
-          const search = get().searchTerm;
+          url.searchParams.set('page', currentPage.toString());
+          url.searchParams.set('limit', itemsPerPage.toString());
           
-          if (search) {
-            url.searchParams.set('search', search);
+          // Add search term if present
+          if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
           }
           
-          if (date) {
-            url.searchParams.set('date', moment(date).format('YYYY-MM-DD'));
+          // Add date filter if present
+          if (selectedDate) {
+            const formattedDate = moment(selectedDate).format('YYYY-MM-DD');
+            url.searchParams.set('date', formattedDate);
           }
           
-          if (paymentMethod) {
-            url.searchParams.set('paymentMethod', paymentMethod);
+          // Add payment method filter if present and not 'ALL'
+          if (selectedPaymentMethod && selectedPaymentMethod !== 'ALL') {
+            url.searchParams.set('paymentMethod', selectedPaymentMethod);
           }
           
-          if (user) {
-            url.searchParams.set('username', user);
+          // Add any additional params that were passed in
+          if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+              url.searchParams.set(key, value);
+            });
           }
           
-          const response = await fetch(url.toString());
-          
+          // Fetch data from API
+          const response = await fetch(url);
           if (!response.ok) {
-            throw new Error('Failed to fetch receipt items');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to fetch receipt items');
           }
           
-          const { data, totalPages } = await response.json();
-          
+          const data = await response.json();
           set({ 
-            receiptItems: data,
-            totalPages,
+            receiptItems: data.data, 
+            totalPages: data.totalPages,
             isLoading: false 
           });
         } catch (error) {
-          set({ error: 'Failed to fetch receipt items', isLoading: false });
-          console.error(error);
+          console.error('Error fetching receipt items:', error);
+          set({ 
+            error: error instanceof Error ? error.message : 'An unknown error occurred',
+            isLoading: false 
+          });
         }
       },
       
@@ -292,3 +295,4 @@ export const useReceiptStore = create<ReceiptState>()(
     }
   )
 );
+

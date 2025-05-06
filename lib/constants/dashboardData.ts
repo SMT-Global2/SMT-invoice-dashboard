@@ -22,7 +22,8 @@ import {
   TimerOff,
   PieChart,
   Handshake,
-  Building2
+  Building2,
+  Database
 } from 'lucide-react';
 
 import { Department, UserType } from '@prisma/client';
@@ -183,7 +184,7 @@ export const dashboardCategories: DashboardCategory[] = [
   
   {
     id: 'management',
-    label: ' Admin Management',
+    label: 'Admin Management',
     items: [
       {
         id: 'employee',
@@ -227,7 +228,16 @@ export const dashboardCategories: DashboardCategory[] = [
         description: 'View and manage customer feedback and complaints',
         searchTerms: ['contact', 'feedback', 'complaints', 'forms', 'customer service'],
         roles: ['ADMIN']
-      }
+      },
+      // {
+      //   id: 'backup',
+      //   title: 'System Backup',
+      //   href: '/backup',
+      //   icon: Database,
+      //   description: 'Create and manage system-wide backups',
+      //   searchTerms: ['backup', 'archive', 'export', 'download', 'data backup', 'system backup'],
+      //   roles: ['ADMIN']
+      // }
     ]
   }
 ];
