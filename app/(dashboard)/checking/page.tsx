@@ -268,14 +268,15 @@ export default function CheckingPage() {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          {invoice.image && invoice.image.length > 0 ? (
+                          <ShowImage images={invoice.image} />
+                          {/* {invoice.image && invoice.image.length > 0 ? (
                             <Button size="sm" className="flex items-center gap-2">
                               <ImageIcon className="h-4 w-4" />
                               <span>View</span>
                             </Button>
                           ) : (
                             '-'
-                          )}
+                          )} */}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -428,14 +429,15 @@ export default function CheckingPage() {
                         <TableCell>{invoice.regionalCode}</TableCell>
                         <TableCell><Capsule text={invoice.paymodeMode?.toString() || '-'} /></TableCell>
                         <TableCell>
-                          {invoice.image && invoice.image.length > 0 ? (
+                        <ShowImage images={invoice.image} />
+                          {/* {invoice.image && invoice.image.length > 0 ? (
                             <Button size="sm" className="flex items-center gap-2">
                               <ImageIcon className="h-4 w-4" />
                               <span>View</span>
                             </Button>
                           ) : (
                             '-'
-                          )}
+                          )} */}
                         </TableCell>
                         <TableCell>{invoice.checkUsername || '-'}</TableCell>
                         <TableCell>{invoice.checkTimestamp ? formatDateOnly(invoice.checkTimestamp) : '-'}</TableCell>
