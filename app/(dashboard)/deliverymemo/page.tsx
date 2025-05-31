@@ -70,6 +70,7 @@ import { format } from "date-fns"
 interface ExtendedDeliveryMemoData extends DeliveryMemoData {
   userUsername?: string | null;
   userName?: string | null;
+  userId?: string | null;
 }
 
 // Add this after the imports
@@ -257,6 +258,7 @@ export default function DeliveryMemoPage() {
         ...newData[index],
         userUsername: user.username,
         userName: `${user.firstName} ${user.lastName}`,
+        userId: user.id,
       };
       setDeliveryMemos(newData);
     }
@@ -499,7 +501,7 @@ export default function DeliveryMemoPage() {
                           <TableCell>{row.regionalCode}</TableCell>
                           <TableCell>
                             <UserSelector
-                              value={(row as ExtendedDeliveryMemoData).userUsername || row.goodsCollectedUsername || null}
+                              value={(row as ExtendedDeliveryMemoData).userId || null}
                               onChange={(user) => handleUserSelect(row, user)}
                               disabled={row.isDisabled || row.goodsCollectedUsername !== null}
                               departmentFilter={Department.DELIVERY_MEMO_MANAGEMENT}

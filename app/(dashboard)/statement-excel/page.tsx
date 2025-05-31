@@ -53,6 +53,8 @@ import {
 import { Label } from "@/components/ui/label";
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
+import LastTwoPaymentUpload from '@/components/last-two-payment-upload';
+import LastTwoPaymentDisplay from '@/components/last-two-payment-display';
 
 interface ExcelData {
   [key: string]: string | number;
@@ -132,6 +134,10 @@ export default function StatementExcelPage() {
   const [pdfProgress, setPdfProgress] = useState<number>(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [ledgers, setLedgers] = useState<any[]>([]);
+  const [isLoadingLedgers, setIsLoadingLedgers] = useState(false);
+  const [lastTwoPayments, setLastTwoPayments] = useState<any[]>([]);
+  const [isLoadingLastTwoPayments, setIsLoadingLastTwoPayments] = useState(false);
 
   // Update localStorage when userFilter changes
   useEffect(() => {
@@ -1679,6 +1685,136 @@ export default function StatementExcelPage() {
     return format(date, 'yyyy-MM-dd'); // Use date-fns for internal consistency
   };
 
+  // Add this function to fetch ledgers
+  const fetchLedgers = async () => {
+    setIsLoadingLastTwoPayments(true);
+    try {
+      const response = await fetch(`/api/last-two-payment/get-by-date?date=${selectedDate.toISOString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch ledgers');
+      }
+      const data = await response.json();
+      setLedgers(data);
+    } catch (error) {
+      console.error('Error fetching ledgers:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch ledgers',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingLastTwoPayments(false);
+    }
+  };
+
+  // Add this effect to fetch ledgers when date changes
+  useEffect(() => {
+    fetchLedgers();
+  }, [selectedDate]);
+
+  const fetchLastTwoPayments = async (date: string) => {
+    try {
+      setIsLoadingLastTwoPayments(true);
+      console.log("Fetching last two payments for date:", date);
+      
+      // Add a small delay to ensure the database has time to process previous uploads
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const response = await fetch(`/api/last-two-payment/get-by-date?date=${date}&limit=100&entriesLimit=5000`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API error response:", errorData);
+        throw new Error(errorData.error || errorData.details || 'Failed to fetch last two payments');
+      }
+      
+      const data = await response.json();
+      console.log("Last two payments API response:", data);
+      
+      if (data.lastTwoPayments && Array.isArray(data.lastTwoPayments)) {
+        // Success case - API returned data in expected format
+        console.log(`Found ${data.lastTwoPayments.length} last two payment records`);
+        
+        if (data.lastTwoPayments.length > 0 && data.lastTwoPayments[0].paymentEntries) {
+          console.log(`First payment has ${data.lastTwoPayments[0].paymentEntries.length} entries`);
+          
+          if (data.lastTwoPayments[0].paymentEntries.length > 0) {
+            console.log("Sample entry:", data.lastTwoPayments[0].paymentEntries[0]);
+          }
+        }
+        
+        setLastTwoPayments(data.lastTwoPayments);
+        
+        toast({
+          title: 'Success',
+          description: `Loaded ${data.lastTwoPayments.length} last two payment records with ${data.pagination?.totalEntries || 'multiple'} entries`,
+          duration: 3000,
+        });
+      } else if (data.message && data.message.includes("No last two payment data found")) {
+        // No data case
+        console.log("No last two payment data found for the selected date");
+        setLastTwoPayments([]);
+        
+        toast({
+          title: 'Info',
+          description: 'No last two payment data found for the selected date',
+          duration: 3000,
+        });
+      } else {
+        // API returned data in unexpected format
+        console.warn('API response missing expected data structure:', data);
+        setLastTwoPayments([]);
+        
+        if (data.message) {
+          toast({
+            title: 'Info',
+            description: data.message,
+            duration: 3000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching last two payments:', error);
+      setLastTwoPayments([]);
+      
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to fetch last two payments',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    } finally {
+      setIsLoadingLastTwoPayments(false);
+    }
+  };
+
+  // Update useEffect to fetch last two payments when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      fetchLastTwoPayments(selectedDate.toISOString().split('T')[0]);
+    }
+  }, [selectedDate]);
+
+  // This is a function to find last two payments that match the same date as the statement
+  const findMatchingLastTwoPayments = (paymentDate: Date | string | undefined, section: PartySection) => {
+    if (!lastTwoPayments || lastTwoPayments.length === 0) {
+      console.log("No last two payments available");
+      return [];
+    }
+    
+    // Instead of matching dates, simply filter entries for this party code
+    const allPaymentEntries = lastTwoPayments.flatMap(payment => payment.paymentEntries || []);
+    
+    // Filter for entries that match this party code
+    const matchingEntries = allPaymentEntries.filter((entry: any) => 
+      entry && entry.partyCode === section.partyCode
+    );
+    
+    console.log(`Found ${matchingEntries.length} matching payment entries for party ${section.partyCode}`);
+    
+    return matchingEntries;
+  };
+
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       <Card>
@@ -1949,7 +2085,7 @@ export default function StatementExcelPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-5 w-5 p-0"
-                                  onClick={(e) => {
+                                  onClick={(e : React.MouseEvent<HTMLButtonElement>) => {
                                     e.stopPropagation();
                                     handleFileRename(file.id);
                                   }}
@@ -1960,7 +2096,7 @@ export default function StatementExcelPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-5 w-5 p-0"
-                                  onClick={(e) => {
+                                  onClick={(e : React.MouseEvent<HTMLButtonElement>) => {
                                     e.stopPropagation();
                                     setEditingFileId(null);
                                   }}
@@ -1974,7 +2110,7 @@ export default function StatementExcelPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-5 w-5 p-0"
-                                  onClick={(e) => {
+                                  onClick={(e : React.MouseEvent<HTMLButtonElement>) => {
                                     e.stopPropagation();
                                     setEditingFileId(file.id);
                                     setEditingFileName(file.name);
@@ -1987,7 +2123,7 @@ export default function StatementExcelPage() {
                                     size="sm"
                                     variant="ghost"
                                     className="h-5 w-5 p-0"
-                                    onClick={(e) => {
+                                    onClick={(e : React.MouseEvent<HTMLButtonElement>) => {
                                       e.stopPropagation();
                                       setShowAccessDeniedDialog(true);
                                     }}
@@ -1999,7 +2135,7 @@ export default function StatementExcelPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-5 w-5 p-0"
-                                  onClick={(e) => {
+                                  onClick={(e : React.MouseEvent<HTMLButtonElement>) => {
                                     e.stopPropagation();
                                     setFileToDelete(file);
                                   }}
@@ -2157,8 +2293,6 @@ export default function StatementExcelPage() {
                     {paginatedSections.map((section) => {
                       const savedPartyData = selectedFile.savedParties?.[section.partyCode];
                       const hasSavedTimestamp = savedPartyData?.timestamp;
-
-                      // console.log({savedPartyData})
 
                       return (
                         <Card key={section.partyCode} className={cn(
@@ -2381,6 +2515,10 @@ export default function StatementExcelPage() {
                                               totalAdjustments={calculateTotal(section.data, 'col6')}
                                               outstandingBalance={calculateTotal(section.data, 'col7')}
                                               totalDiscount={calculateTotal(section.data, 'col10')}
+                                              lastTwoPaymentData={findMatchingLastTwoPayments(
+                                                selectedFile?.statementDate,
+                                                section
+                                              )}
                                             />
                                           );
                                           
@@ -2671,6 +2809,54 @@ export default function StatementExcelPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Last Two Payments Display */}
+      {selectedDate && (
+        <Card className="mt-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Last Two Payments</CardTitle>
+            <CardDescription className="text-sm">Upload and view last two payments from Excel files</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* Upload Last Two Payment */}
+              <div className="flex flex-col gap-4 h-full border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium">Upload Last Two Payment</h3>
+                  </div>
+                </div>
+                
+                <div>
+                  {isAdmin && (
+                    <LastTwoPaymentUpload
+                      selectedDate={selectedDate}
+                      onSuccess={() => fetchLastTwoPayments(selectedDate.toISOString())}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Last Two Payment Overview */}
+              <div className="flex flex-col gap-4 h-full border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium">Last Two Payments Files</h3>
+                  </div>
+                </div>
+                
+                <div>
+                  <LastTwoPaymentDisplay 
+                    payments={lastTwoPayments} 
+                    isLoading={isLoadingLastTwoPayments}
+                    onDelete={() => fetchLastTwoPayments(selectedDate.toISOString())}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

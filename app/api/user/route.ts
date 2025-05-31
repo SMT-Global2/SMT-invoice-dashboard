@@ -15,18 +15,28 @@ export async function GET() {
         message: 'Unauthorized'
       }, { status: 401 });
     }
-    if (session.user.type !== 'ADMIN') {
-      return Response.json({
-        success: false,
-        message: 'Forbidden'
-      }, { status: 403 });
+    
+    console.log('Authenticated user requesting user list:', session.user.username);
+    
+    try {
+      // Simpler query without complex selects
+      const users = await prisma.user.findMany();
+      
+      console.log(`Successfully fetched ${users.length} users`);
+      return NextResponse.json(users);
+    } catch (dbError) {
+      console.error('Database error in GET /api/user:', dbError);
+      return NextResponse.json({ 
+        error: 'Failed to fetch users from database',
+        details: dbError instanceof Error ? dbError.message : String(dbError) 
+      }, { status: 500 });
     }
-
-    const users = await prisma.user.findMany();
-
-    return NextResponse.json(users);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    console.error('Error in GET /api/user:', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch users',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 

@@ -14,7 +14,14 @@ export const UserSchema = z.object({
   phoneNumber: z.string().min(1, "Phone number is required"),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
-  department: z.array(z.enum([Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT, Department.RECEIPT_MANAGEMENT, Department.PURCHASE_MANAGEMENT, Department.DELIVERY_MEMO_MANAGEMENT])).min(1, "At least one department is required"),
+  department: z.array(z.enum([
+    Department.ALL_ROUNDER, 
+    Department.INVOICE_MANAGEMENT, 
+    Department.RECEIPT_MANAGEMENT,
+    Department.PURCHASE_MANAGEMENT,
+    Department.DELIVERY_MEMO_MANAGEMENT,
+    Department.ATTENDANCE_MANAGEMENT
+  ])).min(1, "At least one department is required"),
   type: z.enum(["USER", "ADMIN"]),
 })
 
@@ -42,18 +49,35 @@ export const useUsersStore = create<UserStore>((set, get) => ({
 
   fetchUsers: async () => {
     try {
+      console.log('Starting to fetch users from safe API');
       set({ isLoading: true, error: null })
-      const response = await fetch('/api/user')
-      if (!response.ok) throw new Error('Failed to fetch users')
-      const data = await response.json()
-      set({ users: data, isLoading: false })
+      
+      // Try the new safe API endpoint first
+      const response = await fetch('/api/user/list');
+      console.log('API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error(`Failed to fetch users: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Successfully fetched users, count:', data?.length || 0);
+      // Add empty department array to each user to prevent UI errors
+      const usersWithDepartment = data.map((user: { department?: Department[] }) => ({
+        ...user,
+        department: user.department || []
+      }));
+      set({ users: usersWithDepartment, isLoading: false });
     } catch (error) {
-      set({ error: 'Failed to fetch users', isLoading: false })
+      console.error('Error in fetchUsers:', error);
+      set({ error: 'Failed to fetch users', isLoading: false, users: [] });
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to fetch users"
-      })
+      });
     }
   },
 

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { UserType } from "@prisma/client"
 
 // GET handler - Get backup status
-export async function GET(req: NextRequest, { params } : any) {
+export async function GET(req: NextRequest, query : { params : Promise<{ id : string }>}) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -23,7 +23,8 @@ export async function GET(req: NextRequest, { params } : any) {
       )
     }
 
-    const id = params.id
+    const params  =  await query.params;
+    const id = params.id;
     if (!id) {
       return NextResponse.json(
         { error: "Backup ID is required" },

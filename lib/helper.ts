@@ -118,8 +118,16 @@ export async function compressImage(file: File): Promise<File> {
 }
 
 export async function getPresignedUrl(fileName: string , contentType: string , prefixKeyId : string = '') {
+
+  console.log("Asking for presigned url for " , {
+    fileName,
+    contentType,
+    prefixKeyId
+  });
+
   const fileType = fileName.split('.').pop()?.toLowerCase();
   const fileNameWithoutType = fileName.split('.').slice(0, -1).join('.');
+  
   const response = await fetch('/api/s3/presignedUrl', {
     method: 'POST',
     body: JSON.stringify({ 
@@ -129,7 +137,9 @@ export async function getPresignedUrl(fileName: string , contentType: string , p
       }),
   });
 
+  
   const data = await response.json();
+  console.log("data", data);
   const presignedUrl = data.presignedUrl;
   const key = data.key;
 
@@ -137,10 +147,16 @@ export async function getPresignedUrl(fileName: string , contentType: string , p
 }
 
 export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
+  console.log("uploading file to s3", {
+    file,
+    prefixKeyId
+  });
   const {
     presignedUrl,
     key
   } = await getPresignedUrl(file.name, file.type, prefixKeyId);
+  console.log("presignedUrl", presignedUrl);
+  console.log("key", key);
   
   await fetch(presignedUrl, {
     method: 'PUT',

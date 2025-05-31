@@ -37,6 +37,7 @@ interface StatementPDFProps {
   totalAdjustments?: number | string;
   outstandingBalance?: number | string;
   totalDiscount?: number | string;
+  lastTwoPaymentData?: any[]; // Change from ledgerData to lastTwoPaymentData
 }
 
 // --- Font Registration (Optional - Ensure availability) ---
@@ -60,15 +61,15 @@ const convertExcelDate = (excelSerialDate: number): string => {
 
 // --- Number Formatting Helper (Unchanged) ---
 const formatNumber = (value: number | string | undefined): string => {
-    if (value === undefined || value === null || String(value).trim() === '') {
-        return '0.00';
-    }
-    const cleanedValue = String(value).replace(/[^0-9.-]/g, '');
-    const numberValue = parseFloat(cleanedValue);
-    if (isNaN(numberValue)) {
-        return '0.00';
-    }
-    return numberValue.toFixed(2);
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return '0.00';
+  }
+  const cleanedValue = String(value).replace(/[^0-9.-]/g, '');
+  const numberValue = parseFloat(cleanedValue);
+  if (isNaN(numberValue)) {
+    return '0.00';
+  }
+  return numberValue.toFixed(2);
 };
 
 // --- Helper function to format numbers safely with a maximum limit ---
@@ -122,23 +123,29 @@ const colors = {
   summaryBg: '#e0f2fe', // Summary background matches total row
   summaryBorder: '#bfdbfe', // Summary border
   complaintLink: '#2563eb', // Blue color for complaint link
+  // New light green theme for Last Two Payments table
+  paymentHeaderBg: '#e7f5e9', // Light green background for payment header
+  paymentHeaderBorder: '#a3d9a5', // Border color for payment header
+  paymentBorder: '#c3e6c5', // Border color for payment cells
+  paymentRowEven: '#f5fbf6', // Even row background
+  paymentRowOdd: '#ffffff', // Odd row background
 };
 
 // --- Column Definition (Using User Provided Definition) ---
 const columnDefinition = [
-  { header: "DC",          key: "col0",  width: "3.7%",   align: "center" },
-  { header: "Voucher Date",key: "col1",  width: "9.8%",   align: "left"  },
-  { header: "*",           key: "col2",  width: "1.6%",   align: "center"},
-  { header: "Voucherser",  key: "col3",  width: "6.8%",   align: "center"},
-  { header: "Voucher No.", key: "col4",  width: "8.3%",   align: "center"},
-  { header: "Debits",      key: "col5",  width: "10.8%",  align: "right" },
-  { header: "Part Adj.",   key: "col6",  width: "10%",  align: "right" },
-  { header: "Balance",     key: "col7",  width: "10.8%",  align: "right" },
-  { header: "Balance C/f", key: "col8",  width: "11%",    align: "right" },
-  { header: "Days",        key: "col9",  width: "5.4%",   align: "center"},
-  { header: "Disc.",       key: "col10", width: "9%",    align: "right" },
-  { header: "Narr-\nation",key: "col11", width: "8%",     align: "left"  },
-  { header: "Adj",         key: "col12", width: "4.8%",   align: "center"},
+  { header: "DC", key: "col0", width: "3.7%", align: "center" },
+  { header: "Voucher Date", key: "col1", width: "9.8%", align: "left" },
+  { header: "*", key: "col2", width: "1.6%", align: "center" },
+  { header: "Voucherser", key: "col3", width: "6.8%", align: "center" },
+  { header: "Voucher No.", key: "col4", width: "8.3%", align: "center" },
+  { header: "Debits", key: "col5", width: "10.8%", align: "right" },
+  { header: "Part Adj.", key: "col6", width: "10%", align: "right" },
+  { header: "Balance", key: "col7", width: "10.8%", align: "right" },
+  { header: "Balance C/f", key: "col8", width: "11%", align: "right" },
+  { header: "Days", key: "col9", width: "5.4%", align: "center" },
+  { header: "Disc.", key: "col10", width: "9%", align: "right" },
+  { header: "Narr-\nation", key: "col11", width: "8%", align: "left" },
+  { header: "Adj", key: "col12", width: "4.8%", align: "center" },
 ];// Verify Sum: 2.8 + 9.8 + 1.8 + 6.8 + 7.8 + 10.8 + 10.8 + 10.8 + 11 + 4.8 + 10 + 8 + 4.8 = 100%
 
 const styles = StyleSheet.create({
@@ -169,12 +176,12 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     fontFamily: 'Helvetica',
   },
-   generationInfo: {
-     fontSize: 8,
-     color: colors.secondary,
-     position: 'absolute',
-     top: 5,
-     right: 0,
+  generationInfo: {
+    fontSize: 8,
+    color: colors.secondary,
+    position: 'absolute',
+    top: 5,
+    right: 0,
   },
   partyInfoContainer: {
     backgroundColor: colors.lightGray,
@@ -272,41 +279,41 @@ const styles = StyleSheet.create({
   cellAlignRight: { textAlign: 'right' },
   cellAlignCenter: { textAlign: 'center' },
   boldText: {
-      fontFamily: 'Helvetica-Bold',
-      fontWeight: 'bold',
+    fontFamily: 'Helvetica-Bold',
+    fontWeight: 'bold',
   },
   summarySection: {
-      marginTop: 15,
-      padding: 12,
-      backgroundColor: `${colors.summaryBg}8A`,
-      borderRadius: 4,
-      borderWidth: 1,
-      borderColor: colors.summaryBorder,
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: `${colors.summaryBg}8A`,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.summaryBorder,
   },
   summaryTitle: {
-      fontSize: 11,
-      fontFamily: 'Helvetica-Bold',
-      color: colors.primary,
-      marginBottom: 10,
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.primary,
+    marginBottom: 10,
   },
   summaryRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 5,
-      paddingHorizontal: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+    paddingHorizontal: 5,
   },
   summaryLabel: {
-      fontSize: 10,
-      color: colors.darkGray,
-      fontFamily: 'Helvetica',
+    fontSize: 10,
+    color: colors.darkGray,
+    fontFamily: 'Helvetica',
   },
   summaryValue: {
-      fontSize: 10,
-      fontFamily: 'Helvetica-Bold',
-      color: colors.darkGray,
-      textAlign: 'right',
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.darkGray,
+    textAlign: 'right',
   },
-   notice: {
+  notice: {
     marginTop: 15,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -318,7 +325,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     marginBottom: 3,
     color: colors.noticeText,
-    textAlign:'center',
+    textAlign: 'center',
   },
   noticeText: {
     fontSize: 8.5,
@@ -355,11 +362,138 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: colors.secondary,
   },
+  ledgerContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  ledgerTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  ledgerTable: {
+    width: '100%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  ledgerTableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+  },
+  ledgerTableHeader: {
+    flex: 1,
+    padding: 5,
+    fontSize: 10,
+    fontWeight: 'bold',
+    backgroundColor: '#f0f0f0',
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+  },
+  ledgerTableCell: {
+    flex: 1,
+    padding: 5,
+    fontSize: 10,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+  },
+  lastTwoPaymentContainer: {
+    marginTop: 20,
+    paddingTop: 10,
+    borderTop: '1pt solid #ccc',
+  },
+  lastTwoPaymentTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  lastTwoPaymentTable: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.paymentBorder,
+    borderStyle: 'solid',
+    overflow: 'hidden',
+    borderRadius: 3,
+  },
+  lastTwoPaymentTableRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.paymentBorder,
+    borderBottomStyle: 'solid',
+  },
+  lastTwoPaymentTableRowEven: {
+    backgroundColor: colors.paymentRowEven,
+  },
+  lastTwoPaymentTableRowOdd: {
+    backgroundColor: colors.paymentRowOdd,
+  },
+  lastTwoPaymentTableHeader: {
+    backgroundColor: colors.paymentHeaderBg,
+    padding: 5,
+    fontSize: 9,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    borderRightWidth: 1,
+    borderRightColor: colors.paymentHeaderBorder,
+    borderRightStyle: 'solid',
+  },
+  lastTwoPaymentTableHeaderLast: {
+    borderRightWidth: 0,
+  },
+  lastTwoPaymentTableCell: {
+    padding: 5,
+    fontSize: 9,
+    borderRightWidth: 1,
+    borderRightColor: colors.paymentBorder,
+    borderRightStyle: 'solid',
+  },
+  lastTwoPaymentTableCellLast: {
+    borderRightWidth: 0,
+  },
+  lastTwoPaymentTableCellCenter: {
+    textAlign: 'center',
+  },
+  lastTwoPaymentTableCellRight: {
+    textAlign: 'right',
+  },
+  lastTwoPaymentTableCellLeft: {
+    textAlign: 'left',
+  },
+  noticeContainer: {
+    marginTop: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.noticeBg,
+    borderRadius: 3,
+  },
+  noDataContainer: {
+    marginTop: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.noticeBg,
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noDataText: {
+    fontSize: 8.5,
+    lineHeight: 1.2,
+    color: colors.noticeText,
+    textAlign: 'center',
+  },
 });
 
 
 // --- Component ---
-const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
+const StatementPDF: React.FC<StatementPDFProps> = ({
+  section,
+  fileName,
+  lastTwoPaymentData
+}) => {
 
   const numericColumns = ['col5', 'col6', 'col7', 'col8', 'col10']; // Keys for decimal formatting
 
@@ -371,15 +505,108 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
 
   const regularRows = section.data.filter(row => !String(row.col4 || '').toLowerCase().includes('total'));
 
+  // Format date for display
+  const formatDateValue = (value: any) => {
+    if (!value) return '';
+
+    try {
+      // If it's already a Date object
+      if (value instanceof Date) {
+        return format(value, 'dd/MM/yyyy');
+      }
+
+      // If it's a number (Excel date)
+      if (typeof value === 'number') {
+        const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+        return format(date, 'dd/MM/yyyy');
+      }
+
+      // If it's a string that looks like a date
+      if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+        return format(new Date(value), 'dd/MM/yyyy');
+      }
+
+      // Otherwise just return as is
+      return String(value);
+    } catch (e) {
+      return String(value);
+    }
+  };
+
+  // Format amount values
+  const formatAmount = (value: any) => {
+    if (value === undefined || value === null) return '';
+
+    try {
+      if (typeof value === 'number') {
+        return value.toLocaleString('en-IN', {
+          maximumFractionDigits: 2,
+          minimumFractionDigits: 2
+        });
+      }
+      return String(value);
+    } catch (e) {
+      return String(value);
+    }
+  };
+
+  // Find payment data for this party
+  const getLastTwoPayments = () => {
+    if (!lastTwoPaymentData || !Array.isArray(lastTwoPaymentData) || lastTwoPaymentData.length === 0) {
+      console.log("No last two payment data provided for PDF");
+      return [];
+    }
+
+    console.log(`Processing ${lastTwoPaymentData.length} last two payment entries for PDF`);
+
+    // Define payment type for better type safety
+    interface PaymentData {
+      date: Date;
+      amount: number;
+      paymentMethod: string;
+      checkNumber: string;
+      narration: string;
+    }
+
+    // Extract the payment data from each entry
+    const payments = lastTwoPaymentData.map(entry => {
+      // Access the nested data structure
+      if (!entry.data) {
+        return null;
+      }
+
+      return {
+        date: entry.data.date || new Date(),
+        amount: entry.data.amount || 0,
+        paymentMethod: entry.data.paymentMethod || '',
+        checkNumber: entry.data.checkNumber || '',
+        narration: entry.data.narration || ''
+      } as PaymentData;
+    }).filter((payment): payment is PaymentData => payment !== null); // Type guard to filter out nulls
+
+    // Sort by date (most recent first)
+    const sortedPayments = [...payments].sort((a, b) => {
+      const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+      const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    // Return only the last two payments
+    return sortedPayments.slice(0, 2);
+  };
+
+  const lastTwoPayments = getLastTwoPayments();
+  const hasLastTwoPayments = lastTwoPayments && lastTwoPayments.length > 0;
+
   return (
     <Document title={`${fileName} - ${section.partyName}`}>
       <Page size="A4" style={styles.page} wrap>
 
         {/* --- Page Header (First Page Only) --- */}
         <View style={styles.pageHeader}>
-           <Text style={styles.generationInfo}>
-             Generated: {format(new Date(), "d MMM yyyy, h:mm a")}
-           </Text>
+          <Text style={styles.generationInfo}>
+            Generated: {format(new Date(), "d MMM yyyy, h:mm a")}
+          </Text>
           <Text style={styles.companyName}>Sanjivan Medico Traders</Text>
           <Text style={[styles.reportTitle, { fontWeight: 'bold' }]}>Outstanding Statement</Text>
         </View>
@@ -390,9 +617,9 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
             {section.partyCode || 'N/A'} - {section.partyName || 'N/A'}
           </Text>
           <View style={styles.partyDetailsLine}>
-             {section.location && <Text style={styles.partyDetailItem}>Location: {section.location}</Text>}
-             {(section.location) && section.creditDays && <Text style={styles.partyDetailSeparator}>|</Text>}
-             {section.creditDays && <Text style={styles.partyDetailItem}>Credit Period: {section.creditDays} days</Text>}
+            {section.location && <Text style={styles.partyDetailItem}>Location: {section.location}</Text>}
+            {(section.location) && section.creditDays && <Text style={styles.partyDetailSeparator}>|</Text>}
+            {section.creditDays && <Text style={styles.partyDetailItem}>Credit Period: {section.creditDays} days</Text>}
           </View>
         </View>
 
@@ -413,7 +640,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
               >
                 {/* Handle potential newline in header text */}
                 {col.header.split('\n').map((line, i) => (
-                    <Text key={i}>{line}</Text>
+                  <Text key={i}>{line}</Text>
                 ))}
               </Text>
             ))}
@@ -431,10 +658,10 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
                   displayValue = formatNumberSafely(cellValue).toFixed(2);
                 } else if (col.key === 'col1') { // Date column
                   // Force numeric parsing for Excel dates which might come as strings
-                  const numericValue = typeof cellValue === 'string' ? 
-                    parseFloat(cellValue.replace(/,/g, '')) : 
+                  const numericValue = typeof cellValue === 'string' ?
+                    parseFloat(cellValue.replace(/,/g, '')) :
                     typeof cellValue === 'number' ? cellValue : 0;
-                  
+
                   if (!isNaN(numericValue) && numericValue > 0) {
                     // Convert Excel serial date to JS date
                     const baseDate = new Date(Date.UTC(1899, 11, 30));
@@ -492,19 +719,63 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
 
         {/* --- Summary Section --- */}
         <View style={styles.summarySection}>
-            <Text style={styles.summaryTitle}>Summary</Text>
-            <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, styles.boldText]}>Total Debits:</Text>
-                <Text style={[styles.summaryValue, styles.boldText]}>{safeDebits.toFixed(2)}</Text>
+          <Text style={styles.summaryTitle}>Summary</Text>
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, styles.boldText]}>Total Debits:</Text>
+            <Text style={[styles.summaryValue, styles.boldText]}>{safeDebits.toFixed(2)}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Total Adjustments:</Text>
+            <Text style={styles.summaryValue}>{safeAdjustments.toFixed(2)}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, styles.boldText]}>Outstanding Balance:</Text>
+            <Text style={[styles.summaryValue, styles.boldText]}>{safeBalance.toFixed(2)}</Text>
+          </View>
+        </View>
+
+        {/* --- Last Two Payment Section --- */}
+        <View style={styles.lastTwoPaymentContainer}>
+          <Text style={styles.lastTwoPaymentTitle}>Last Two Payments</Text>
+
+          {hasLastTwoPayments ? (
+            <View style={styles.lastTwoPaymentTable}>
+              <View style={styles.lastTwoPaymentTableRow}>
+                <Text style={[styles.lastTwoPaymentTableHeader, { width: '20%' }]}>Date</Text>
+                <Text style={[styles.lastTwoPaymentTableHeader, { width: '20%' }]}>Amount</Text>
+                <Text style={[styles.lastTwoPaymentTableHeader, { width: '15%' }]}>Receipt Type</Text>
+                <Text style={[styles.lastTwoPaymentTableHeader, { width: '15%' }]}>Cheque No.</Text>
+                <Text style={[styles.lastTwoPaymentTableHeader, { width: '30%' }, styles.lastTwoPaymentTableHeaderLast]}>Narration</Text>
+              </View>
+
+              {lastTwoPayments.map((payment, index) => (
+                <View key={index} style={[
+                  styles.lastTwoPaymentTableRow,
+                  index % 2 === 0 ? styles.lastTwoPaymentTableRowEven : styles.lastTwoPaymentTableRowOdd
+                ]}>
+                  <Text style={[styles.lastTwoPaymentTableCell, styles.lastTwoPaymentTableCellCenter, { width: '20%' }]}>
+                    {formatDateValue(payment.date)}
+                  </Text>
+                  <Text style={[styles.lastTwoPaymentTableCell, styles.lastTwoPaymentTableCellRight, { width: '20%' }]}>
+                    {formatAmount(payment.amount)}
+                  </Text>
+                  <Text style={[styles.lastTwoPaymentTableCell, styles.lastTwoPaymentTableCellCenter, { width: '15%' }]}>
+                    {payment.paymentMethod || ''}
+                  </Text>
+                  <Text style={[styles.lastTwoPaymentTableCell, styles.lastTwoPaymentTableCellCenter, { width: '15%' }]}>
+                    {payment.checkNumber || ''}
+                  </Text>
+                  <Text style={[styles.lastTwoPaymentTableCell, styles.lastTwoPaymentTableCellLeft, { width: '30%' }, styles.lastTwoPaymentTableCellLast]}>
+                    {payment.narration || ''}
+                  </Text>
+                </View>
+              ))}
             </View>
-            <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Adjustments:</Text>
-                <Text style={styles.summaryValue}>{safeAdjustments.toFixed(2)}</Text>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>Last Two Payments unavailable</Text>
             </View>
-             <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, styles.boldText]}>Outstanding Balance:</Text>
-                <Text style={[styles.summaryValue, styles.boldText]}>{safeBalance.toFixed(2)}</Text>
-            </View>
+          )}
         </View>
 
         {/* --- Important Notice --- */}
@@ -516,7 +787,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
             If you have any concerns or feedback, please use our online complaint form :
             <span style={{ color: colors.complaintLink, textDecoration: 'underline' }}>
               <a href="http://invoice.sanjivanmedicotraders.in/contact-form" target="_blank" rel="noopener noreferrer">Contact Form</a>
-            </span> 
+            </span>
           </Text>
           <Text style={styles.noticeLink}>
             http://invoice.sanjivanmedicotraders.in/contact-form
@@ -525,6 +796,17 @@ const StatementPDF: React.FC<StatementPDFProps> = ({ section, fileName }) => {
             Queries/Payments: Ph: +91 9422137362 | Email: info@sanjivanmedico.in | Web: www.sanjivanmedicotraders.in
           </Text>
         </View>
+
+        {/* --- Notice Section --- */}
+        <View style={styles.noticeContainer}>
+          <Text style={styles.noticeText}>
+            For any complaint, please contact us within 24 hours of receipt of goods.
+          </Text>
+          <Text style={styles.noticeText}>
+            Queries/Payments: Ph: +91 9422137362 | Email: info@sanjivanmedico.in | Web: www.sanjivanmedicotraders.in
+          </Text>
+        </View>
+
 
         {/* --- Footer --- */}
         <Text style={styles.footerText} fixed>

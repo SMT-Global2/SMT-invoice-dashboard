@@ -10,7 +10,7 @@ import os from "os"
 // Create backup directory in the OS temp folder
 const BACKUP_DIR = path.join(os.tmpdir(), "smt-backups")
 
-export async function GET(req: NextRequest , { params } : any) {
+export async function GET(req: NextRequest , query : { params : Promise<{ id : string }>}) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -28,7 +28,8 @@ export async function GET(req: NextRequest , { params } : any) {
       )
     }
 
-    const id = params.id
+    const params  =  await query.params;
+    const id = params.id;
     if (!id) {
       return NextResponse.json(
         { error: "Backup ID is required" },

@@ -23,7 +23,10 @@ import {
   PieChart,
   Handshake,
   Building2,
-  Database
+  Database,
+  Clock,
+  Wallet,
+  Map
 } from 'lucide-react';
 
 import { Department, UserType } from '@prisma/client';
@@ -178,6 +181,24 @@ export const dashboardCategories: DashboardCategory[] = [
         icon: FileCheck,
         description: 'Statement Management',
         roles: ['ADMIN', Department.ALL_ROUNDER, Department.RECEIPT_MANAGEMENT, Department.INVOICE_MANAGEMENT]
+      },
+      {
+        id: 'track-maintenance',
+        title: 'Track Maintenance',
+        href: '/track-maintenance',
+        icon: Map,
+        description: 'Day-wise party and city track planning',
+        roles: ['ADMIN', Department.ALL_ROUNDER],
+        searchTerms: ['track', 'city', 'planning', 'party', 'maintenance', 'day', 'week', 'schedule']
+      },
+      {
+        id: 'attendance',
+        title: 'Attendance',
+        href: '/attendance',
+        icon: Clock,
+        description: 'Mark and manage employee attendance',
+        searchTerms: ['attendance', 'presence', 'timesheet', 'absent', 'late', 'half-day', 'full-day'],
+        roles: ['ADMIN', Department.ATTENDANCE_MANAGEMENT]
       }
     ]
   },
@@ -229,6 +250,15 @@ export const dashboardCategories: DashboardCategory[] = [
         searchTerms: ['contact', 'feedback', 'complaints', 'forms', 'customer service'],
         roles: ['ADMIN']
       },
+      {
+        id: 'attendance-salary',
+        title: 'Attendance, Salary & Loan',
+        href: '/attendance-salary',
+        icon: Wallet,
+        description: 'Manage employee attendance, salaries and loans records',
+        searchTerms: ['salary', 'pay', 'wages', 'compensation', 'loan', 'advance', 'attendance', 'payroll'],
+        roles: ['ADMIN']
+      }
       // {
       //   id: 'backup',
       //   title: 'System Backup',

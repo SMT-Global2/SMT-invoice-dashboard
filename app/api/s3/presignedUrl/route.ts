@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    console.log("result", result);
 
     const { fileName, contentType } = result.data;
     // Generate a unique key for the file using a more URL-friendly format

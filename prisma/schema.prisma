@@ -30,6 +30,14 @@ model User {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  // Add new relations
+  attendance      Attendance[]
+  markedAttendance Attendance[]    @relation("MarkedAttendance")
+  salarySetting   SalarySetting?
+  loans           Loan[]
+  salaryPayments  SalaryPayment[]
+  loanPayments    LoanPayment[]
 }
 
 model PartyCode {
@@ -209,6 +217,48 @@ model Statement {
   updatedAt         DateTime  @updatedAt
 }
 
+/// The LastTwoPayment model represents uploaded payment history
+model LastTwoPayment {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  name              String
+  originalName      String
+  uploadDate        DateTime  @default(now())
+  paymentDate       DateTime  // Date for which the payment belongs to
+  
+  fileUrl           String?   // S3 key for the uploaded file
+  paymentEntries    LastTwoPaymentEntry[]
+  
+  uploadedUsername  String?
+  uploadedTimestamp DateTime?
+
+  fileType          String?   // For storing the MIME type
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("LastTwoPayment")
+}
+
+/// The LastTwoPaymentEntry model stores entries for each payment
+model LastTwoPaymentEntry {
+  id                String    @id  @map("_id") @default(auto()) @db.ObjectId
+  
+  partyCode         String
+  partyName         String
+  location          String?
+  contact           String?
+  
+  data              Json      // Store the payment entries data
+  
+  lastTwoPaymentId  String    @db.ObjectId
+  lastTwoPayment    LastTwoPayment    @relation(fields: [lastTwoPaymentId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("LastTwoPaymentEntry")
+}
+
 model ReportSection {
   id                String    @id  @map("_id") @default(auto()) @db.ObjectId
 
@@ -317,6 +367,7 @@ enum Department {
   RECEIPT_MANAGEMENT
   INVOICE_MANAGEMENT
   PURCHASE_MANAGEMENT
+  ATTENDANCE_MANAGEMENT
   DELIVERY_MEMO_MANAGEMENT
   ALL_ROUNDER
 }
@@ -410,4 +461,133 @@ model Backup {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   user              User          @relation(fields: [createdBy], references: [id])
+}
+
+enum AttendanceType {
+  FULL_DAY
+  HALF_DAY
+  LATE
+  ABSENT
+}
+
+model Attendance {
+  id              String          @id @map("_id") @default(auto()) @db.ObjectId
+  userId          String          @db.ObjectId
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime
+  type            AttendanceType
+  notes           String?
+  markedById      String          @db.ObjectId
+  markedBy        User            @relation("MarkedAttendance", fields: [markedById], references: [id], onDelete: Restrict)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([userId, date], name: "userAttendanceDate")
+}
+
+model SalarySetting {
+  id              String          @id @map("_id") @default(auto()) @db.ObjectId
+  userId          String          @db.ObjectId @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  baseSalary      Float
+  allowances      Float
+  taxes           Float
+  lateDeductionRate Float         @default(0)
+  halfDayDeductionRate Float      @default(0)
+  absentDeductionRate Float       @default(0)
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Loan {
+  id              String          @id @map("_id") @default(auto()) @db.ObjectId
+  userId          String          @db.ObjectId
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Float
+  remainingAmount Float
+  reason          String?
+  issueDate       DateTime
+  monthlyDeduction Float
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  payments        LoanPayment[]   // Add this relation to track payments
+}
+
+model LoanPayment {
+  id              String          @id @map("_id") @default(auto()) @db.ObjectId
+  loanId          String          @db.ObjectId
+  loan            Loan            @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  userId          String          @db.ObjectId
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Float
+  paymentDate     DateTime        @default(now())
+  salaryPaymentId String?         @db.ObjectId
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model SalaryPayment {
+  id              String          @id @map("_id") @default(auto()) @db.ObjectId
+  userId          String          @db.ObjectId
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month           Int             // 1-12
+  year            Int             // e.g., 2023
+  baseSalary      Float
+  deductions      Float
+  loanDeduction   Float
+  netSalary       Float
+  
+  // Additional deduction details
+  lateDeduction   Float?          @default(0)
+  halfDayDeduction Float?         @default(0)
+  absentDeduction Float?          @default(0)
+  bonusPenalty    Float?          @default(0)
+  
+  // Attendance counts
+  lateCount       Int?            @default(0)
+  halfDayCount    Int?            @default(0)
+  absentCount     Int?            @default(0)
+  
+  paymentDate     DateTime?
+  isPaid          Boolean         @default(false)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([userId, month, year], name: "userMonthlySalary")
+}
+
+model TrackBoard {
+  id            String         @id @map("_id") @default(auto()) @db.ObjectId
+  name          String
+  description   String?
+  sections      TrackSection[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model TrackSection {
+  id            String         @id @map("_id") @default(auto()) @db.ObjectId
+  name          String
+  boardId       String         @db.ObjectId
+  board         TrackBoard     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  position      Int
+  isFixedDay    Boolean        @default(false)
+  cities        TrackCity[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model TrackCity {
+  id            String         @id @map("_id") @default(auto()) @db.ObjectId
+  name          String
+  partyCode     String?
+  sectionId     String         @db.ObjectId
+  section       TrackSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  position      Int
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }

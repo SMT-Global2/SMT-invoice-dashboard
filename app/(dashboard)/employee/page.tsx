@@ -37,10 +37,32 @@ export default function EmployeePage() {
   const [showPasswords, setShowPasswords] = useState<{[key: string]: boolean}>({})
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [debugUsers, setDebugUsers] = useState<any[]>([])
+
+  // Manual fetch to debug
+  const fetchUsersDirectly = async () => {
+    try {
+      console.log("Manually fetching users...");
+      const response = await fetch('/api/user');
+      const data = await response.json();
+      console.log("API Response:", data);
+      setDebugUsers(data);
+      return data;
+    } catch (error) {
+      console.error("Error manually fetching users:", error);
+      return [];
+    }
+  }
 
   useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
+    console.log("EmployeePage mounted, fetching users");
+    fetchUsers();
+    fetchUsersDirectly();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    console.log("Users from store:", users);
+  }, [users]);
 
   const handleEdit = (user: any) => {
     setSelectedUser(user)
@@ -173,6 +195,7 @@ export default function EmployeePage() {
                               if (dept === "RECEIPT_MANAGEMENT") variant = "default";
                               if (dept === "PURCHASE_MANAGEMENT") variant = "destructive";
                               if (dept === "DELIVERY_MEMO_MANAGEMENT") variant = "outline";
+                              if (dept === "ATTENDANCE_MANAGEMENT") variant = "outline";
                               if (dept === "ALL_ROUNDER") variant = "outline";
                               
                               return (

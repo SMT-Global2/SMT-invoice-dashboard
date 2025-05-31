@@ -282,8 +282,8 @@ const SidebarTrigger = React.forwardRef<
       variant="ghost"
       size="icon"
       className={cn("h-7 w-7 p-1 rounded-full hover:bg-accent hover:text-accent-foreground transition-colors", className)}
-      onClick={(event) => {
-        onClick?.(event)
+      onClick={(e : React.MouseEvent<HTMLButtonElement>) => {
+        onClick?.(e)
         toggleSidebar()
       }}
       {...props}
