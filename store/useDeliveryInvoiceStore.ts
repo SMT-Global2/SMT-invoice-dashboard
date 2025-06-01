@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware'
 import { DeliveryStatus } from '@prisma/client'
 import moment from 'moment'
 import { InvoiceData } from './useInvoiceStore'
+import { debounce } from '@/lib/debouce'
 
 export interface DeliveryInvoiceData extends InvoiceData {
   regionalCode: string
@@ -88,6 +89,10 @@ interface DeliveryInvoiceState {
   fetchInTransitInvoices: (date?: Date | null) => Promise<void>
   fetchDeliveredInvoices: (date?: Date | null) => Promise<void>
   fetchAllDeliveryInvoices: () => Promise<void>
+
+  debouncedFetchToDeliver: () => void
+  debouncedFetchInTransit: () => void
+  debouncedFetchDelivered: () => void
   
   pickupInvoice: (invoiceNumber: number) => Promise<void>
   deliverInvoice: (invoiceNumber: number, location: { latitude: number, longitude: number }) => Promise<void>
@@ -195,21 +200,54 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
         get().fetchAllDeliveryInvoices();
       },
 
-      // Search actions
+      debouncedFetchToDeliver: debounce(() => {
+        get().fetchToDeliverInvoices();
+      }, 300),
+      debouncedFetchInTransit: debounce(() => { 
+        get().fetchInTransitInvoices();
+      }, 300),
+      debouncedFetchDelivered: debounce(() => {
+        get().fetchDeliveredInvoices();
+      }, 300),
+
       setToDeliverSearchTerm: (term) => {
         set({ toDeliverSearchTerm: term, toDeliverPage: 1 });
-        get().fetchToDeliverInvoices();
+
+        get().debouncedFetchToDeliver();
       },
       
       setInTransitSearchTerm: (term) => {
         set({ inTransitSearchTerm: term, inTransitPage: 1 });
-        get().fetchInTransitInvoices();
+        get().debouncedFetchInTransit();
       },
       
       setDeliveredSearchTerm: (term) => {
         set({ deliveredSearchTerm: term, deliveredPage: 1 });
-        get().fetchDeliveredInvoices();
+        get().debouncedFetchDelivered();
       },
+
+      // Search actions with immediate state update and debounced fetch
+      // setToDeliverSearchTerm: (term) => {
+      //   set({ toDeliverSearchTerm: term, toDeliverPage: 1 });
+      //   debounce(() => {
+      //     get().fetchToDeliverInvoices();
+      //   }, 300);
+      // },
+      
+      // setInTransitSearchTerm: (term) => {
+      //   set({ inTransitSearchTerm: term, inTransitPage: 1 });
+      //   debounce(() => {
+      //     get().fetchInTransitInvoices();
+      //   }, 300);
+      // },
+      
+      // setDeliveredSearchTerm: (term) => {
+      //   set({ deliveredSearchTerm: term, deliveredPage: 1 });
+      //   debounce(() => {
+      //     get().fetchDeliveredInvoices();
+      //   }, 300);
+      // },
+
       
       // Regional code filter actions
       setToDeliverSelectedRegionalCodes: (codes) => {
