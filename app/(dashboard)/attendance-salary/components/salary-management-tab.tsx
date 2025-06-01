@@ -449,7 +449,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
           lastName: "Admin",
           username: "admin"
         },
-        baseSalary: 10000,
+        baseSalary: 0,
         allowances: 0,
         taxes: 0,
         deductions: 0,
@@ -1066,7 +1066,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Base Salary Amount
+              Total Monthly Salary Amount
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1133,7 +1133,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
               <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Salary Date</TableHead>
-                <TableHead>Base Salary</TableHead>
+                <TableHead>Monthly Salary</TableHead>
                 <TableHead>Late Deduction</TableHead>
                 <TableHead>Half Day Deduction</TableHead>
                 <TableHead>Absent Deduction</TableHead>
@@ -1288,7 +1288,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
             <div className="overflow-y-auto p-6 pt-2">
               <div className="grid grid-cols-2 gap-4 py-2">
                 <div className="space-y-1">
-                  <div className="text-sm font-medium">Base Salary</div>
+                  <div className="text-sm font-medium">Monthly Salary</div>
                   <div className="p-2 bg-primary-50 dark:bg-gray-800 border border-primary-200 dark:border-gray-700 rounded-md font-semibold text-primary-800 dark:text-primary-200">
                     {formatCurrency(selectedEmployee.baseSalary)}
                   </div>
@@ -1405,7 +1405,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
             <div className="overflow-y-auto p-6 pt-2">
               <div className="grid gap-4">
                 <div className="space-y-1">
-                  <Label htmlFor="baseSalary">Base Salary</Label>
+                  <Label htmlFor="baseSalary">Monthly Salary</Label>
                   <Input
                     id="baseSalary"
                     type="number"
@@ -1658,7 +1658,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
                   <TableRow>
                     <TableHead className="whitespace-nowrap">Payment Date</TableHead>
                     <TableHead className="whitespace-nowrap">Period</TableHead>
-                    <TableHead className="whitespace-nowrap">Base Salary</TableHead>
+                    <TableHead className="whitespace-nowrap">Monthly Salary</TableHead>
                     <TableHead className="whitespace-nowrap">Late</TableHead>
                     <TableHead className="whitespace-nowrap">Half Day</TableHead>
                     <TableHead className="whitespace-nowrap">Absent</TableHead>
