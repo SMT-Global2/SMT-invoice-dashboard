@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     const endDate = new Date(date);
     endDate.setHours(23, 59, 59, 999);
 
-    console.log(`Fetching last two payments for date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    console.log(`Fetching most Recent Payments for date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     console.log(`Using limit: ${limit}, page: ${page}, entriesPerPayment: ${entriesPerPayment}`);
 
     // Use a more efficient query with pagination

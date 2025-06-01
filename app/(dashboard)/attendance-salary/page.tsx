@@ -31,39 +31,11 @@ export default function AttendanceSalaryPage() {
   const thirtyOneDaysAgo = new Date();
   thirtyOneDaysAgo.setDate(today.getDate() - 30); // -30 to make it 31 days including today
   
-  const [dateRange, setDateRange] = useState<[Date, Date]>([
+  const [dateRange, setDateRange] = useState<[Date | undefined, Date | undefined]>([
     thirtyOneDaysAgo,
     today
   ]);
-  const [date, setDate] = useState<Date | undefined>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
-  const handleRangeSelect = (selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      const newRange: [Date, Date] = [...dateRange];
-      
-      if (!dateRange[0] || dateRange[1]) {
-        // If no start date or both dates selected, start a new range
-        newRange[0] = selectedDate;
-        newRange[1] = selectedDate;
-      } else {
-        // If only start date selected, complete the range
-        if (selectedDate < dateRange[0]) {
-          newRange[0] = selectedDate;
-          newRange[1] = dateRange[0];
-        } else {
-          newRange[1] = selectedDate;
-        }
-      }
-      
-      setDateRange(newRange);
-      setDate(selectedDate);
-      
-      if (newRange[0] && newRange[1]) {
-        setIsCalendarOpen(false);
-      }
-    }
-  };
 
   return (
     <div className="container mx-auto py-6 space-y-4">
@@ -97,9 +69,15 @@ export default function AttendanceSalaryPage() {
                 to: dateRange[1]
               }}
               onSelect={(range) => {
-                if (range?.from && range?.to) {
+                if (range?.from) {
                   setDateRange([range.from, range.to]);
-                  setIsCalendarOpen(false);
+                  // Only close calendar when both dates are selected
+                  if (range.to) {
+                    setIsCalendarOpen(false);
+                  }
+                } else {
+                  // Clear selection
+                  setDateRange([undefined, undefined]);
                 }
               }}
               initialFocus
@@ -116,15 +94,24 @@ export default function AttendanceSalaryPage() {
         </TabsList>
         
         <TabsContent value="salary">
-          <SalaryManagementTab dateRange={dateRange} />
+          <SalaryManagementTab dateRange={[
+            dateRange[0] ? dateRange[0] : new Date(),
+            dateRange[1] ? dateRange[1] : new Date()
+          ]} />
         </TabsContent>
         
         <TabsContent value="attendance">
-          <AttendanceReportTab dateRange={dateRange} />
+          <AttendanceReportTab dateRange={[
+            dateRange[0] ? dateRange[0] : new Date(),
+            dateRange[1] ? dateRange[1] : new Date()
+          ]} />
         </TabsContent>
         
         <TabsContent value="loans">
-          <LoansManagementTab dateRange={dateRange} />
+          <LoansManagementTab dateRange={[
+            dateRange[0] ? dateRange[0] : new Date(),
+            dateRange[1] ? dateRange[1] : new Date()
+          ]} />
         </TabsContent>
       </Tabs>
     </div>

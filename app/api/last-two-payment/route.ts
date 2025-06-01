@@ -14,7 +14,7 @@ export async function DELETE(request: NextRequest) {
     // Check if user is an admin
     if (session.user.type !== 'ADMIN') {
       return NextResponse.json({ 
-        error: 'Forbidden - Only administrators can delete last two payments'
+        error: 'Forbidden - Only administrators can delete most Recent Payments'
       }, { status: 403 });
     }
 

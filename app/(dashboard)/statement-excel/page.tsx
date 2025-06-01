@@ -1715,7 +1715,7 @@ export default function StatementExcelPage() {
   const fetchLastTwoPayments = async (date: string) => {
     try {
       setIsLoadingLastTwoPayments(true);
-      console.log("Fetching last two payments for date:", date);
+      console.log("Fetching most recent payments for date:", date);
       
       // Add a small delay to ensure the database has time to process previous uploads
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -1725,7 +1725,7 @@ export default function StatementExcelPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("API error response:", errorData);
-        throw new Error(errorData.error || errorData.details || 'Failed to fetch last two payments');
+        throw new Error(errorData.error || errorData.details || 'Failed to fetch most recent payments');
       }
       
       const data = await response.json();
@@ -1774,12 +1774,12 @@ export default function StatementExcelPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching last two payments:', error);
+      console.error('Error fetching most recent payments:', error);
       setLastTwoPayments([]);
       
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to fetch last two payments',
+        description: error instanceof Error ? error.message : 'Failed to fetch most recent payments',
         variant: 'destructive',
         duration: 5000,
       });
@@ -1788,17 +1788,17 @@ export default function StatementExcelPage() {
     }
   };
 
-  // Update useEffect to fetch last two payments when date changes
+  // Update useEffect to fetch most recent payments when date changes
   useEffect(() => {
     if (selectedDate) {
       fetchLastTwoPayments(selectedDate.toISOString().split('T')[0]);
     }
   }, [selectedDate]);
 
-  // This is a function to find last two payments that match the same date as the statement
+  // This is a function to find most recent payments that match the same date as the statement
   const findMatchingLastTwoPayments = (paymentDate: Date | string | undefined, section: PartySection) => {
     if (!lastTwoPayments || lastTwoPayments.length === 0) {
-      console.log("No last two payments available");
+      console.log("No most recent payments available");
       return [];
     }
     
@@ -2810,12 +2810,12 @@ export default function StatementExcelPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Last Two Payments Display */}
+      {/* Most Recent Payments Display */}
       {selectedDate && (
         <Card className="mt-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Last Two Payments</CardTitle>
-            <CardDescription className="text-sm">Upload and view last two payments from Excel files</CardDescription>
+            <CardTitle className="text-lg">Most Recent Payments</CardTitle>
+            <CardDescription className="text-sm">Upload and view most recent payments from Excel files</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -2841,7 +2841,7 @@ export default function StatementExcelPage() {
               <div className="flex flex-col gap-4 h-full border rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium">Last Two Payments Files</h3>
+                    <h3 className="text-sm font-medium">Most Recent Payments Files</h3>
                   </div>
                 </div>
                 

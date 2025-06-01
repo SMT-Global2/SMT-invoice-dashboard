@@ -319,7 +319,7 @@ export default function AttendanceReportTab({ dateRange }: { dateRange: [Date, D
                     {isLoading && filteredUsers.length === 0 ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <TableRow key={i}>
-                          <TableCell className="sticky left-0 bg-white border-r">
+                          <TableCell className="sticky left-0 border-r">
                             <Skeleton className="h-6 w-full" />
                           </TableCell>
                           {Array.from({ length: 5 }).map((_, j) => (

@@ -123,7 +123,7 @@ const colors = {
   summaryBg: '#e0f2fe', // Summary background matches total row
   summaryBorder: '#bfdbfe', // Summary border
   complaintLink: '#2563eb', // Blue color for complaint link
-  // New light green theme for Last Two Payments table
+  // New light green theme for Most Recent Payments table
   paymentHeaderBg: '#e7f5e9', // Light green background for payment header
   paymentHeaderBorder: '#a3d9a5', // Border color for payment header
   paymentBorder: '#c3e6c5', // Border color for payment cells
@@ -585,17 +585,19 @@ const StatementPDF: React.FC<StatementPDFProps> = ({
     }).filter((payment): payment is PaymentData => payment !== null); // Type guard to filter out nulls
 
     // Sort by date (most recent first)
+    // TODO: IF NECCESSARY, USE SET OMAKE CHEQUE NO AS TO REMOVE DUPLICATE ENTRIES
     const sortedPayments = [...payments].sort((a, b) => {
       const dateA = a.date instanceof Date ? a.date : new Date(a.date);
       const dateB = b.date instanceof Date ? b.date : new Date(b.date);
       return dateB.getTime() - dateA.getTime();
     });
 
-    // Return only the last two payments
+    // Return only the most Recent Payments
     return sortedPayments.slice(0, 2);
   };
 
   const lastTwoPayments = getLastTwoPayments();
+  console.log("lastTwoPayments", lastTwoPayments);
   const hasLastTwoPayments = lastTwoPayments && lastTwoPayments.length > 0;
 
   return (
@@ -736,7 +738,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({
 
         {/* --- Last Two Payment Section --- */}
         <View style={styles.lastTwoPaymentContainer}>
-          <Text style={styles.lastTwoPaymentTitle}>Last Two Payments</Text>
+          <Text style={styles.lastTwoPaymentTitle}>Most Recent Payments</Text>
 
           {hasLastTwoPayments ? (
             <View style={styles.lastTwoPaymentTable}>
@@ -773,7 +775,7 @@ const StatementPDF: React.FC<StatementPDFProps> = ({
             </View>
           ) : (
             <View style={styles.noDataContainer}>
-              <Text style={styles.noDataText}>Last Two Payments unavailable</Text>
+              <Text style={styles.noDataText}>Most Recent Payments unavailable</Text>
             </View>
           )}
         </View>
@@ -793,19 +795,22 @@ const StatementPDF: React.FC<StatementPDFProps> = ({
             http://invoice.sanjivanmedicotraders.in/contact-form
           </Text>
           <Text style={styles.noticeText}>
-            Queries/Payments: Ph: +91 9422137362 | Email: info@sanjivanmedico.in | Web: www.sanjivanmedicotraders.in
-          </Text>
-        </View>
-
-        {/* --- Notice Section --- */}
-        <View style={styles.noticeContainer}>
-          <Text style={styles.noticeText}>
             For any complaint, please contact us within 24 hours of receipt of goods.
           </Text>
           <Text style={styles.noticeText}>
             Queries/Payments: Ph: +91 9422137362 | Email: info@sanjivanmedico.in | Web: www.sanjivanmedicotraders.in
           </Text>
         </View>
+
+        {/* --- Notice Section --- */}
+        {/* <View style={styles.noticeContainer}>
+          <Text style={styles.noticeText}>
+            For any complaint, please contact us within 24 hours of receipt of goods.
+          </Text>
+          <Text style={styles.noticeText}>
+            Queries/Payments: Ph: +91 9422137362 | Email: info@sanjivanmedico.in | Web: www.sanjivanmedicotraders.in
+          </Text>
+        </View> */}
 
 
         {/* --- Footer --- */}

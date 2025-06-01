@@ -479,7 +479,7 @@ export default function AttendancePage() {
       setIsSubmitting(true);
       
       // Format the date as ISO string to ensure consistency across API calls
-      const formattedDate = moment(selectedDate).utc().startOf('day').toDate();
+      const formattedDate = moment(selectedDate).add(1, 'days').utc().startOf('day').toDate();
       // Reset the time part to midnight to avoid timezone issues
       // formattedDate.setHours(0, 0, 0, 0);
       
