@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import moment from 'moment-timezone';
 import { BilledStatus, CheckStatus, DeliveryStatus, PackageStatus } from '@prisma/client';
 
+//Cache for 2 hours
+export const revalidate = 2 * 60 * 60;
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);

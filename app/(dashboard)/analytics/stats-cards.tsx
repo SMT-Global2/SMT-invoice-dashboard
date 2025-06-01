@@ -51,22 +51,22 @@ export function StatsCards() {
             changeType: analyticsData.userChangePercentage >= 0 ? "increase" : "decrease",
             changeText: `${Math.abs(analyticsData.userChangePercentage).toFixed(1)}% from previous period`
           },
-          {
-            title: "Processed Items",
-            value: analyticsData.processedItems.toString(),
-            icon: <Package className="h-4 w-4 text-muted-foreground" />,
-            change: analyticsData.itemsChangePercentage,
-            changeType: analyticsData.itemsChangePercentage >= 0 ? "increase" : "decrease",
-            changeText: `${Math.abs(analyticsData.itemsChangePercentage).toFixed(1)}% from previous period`
-          },
-          {
-            title: "Total Orders",
-            value: analyticsData.totalOrders.toString(),
-            icon: <ShoppingCart className="h-4 w-4 text-muted-foreground" />,
-            change: analyticsData.ordersChangePercentage,
-            changeType: analyticsData.ordersChangePercentage >= 0 ? "increase" : "decrease",
-            changeText: `${Math.abs(analyticsData.ordersChangePercentage).toFixed(1)}% from previous period`
-          }
+          // {
+          //   title: "Processed Items",
+          //   value: analyticsData.processedItems.toString(),
+          //   icon: <Package className="h-4 w-4 text-muted-foreground" />,
+          //   change: analyticsData.itemsChangePercentage,
+          //   changeType: analyticsData.itemsChangePercentage >= 0 ? "increase" : "decrease",
+          //   changeText: `${Math.abs(analyticsData.itemsChangePercentage).toFixed(1)}% from previous period`
+          // },
+          // {
+          //   title: "Total Orders",
+          //   value: analyticsData.totalOrders.toString(),
+          //   icon: <ShoppingCart className="h-4 w-4 text-muted-foreground" />,
+          //   change: analyticsData.ordersChangePercentage,
+          //   changeType: analyticsData.ordersChangePercentage >= 0 ? "increase" : "decrease",
+          //   changeText: `${Math.abs(analyticsData.ordersChangePercentage).toFixed(1)}% from previous period`
+          // }
         ];
         
         setData(statsData);
