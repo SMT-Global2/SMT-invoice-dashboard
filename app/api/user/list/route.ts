@@ -13,13 +13,6 @@ export async function GET() {
 
     // Fetch all users excluding sensitive information
     const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        username: true,
-        type: true,
-      },
       orderBy: {
         firstName: 'asc',
       },
