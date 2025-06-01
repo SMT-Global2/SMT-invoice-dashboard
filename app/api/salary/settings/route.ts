@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
-import { MongoClient, ObjectId } from 'mongodb';
 
 // Validation schema for salary settings
 const salarySettingsSchema = z.object({
@@ -13,27 +12,13 @@ const salarySettingsSchema = z.object({
   baseSalary: z.number({
     required_error: "Base salary is required",
   }),
+  allowances: z.number().default(0),
+  taxes: z.number().default(0),
   lateDeductionRate: z.number().default(0),
   halfDayDeductionRate: z.number().default(0),
   absentDeductionRate: z.number().default(0),
-  salaryDate: z.number().default(1),
-  bonusPenalty: z.number().optional().default(0),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  active: z.boolean().default(true),
 });
-
-// MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || '';
-const DB_NAME = 'SMT_New';
-let mongoClient: MongoClient | null = null;
-
-async function getMongoClient() {
-  if (!mongoClient) {
-    mongoClient = new MongoClient(MONGODB_URI);
-    await mongoClient.connect();
-  }
-  return mongoClient;
-}
 
 // GET all salary settings or for a specific user
 export async function GET(request: NextRequest) {
@@ -57,45 +42,44 @@ export async function GET(request: NextRequest) {
     console.log('GET /api/salary/settings - userId:', userId);
     
     try {
-      // Connect to MongoDB directly
-      const client = await getMongoClient();
-      const db = client.db(DB_NAME);
-      const collection = db.collection('SalarySetting');
-      
-      // Query the database
       let settings;
+      
       if (userId) {
-        settings = await collection.findOne({ userId: new ObjectId(userId) });
-        settings = settings ? [settings] : [];
+        // Get specific user's salary setting
+        const setting = await prisma.salarySetting.findUnique({
+          where: { userId },
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                username: true,
+                email: true,
+              },
+            },
+          },
+        });
+        settings = setting ? [setting] : [];
       } else {
-        settings = await collection.find({}).toArray();
+        // Get all salary settings
+        settings = await prisma.salarySetting.findMany({
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                username: true,
+                email: true,
+              },
+            },
+          },
+        });
       }
       
-      // Get user details for each setting
-      const userCollection = db.collection('User');
-      const settingsWithUser = await Promise.all(
-        settings.map(async (setting) => {
-          const user = await userCollection.findOne({ _id: new ObjectId(setting.userId) });
-          return {
-            ...setting,
-            user: user ? {
-              firstName: user.firstName,
-              lastName: user.lastName,
-              username: user.username
-            } : null
-          };
-        })
-      );
-      
-      // Convert any null values to 0 for required fields
-      const sanitizedResult = settingsWithUser.map(sanitizeSalarySetting);
-      
-      console.log('Retrieved settings:', sanitizedResult.length > 0 ? 'Found data' : 'No data');
-      return NextResponse.json(sanitizedResult);
+      console.log('Retrieved settings:', settings.length > 0 ? 'Found data' : 'No data');
+      return NextResponse.json(settings);
     } catch (error) {
-      console.error('Error with MongoDB query:', error);
-      
-      // Fallback to fixed empty response
+      console.error('Error with Prisma query:', error);
       return NextResponse.json([]);
     }
   } catch (error) {
@@ -105,31 +89,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Helper function to sanitize salary settings
-function sanitizeSalarySetting(setting: any) {
-  if (!setting) return null;
-  
-  console.log('Sanitizing setting:', setting);
-  console.log('Salary date before sanitizing:', setting.salaryDate, 'type:', typeof setting.salaryDate);
-  
-  const sanitized = {
-    ...setting,
-    baseSalary: setting.baseSalary === null ? 0 : Number(setting.baseSalary),
-    allowances: setting.allowances === null ? 0 : Number(setting.allowances),
-    taxes: setting.taxes === null ? 0 : Number(setting.taxes),
-    lateDeductionRate: setting.lateDeductionRate === null ? 0 : Number(setting.lateDeductionRate),
-    halfDayDeductionRate: setting.halfDayDeductionRate === null ? 0 : Number(setting.halfDayDeductionRate),
-    absentDeductionRate: setting.absentDeductionRate === null ? 0 : Number(setting.absentDeductionRate),
-    salaryDate: setting.salaryDate === null ? 1 : Number(setting.salaryDate || 1),
-    bonusPenalty: setting.bonusPenalty === null ? 0 : Number(setting.bonusPenalty || 0),
-    firstName: setting.firstName || (setting.user ? setting.user.firstName : ''),
-    lastName: setting.lastName || (setting.user ? setting.user.lastName : ''),
-  };
-  
-  console.log('Salary date after sanitizing:', sanitized.salaryDate, 'type:', typeof sanitized.salaryDate);
-  return sanitized;
 }
 
 // POST to create or update salary settings
@@ -147,111 +106,88 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('POST /api/salary/settings - request body:', body);
     
-    // Ensure all required fields have default values
-    const validatedData = {
-      ...salarySettingsSchema.parse(body),
-      baseSalary: body.baseSalary || 0,
-      lateDeductionRate: body.lateDeductionRate || 0,
-      halfDayDeductionRate: body.halfDayDeductionRate || 0,
-      absentDeductionRate: body.absentDeductionRate || 0,
-      salaryDate: body.salaryDate || 1,
-      bonusPenalty: body.bonusPenalty || 0,
-      firstName: body.firstName || '',
-      lastName: body.lastName || '',
-    };
+    // Validate the data
+    const validatedData = salarySettingsSchema.parse(body);
     
     console.log('Validated data:', validatedData);
-    console.log('Salary date after validation:', validatedData.salaryDate, 'type:', typeof validatedData.salaryDate);
     
     try {
-      // Connect to MongoDB directly
-      const client = await getMongoClient();
-      const db = client.db(DB_NAME);
-      const collection = db.collection('SalarySetting');
-      
       // Check if settings exist for this user
-      const existingSettings = await collection.findOne({ 
-        userId: new ObjectId(validatedData.userId) 
+      const existingSettings = await prisma.salarySetting.findUnique({
+        where: { userId: validatedData.userId },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              username: true,
+              email: true,
+            },
+          },
+        },
       });
-      
-      // If firstName/lastName not provided, try to fetch from user collection
-      if (!validatedData.firstName || !validatedData.lastName) {
-        const userCollection = db.collection('User');
-        const user = await userCollection.findOne({ _id: new ObjectId(validatedData.userId) });
-        if (user) {
-          validatedData.firstName = user.firstName || '';
-          validatedData.lastName = user.lastName || '';
-        }
-      }
       
       console.log('Existing settings:', existingSettings);
       
       let result;
-      const now = new Date();
       
-      // Update or create settings
       if (existingSettings) {
-        result = await collection.updateOne(
-          { userId: new ObjectId(validatedData.userId) },
-          { 
-            $set: {
-              baseSalary: validatedData.baseSalary,
-              lateDeductionRate: validatedData.lateDeductionRate,
-              halfDayDeductionRate: validatedData.halfDayDeductionRate,
-              absentDeductionRate: validatedData.absentDeductionRate,
-              salaryDate: validatedData.salaryDate,
-              bonusPenalty: validatedData.bonusPenalty || 0,
-              firstName: validatedData.firstName,
-              lastName: validatedData.lastName,
-              allowances: existingSettings.allowances || 0,
-              taxes: existingSettings.taxes || 0,
-              active: true,
-              updatedAt: now
-            } 
-          }
-        );
-        
-        // Fetch the updated document
-        const updatedSettings = await collection.findOne({ 
-          userId: new ObjectId(validatedData.userId) 
+        // Update existing settings
+        result = await prisma.salarySetting.update({
+          where: { userId: validatedData.userId },
+          data: {
+            baseSalary: validatedData.baseSalary,
+            allowances: validatedData.allowances,
+            taxes: validatedData.taxes,
+            lateDeductionRate: validatedData.lateDeductionRate,
+            halfDayDeductionRate: validatedData.halfDayDeductionRate,
+            absentDeductionRate: validatedData.absentDeductionRate,
+            active: validatedData.active,
+          },
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                username: true,
+                email: true,
+              },
+            },
+          },
         });
         
-        // Sanitize the result before returning
-        const sanitizedSettings = sanitizeSalarySetting(updatedSettings);
-        
-        console.log('Updated settings:', sanitizedSettings);
-        return NextResponse.json(sanitizedSettings);
+        console.log('Updated settings:', result);
+        return NextResponse.json(result);
       } else {
         // Create new settings
-        result = await collection.insertOne({
-          userId: new ObjectId(validatedData.userId),
-          baseSalary: validatedData.baseSalary,
-          lateDeductionRate: validatedData.lateDeductionRate,
-          halfDayDeductionRate: validatedData.halfDayDeductionRate,
-          absentDeductionRate: validatedData.absentDeductionRate,
-          salaryDate: validatedData.salaryDate,
-          bonusPenalty: validatedData.bonusPenalty || 0,
-          firstName: validatedData.firstName,
-          lastName: validatedData.lastName,
-          allowances: 0,
-          taxes: 0,
-          active: true,
-          createdAt: now,
-          updatedAt: now
+        result = await prisma.salarySetting.create({
+          data: {
+            userId: validatedData.userId,
+            baseSalary: validatedData.baseSalary,
+            allowances: validatedData.allowances,
+            taxes: validatedData.taxes,
+            lateDeductionRate: validatedData.lateDeductionRate,
+            halfDayDeductionRate: validatedData.halfDayDeductionRate,
+            absentDeductionRate: validatedData.absentDeductionRate,
+            active: validatedData.active,
+          },
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                username: true,
+                email: true,
+              },
+            },
+          },
         });
         
-        // Fetch the newly created document
-        const newSettings = await collection.findOne({ _id: result.insertedId });
-        
-        // Sanitize the result before returning
-        const sanitizedSettings = sanitizeSalarySetting(newSettings);
-        
-        console.log('Created settings:', sanitizedSettings);
-        return NextResponse.json(sanitizedSettings);
+        console.log('Created settings:', result);
+        return NextResponse.json(result);
       }
-      
     } catch (dbError) {
-      console.error('MongoDB error:', dbError);
+      console.error('Prisma error:', dbError);
       throw dbError;
     }
   } catch (error) {
@@ -301,7 +237,6 @@ export async function PUT(request: NextRequest) {
     }
     
     // Check if setting exists
-    // @ts-ignore - Prisma model is correctly defined in the schema
     const existingSetting = await prisma.salarySetting.findUnique({
       where: { id: settingId },
     });
@@ -317,7 +252,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     
     // Update salary setting
-    // @ts-ignore - Prisma model is correctly defined in the schema
     const updatedSetting = await prisma.salarySetting.update({
       where: { id: settingId },
       data: {
@@ -325,6 +259,9 @@ export async function PUT(request: NextRequest) {
         allowances: body.allowances !== undefined ? body.allowances : existingSetting.allowances,
         taxes: body.taxes !== undefined ? body.taxes : existingSetting.taxes,
         active: body.active !== undefined ? body.active : existingSetting.active,
+        lateDeductionRate: body.lateDeductionRate !== undefined ? body.lateDeductionRate : existingSetting.lateDeductionRate,
+        halfDayDeductionRate: body.halfDayDeductionRate !== undefined ? body.halfDayDeductionRate : existingSetting.halfDayDeductionRate,
+        absentDeductionRate: body.absentDeductionRate !== undefined ? body.absentDeductionRate : existingSetting.absentDeductionRate,
       },
       include: {
         user: {
@@ -372,7 +309,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if salary setting exists
-    // @ts-ignore - Prisma model is correctly defined in the schema
     const salarySetting = await prisma.salarySetting.findUnique({
       where: { id },
     });
@@ -382,7 +318,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the salary setting
-    // @ts-ignore - Prisma model is correctly defined in the schema
     await prisma.salarySetting.delete({
       where: { id },
     });

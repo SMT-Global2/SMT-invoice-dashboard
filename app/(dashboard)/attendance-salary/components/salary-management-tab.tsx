@@ -466,7 +466,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
         absentDeduction: 0,
         loanDeduction: 0,
         bonusPenalty: 0,
-        netSalary: 10000,
+        netSalary: 0,
         month: format(dateRange[0], "MMMM yyyy"),
         isPaid: false,
         salaryDate: 1
@@ -506,7 +506,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
       const userSettings = settingsMap.get(user.id);
       
       // Use saved settings if available, otherwise default to basic values
-      const baseSalary = userSettings ? userSettings.baseSalary : 10000;
+      const baseSalary = userSettings ? userSettings.baseSalary : 0;
       const lateDeductionRate = userSettings ? userSettings.lateDeductionRate : 0;
       const halfDayDeductionRate = userSettings ? userSettings.halfDayDeductionRate : 0;
       const absentDeductionRate = userSettings ? userSettings.absentDeductionRate : 0;
