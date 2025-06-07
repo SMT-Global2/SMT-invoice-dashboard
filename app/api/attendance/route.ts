@@ -215,16 +215,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const body = await request.json();
+    const attendanceId = body.attendanceId;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Attendance ID is required' }, { status: 400 });
+    if (!attendanceId) {
+      return NextResponse.json({ error: 'User ID and date are required' }, { status: 400 });
     }
 
     // Check if attendance record exists
     const attendance = await prisma.attendance.findUnique({
-      where: { id },
+      where: { id: attendanceId },
     });
 
     if (!attendance) {
@@ -233,7 +233,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete the attendance record
     await prisma.attendance.delete({
-      where: { id },
+      where: { id: attendanceId },
     });
 
     return NextResponse.json({ message: 'Attendance record deleted successfully' });

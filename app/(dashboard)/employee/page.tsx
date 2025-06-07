@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { PlusIcon, Pencil, Trash2, Eye, EyeOff } from "lucide-react"
+import { PlusIcon, Pencil, Trash2, Eye, EyeOff, Search, FilterX } from "lucide-react"
 import { useUsersStore } from "@/store/useUsersStore"
 import { EmployeeDialog } from "./employee-dialog"
 import {
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from '@/components/ui/badge'
+import { Input } from "@/components/ui/input"
 
 export default function EmployeePage() {
   const { users, fetchUsers, deleteUser, setSelectedUser, isLoading } = useUsersStore()
@@ -38,6 +39,7 @@ export default function EmployeePage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [debugUsers, setDebugUsers] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Manual fetch to debug
   const fetchUsersDirectly = async () => {
@@ -115,20 +117,56 @@ export default function EmployeePage() {
     }))
   }
 
+  // Filter users based on search query
+  const filteredUsers = users?.filter(user => {
+    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+    return fullName.includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className='space-y-4 overflow-hidden max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100'>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Employee Management</h1>
       </div>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="m-2" >Employee List</CardTitle>
-          <Button onClick={handleAddNew} size="sm" className="h-8 px-2 text-xs">
-            <PlusIcon className="h-3 w-3 mr-1" />
-            Add Employee
-          </Button>
+        <CardHeader className="px-4 sm:px-6">
+          <div className="flex flex-col space-y-4 justify-between items-start">
+            <CardTitle className="m-2">Employee List</CardTitle>
+            <div className="flex flex-col w-full gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="w-full">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 h-9 w-full"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-start sm:justify-end">
+                  <div className="inline-flex flex-wrap items-center gap-2">
+                    <Button onClick={handleAddNew} size="sm" className="h-9 px-3">
+                      <PlusIcon className="h-4 w-4 mr-1" />
+                      Add Employee
+                    </Button>
+                    {searchQuery && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setSearchQuery('')}
+                        className="h-9 inline-flex items-center gap-1 px-3"
+                      >
+                        <FilterX className="h-4 w-4 mr-1" /> Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <div className="overflow-x-auto w-full border rounded-lg m-auto max-w-[100vw] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <Table>
               <TableHeader>
@@ -148,12 +186,12 @@ export default function EmployeePage() {
               <TableBody>
                 {isLoading && users?.length === 0 ? (
                   <TableSkeleton rows={5} cols={9} />
-                ) : users?.length === 0 ? (
+                ) : filteredUsers?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center">No employees found</TableCell>
                   </TableRow>
                 ) : (
-                  users.map((user, index) => (
+                  filteredUsers.map((user, index) => (
                     <TableRow key={user.id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{user.firstName}</TableCell>

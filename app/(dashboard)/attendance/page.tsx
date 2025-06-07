@@ -308,57 +308,7 @@ export default function AttendancePage() {
 
     setSummary(counts);
   }
-
-  async function handleSubmit() {
-    if (!selectedUser || !selectedType) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a user and attendance type",
-      });
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const response = await fetch('/api/attendance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: selectedUser,
-          date: selectedDate,
-          type: selectedType,
-          notes: notes.trim() || null,
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Attendance marked successfully",
-        });
-        setSelectedUser('');
-        setSelectedType('FULL_DAY');
-        setNotes('');
-        fetchDailyAttendance(selectedDate);
-      } else {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to mark attendance');
-      }
-    } catch (error) {
-      console.error('Error marking attendance:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to mark attendance",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
+  
   function openNoteDialog(userId: string) {
     const existingRecord = attendanceRecords.find(record => record.userId === userId);
     setCurrentUserId(userId);
@@ -479,11 +429,11 @@ export default function AttendancePage() {
       setIsSubmitting(true);
       
       // Format the date as ISO string to ensure consistency across API calls
-      const formattedDate = moment(selectedDate).add(1, 'days').utc().startOf('day').toDate();
-      // Reset the time part to midnight to avoid timezone issues
-      // formattedDate.setHours(0, 0, 0, 0);
-      
-      // Check if user already has an attendance record
+      //  I want the date that is in india time zone
+      // const formattedDate = new Date(selectedDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }));
+
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+
       const existingRecord = attendanceRecords.find(record => record.userId === userId);
       
       console.log('Marking attendance:', {
@@ -528,6 +478,34 @@ export default function AttendancePage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function deleteAttendance(attendanceId: string) {
+    try {
+      const response = await fetch(`/api/attendance`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          attendanceId: attendanceId,
+        }),
+      });
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Attendance deleted successfully",
+        });
+        fetchDailyAttendance(selectedDate);
+      }
+    } catch (error) {
+      console.error('Error deleting attendance:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete attendance",
+      });
     }
   }
 
@@ -726,7 +704,7 @@ export default function AttendancePage() {
                             <div className="h-2 w-2 rounded-full bg-red-300 mr-1"></div>
                             Absent
                           </Button>
-                          
+
                           {/* Note button */}
                           <Button
                             variant="outline"
@@ -735,6 +713,16 @@ export default function AttendancePage() {
                             disabled={isSubmitting || !isDateEditable(selectedDate, session?.user?.type || '')}
                           >
                             Note
+                          </Button>
+
+                          {/* Delete button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteAttendance(attendance?.id || '')}
+                            disabled={isSubmitting || !isDateEditable(selectedDate, session?.user?.type || '')}
+                          >
+                            Remove 
                           </Button>
                         </div>
                       )}
