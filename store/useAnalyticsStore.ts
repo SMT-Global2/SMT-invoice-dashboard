@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Invoice, CheckStatus, PackageStatus, DeliveryStatus, BilledStatus, PartyCode, User } from '@prisma/client'
+import { Invoice, PartyCode, User } from '@prisma/client'
 import { DateRange } from 'react-day-picker'
 import moment from 'moment'
 import { format } from 'date-fns'
@@ -551,7 +551,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   fetchAnalytics: async () => {
     try {
       set({ isLoading: true, error: null });
-      const { dateRange, selectedRegionalCodes, transporterFilter } = get().filters;
+      const { selectedRegionalCodes, transporterFilter } = get().filters;
       
       // Create query parameters
       const params = new URLSearchParams();
@@ -576,14 +576,8 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         params.append('transporterFilter', transporterFilter);
       }
       
-      // Use the store's API functions to fetch data
-      const [
-        analyticsData,
-        invoiceData
-      ] = await Promise.all([
-        get().fetchAnalyticsData(dateRange),
-        fetch(`/api/invoice/all?${params.toString()}`).then(res => res.json())
-      ]);
+      // Only fetch invoice data - no need for the separate analytics API call
+      const invoiceData = await fetch(`/api/invoice/all?${params.toString()}`).then(res => res.json());
       
       // Process invoices based on progress stage filter if needed
       let filteredInvoices = invoiceData.invoices || [];
@@ -650,24 +644,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
             ? filteredInvoices.length 
             : invoiceData.total || 0
         },
-        analytics: analyticsData.analytics || {
-          totalGenerated: 0,
-          totalChecked: 0,
-          totalPacked: 0,
-          totalPickedUp: 0,
-          totalDelivered: 0,
-          totalTransportDeliveries: 0,
-          totalOTC: 0,
-          totalBilled: 0,
-          processingEfficiency: 0,
-          billingRate: 0,
-          paymentDistribution: {
-            cash: 0,
-            credit: 0,
-            cashRatio: 0,
-            creditRatio: 0
-          }
-        },
+        analytics: filteredAnalytics as Analytics,
         filteredAnalytics: filteredAnalytics as Analytics,
         totalPages: Math.ceil((progressStage === 'incomplete' || progressStage === 'complete' 
           ? filteredInvoices.length 
