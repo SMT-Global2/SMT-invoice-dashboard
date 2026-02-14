@@ -86,34 +86,49 @@ export default function AttendanceSalaryPage() {
         </Popover>
       </div>
 
-      <Tabs defaultValue="salary" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="salary">Salary Management</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance Report</TabsTrigger>
-          <TabsTrigger value="loans">Loans Management</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="salary">
-          <SalaryManagementTab dateRange={[
-            dateRange[0] ? dateRange[0] : new Date(),
-            dateRange[1] ? dateRange[1] : new Date()
-          ]} />
-        </TabsContent>
-        
-        <TabsContent value="attendance">
-          <AttendanceReportTab dateRange={[
-            dateRange[0] ? dateRange[0] : new Date(),
-            dateRange[1] ? dateRange[1] : new Date()
-          ]} />
-        </TabsContent>
-        
-        <TabsContent value="loans">
-          <LoansManagementTab dateRange={[
-            dateRange[0] ? dateRange[0] : new Date(),
-            dateRange[1] ? dateRange[1] : new Date()
-          ]} />
-        </TabsContent>
-      </Tabs>
+      {/* Responsive Tabs/Dropdown */}
+      <div className="mb-8">
+        {/* Mobile: Dropdown */}
+        <div className="block md:hidden mb-4">
+          <select
+            className="w-full rounded-md border px-3 py-2 bg-background text-foreground"
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value)}
+          >
+            <option value="salary">Salary Management</option>
+            <option value="attendance">Attendance Report</option>
+            <option value="loans">Loans Management</option>
+          </select>
+        </div>
+        {/* Tabs and TabsList must be together */}
+        <Tabs defaultValue="salary" value={activeTab} onValueChange={setActiveTab}>
+          <div className="hidden md:block">
+            <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsTrigger value="salary">Salary Management</TabsTrigger>
+              <TabsTrigger value="attendance">Attendance Report</TabsTrigger>
+              <TabsTrigger value="loans">Loans Management</TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="salary">
+            <SalaryManagementTab dateRange={[
+              dateRange[0] ? dateRange[0] : new Date(),
+              dateRange[1] ? dateRange[1] : new Date()
+            ]} />
+          </TabsContent>
+          <TabsContent value="attendance">
+            <AttendanceReportTab dateRange={[
+              dateRange[0] ? dateRange[0] : new Date(),
+              dateRange[1] ? dateRange[1] : new Date()
+            ]} />
+          </TabsContent>
+          <TabsContent value="loans">
+            <LoansManagementTab dateRange={[
+              dateRange[0] ? dateRange[0] : new Date(),
+              dateRange[1] ? dateRange[1] : new Date()
+            ]} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 } 

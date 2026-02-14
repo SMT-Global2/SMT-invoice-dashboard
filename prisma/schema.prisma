@@ -14,10 +14,19 @@ model User {
   username      String    @unique
   password      String
   visiblePassword String
-  phoneNumber   String
+  phoneNumber   String[]
   email         String?
   address       String?
   type          UserType  @default(USER)
+  profileImage  String?
+  aadhaarImage   String?
+  sessionToken  String?   @default(uuid())
+  gender        Gender    @default(NOT_SPECIFIED)
+  employmentStatus EmploymentStatus @default(ACTIVE)
+  exitType      ExitType?
+  exitReason    String?
+  employmentStart DateTime? @default(now())
+  employmentEnd   DateTime?
 
   // invoice       Invoice[] @relation("InvoiceToUser")
   // check         Invoice[] @relation("CheckToUser")
@@ -46,6 +55,7 @@ model PartyCode {
     customerName String?
     city         String?
     regionalCode String?
+    phoneNumber  String[]
 
     invoice Invoice[]
     deliveryMemo DeliveryMemo[]
@@ -495,6 +505,7 @@ model SalarySetting {
   lateDeductionRate Float         @default(0)
   halfDayDeductionRate Float      @default(0)
   absentDeductionRate Float       @default(0)
+  salaryDate      Int             @default(1)
   active          Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -590,4 +601,20 @@ model TrackCity {
   position      Int
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NOT_SPECIFIED
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  EX_EMPLOYEE
+}
+
+enum ExitType {
+  RESIGNED
+  TERMINATED
 }

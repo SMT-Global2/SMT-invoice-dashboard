@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Download, Search, FileText } from "lucide-react";
+import { CalendarIcon, Download, Search, FileText, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Define types
 type User = {
@@ -70,6 +71,7 @@ export default function AttendanceReportTab({ dateRange }: { dateRange: [Date, D
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("summary");
+  const [selectedFilter, setSelectedFilter] = useState<'mostLate' | 'mostAbsent' | 'mostPresent' | 'none'>('none');
 
   // Fetch users
   useEffect(() => {
@@ -80,7 +82,11 @@ export default function AttendanceReportTab({ dateRange }: { dateRange: [Date, D
           throw new Error("Failed to fetch users");
         }
         const data = await response.json();
-        setUsers(data);
+        
+        // Filter out ex-employees
+        const activeUsers = data.filter((user: any) => user.employmentStatus !== 'EX_EMPLOYEE');
+        console.log("Fetched users for attendance report:", activeUsers.length);
+        setUsers(activeUsers);
       } catch (error) {
         console.error("Error fetching users:", error);
       }
@@ -209,6 +215,16 @@ export default function AttendanceReportTab({ dateRange }: { dateRange: [Date, D
     absent: attendanceSummary.reduce((sum, item) => sum + item.absent, 0),
   };
 
+  // Sort attendance summary based on selected filter
+  let sortedAttendanceSummary = [...attendanceSummary];
+  if (selectedFilter === 'mostLate') {
+    sortedAttendanceSummary.sort((a, b) => b.late - a.late);
+  } else if (selectedFilter === 'mostAbsent') {
+    sortedAttendanceSummary.sort((a, b) => b.absent - a.absent);
+  } else if (selectedFilter === 'mostPresent') {
+    sortedAttendanceSummary.sort((a, b) => b.present - a.present);
+  }
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -276,15 +292,28 @@ export default function AttendanceReportTab({ dateRange }: { dateRange: [Date, D
               {format(dateRange[1], "MMMM d, yyyy")}
             </CardDescription>
           </div>
-          <div className="relative w-full sm:w-64 mt-2 sm:mt-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search employees..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="relative w-full sm:w-64 mt-2 sm:mt-0 flex gap-2 items-center justify-end">
+            <Select value={selectedFilter} onValueChange={v => setSelectedFilter(v as any)}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filter by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Filter</SelectItem>
+                <SelectItem value="mostLate">Most Late</SelectItem>
+                <SelectItem value="mostAbsent">Most Absent</SelectItem>
+                <SelectItem value="mostPresent">Most Present</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search employees..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -316,62 +345,51 @@ export default function AttendanceReportTab({ dateRange }: { dateRange: [Date, D
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading && filteredUsers.length === 0 ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="sticky left-0 border-r">
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-                          {Array.from({ length: 5 }).map((_, j) => (
-                            <TableCell key={j} className="text-center">
-                              <Skeleton className="h-6 w-12 mx-auto" />
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    ) : filteredUsers.length === 0 ? (
+                    {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                          No employees found.
-                        </TableCell>
+                        <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
                       </TableRow>
                     ) : (
-                      filteredUsers.map((user) => {
-                        const summary = getUserSummary(user.id);
-                        return (
-                          <TableRow key={user.id}>
-                            <TableCell className="sticky left-0  border-r z-10 font-semibold">
-                              {user.firstName} {user.lastName}
-                              <div className="text-xs text-muted-foreground">{user.username}</div>
-                            </TableCell>
-                            <TableCell className="text-center font-medium text-green-600">
-                              {summary?.present || 0}
-                            </TableCell>
-                            <TableCell className="text-center font-medium text-yellow-600">
-                              {summary?.late || 0}
-                            </TableCell>
-                            <TableCell className="text-center font-medium text-orange-600">
-                              {summary?.halfDay || 0}
-                            </TableCell>
-                            <TableCell className="text-center font-medium text-red-600">
-                              {summary?.absent || 0}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => {
-                                  setSelectedUser(user.id);
-                                  setActiveTab("detail");
-                                }}
-                              >
-                                View Details
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
+                      sortedAttendanceSummary
+                        .filter(summary => filteredUsers.some(user => user.id === summary.userId))
+                        .map(summary => {
+                          const user = users.find(u => u.id === summary.userId);
+                          if (!user) return null;
+                          return (
+                            <TableRow key={summary.userId}>
+                              <TableCell className="sticky left-0  border-r z-10 font-semibold">
+                                <div className="font-semibold">{user.firstName} {user.lastName}</div>
+                                <div className="text-xs text-muted-foreground">{user.username}</div>
+                              </TableCell>
+                              <TableCell className="text-center font-medium text-green-600">
+                                {summary.present}
+                              </TableCell>
+                              <TableCell className="text-center font-medium text-yellow-600">
+                                {summary.late}
+                              </TableCell>
+                              <TableCell className="text-center font-medium text-orange-600">
+                                {summary.halfDay}
+                              </TableCell>
+                              <TableCell className="text-center font-medium text-red-600">
+                                {summary.absent}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setSelectedUser(user.id);
+                                    setActiveTab("detail");
+                                  }}
+                                  title="View Details"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                     )}
                   </TableBody>
                 </Table>

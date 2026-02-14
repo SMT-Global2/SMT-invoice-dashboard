@@ -15,16 +15,8 @@ export async function GET() {
       );
     }
     
-    // Fetch all users
+    // Fetch all users without filtering
     const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        username: true,
-        email: true,
-        type: true,
-      },
       orderBy: {
         firstName: 'asc',
       },

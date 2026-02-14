@@ -13,6 +13,9 @@ const uploadSchema = z.object({
     (type) => type.startsWith('image/'),
     "Only image files are allowed"
   ),
+  type: z.enum(['profile', 'aadhaar', 'other']).optional(),
+  firstName: z.string().min(1, 'First name is required').optional(),
+  lastName: z.string().min(1, 'Last name is required').optional(),
 });
 
 const s3Client = new S3Client({
@@ -50,9 +53,28 @@ export async function POST(request: Request) {
     }
     console.log("result", result);
 
-    const { fileName, contentType } = result.data;
-    // Generate a unique key for the file using a more URL-friendly format
-    const key = `${fileName}`;
+    const { fileName, contentType, type, firstName, lastName } = result.data;
+    // Clean up names (remove spaces, lowercase, etc.) - handle optional fields
+    const safeFirstName = (firstName || 'user').replace(/\s+/g, '').toLowerCase();
+    const safeLastName = (lastName || 'upload').replace(/\s+/g, '').toLowerCase();
+    const ext = fileName.split('.').pop();
+    
+    // Generate key based on type
+    let key;
+    if (type === 'profile' || type === 'aadhaar') {
+      // Employee uploads
+      let prefix = '';
+      if (type === 'profile') {
+        prefix = `${safeFirstName}_${safeLastName}_profile_`;
+      } else if (type === 'aadhaar') {
+        prefix = `${safeFirstName}_${safeLastName}_aadhaar_`;
+      }
+      const unique = Date.now();
+      key = `employee/${prefix}${unique}.${ext}`;
+    } else {
+      // Other uploads (statements, etc.) - use the fileName as provided
+      key = fileName;
+    }
 
     const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME,

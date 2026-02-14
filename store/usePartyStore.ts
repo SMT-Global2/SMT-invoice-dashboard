@@ -9,6 +9,7 @@ export const PartyCodeSchema = z.object({
   regionalCode: z.string().optional(),
   customerName: z.string().optional(),
   city: z.string().optional(),
+  phoneNumber: z.array(z.string().regex(/^\d{0,15}$/, "Phone number must contain only digits").or(z.literal(""))).optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 })

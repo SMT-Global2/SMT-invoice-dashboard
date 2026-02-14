@@ -20,7 +20,9 @@ import {
   PencilIcon, 
   Trash2Icon, 
   InfoIcon,
-  CalendarIcon
+  CalendarIcon,
+  XCircle,
+  CheckCircle2Icon
 } from 'lucide-react';
 import {
   Dialog,
@@ -871,7 +873,7 @@ export default function LoansManagementTab({ dateRange }: LoansManagementTabProp
                               onClick={() => handleDeleteConfirmation(loan)}
                               disabled={!loan.active}
                             >
-                              <Trash2Icon className="h-4 w-4" />
+                              <XCircle className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -880,7 +882,24 @@ export default function LoansManagementTab({ dateRange }: LoansManagementTabProp
                         </Tooltip>
                       </TooltipProvider>
                       
-                      {/* Add Clear Remaining button for closed loans with remaining amount */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => { setSelectedLoan(loan); setDeleteDialogOpen(true); }}
+                            >
+                              <Trash2Icon className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Permanently Delete Loan</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      {/* Clear Remaining button for closed loans with remaining amount */}
                       {!loan.active && loan.remainingAmount > 0 && (
                         <TooltipProvider>
                           <Tooltip>
@@ -1451,6 +1470,46 @@ export default function LoansManagementTab({ dateRange }: LoansManagementTabProp
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Permanent Delete Loan Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently Delete Loan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this loan? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!selectedLoan) return;
+                setIsLoading(true);
+                try {
+                  const response = await fetch(`/api/salary/loans?id=${selectedLoan.id}`, {
+                    method: 'DELETE',
+                  });
+                  if (!response.ok) throw new Error('Failed to delete loan');
+                  setLoans(loans => loans.filter(l => l.id !== selectedLoan.id));
+                  setFilteredLoans(loans => loans.filter(l => l.id !== selectedLoan.id));
+                  toast({ title: 'Deleted', description: 'Loan permanently deleted.' });
+                } catch (error) {
+                  toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete loan.' });
+                } finally {
+                  setIsLoading(false);
+                  setDeleteDialogOpen(false);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {isLoading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

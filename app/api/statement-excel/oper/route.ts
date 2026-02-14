@@ -78,8 +78,8 @@ export async function GET(
           .reduce((acc: Record<string, any>, section) => {
             acc[section.partyCode] = {
               images: section.images,
-              location: section.latitude && section.longitude 
-                ? { lat: section.latitude, lng: section.longitude } 
+              location: (typeof section.latitude === 'number' && typeof section.longitude === 'number' && section.latitude !== null && section.longitude !== null)
+                ? { lat: section.latitude, lng: section.longitude }
                 : null,
               timestamp: section.savedTimestamp,
               address: section.address,

@@ -17,6 +17,7 @@ const salarySettingsSchema = z.object({
   lateDeductionRate: z.number().default(0),
   halfDayDeductionRate: z.number().default(0),
   absentDeductionRate: z.number().default(0),
+  salaryDate: z.number().int().min(1).max(31).default(1),
   active: z.boolean().default(true),
 });
 
@@ -142,6 +143,7 @@ export async function POST(request: NextRequest) {
             lateDeductionRate: validatedData.lateDeductionRate,
             halfDayDeductionRate: validatedData.halfDayDeductionRate,
             absentDeductionRate: validatedData.absentDeductionRate,
+            salaryDate: validatedData.salaryDate,
             active: validatedData.active,
           },
           include: {
@@ -169,6 +171,7 @@ export async function POST(request: NextRequest) {
             lateDeductionRate: validatedData.lateDeductionRate,
             halfDayDeductionRate: validatedData.halfDayDeductionRate,
             absentDeductionRate: validatedData.absentDeductionRate,
+            salaryDate: validatedData.salaryDate,
             active: validatedData.active,
           },
           include: {
@@ -262,6 +265,7 @@ export async function PUT(request: NextRequest) {
         lateDeductionRate: body.lateDeductionRate !== undefined ? body.lateDeductionRate : existingSetting.lateDeductionRate,
         halfDayDeductionRate: body.halfDayDeductionRate !== undefined ? body.halfDayDeductionRate : existingSetting.halfDayDeductionRate,
         absentDeductionRate: body.absentDeductionRate !== undefined ? body.absentDeductionRate : existingSetting.absentDeductionRate,
+        salaryDate: body.salaryDate !== undefined ? body.salaryDate : existingSetting.salaryDate,
       },
       include: {
         user: {

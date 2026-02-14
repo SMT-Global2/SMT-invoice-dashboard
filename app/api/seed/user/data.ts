@@ -7,7 +7,7 @@ type UserSeed = {
     visiblePassword: string;
     firstName: string;
     lastName: string;
-    phoneNumber: string;
+    phoneNumber: string[];
     department: Department[];
     type: UserType;
     email?: string;
@@ -22,7 +22,7 @@ export const userSeed: UserSeed[] = [
         type: UserType.ADMIN,
         firstName: 'Admin',
         lastName: 'Admin',
-        phoneNumber: '1234567890',
+        phoneNumber: ['1234567890'],
         department: [Department.ALL_ROUNDER],
     },
 ]

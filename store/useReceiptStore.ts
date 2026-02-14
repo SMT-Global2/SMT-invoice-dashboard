@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import moment from 'moment'
+import 'moment-timezone'
 import { PartyCode } from '@prisma/client'
 import { PaymentMethodFilter } from 'app/(dashboard)/receipt/record-table'
 
@@ -102,7 +103,7 @@ export const useReceiptStore = create<ReceiptState>()(
       // Search and filter
       searchTerm: '',
       setSearchTerm: (term) => set({ searchTerm: term }),
-      selectedDate: undefined,
+      selectedDate: moment().tz('Asia/Kolkata').toDate(), // Set to today's date in IST
       setSelectedDate: (date) => set({ selectedDate: date }),
       selectedPaymentMethod: 'ALL',
       setSelectedPaymentMethod: (method) => set({ selectedPaymentMethod: method }),

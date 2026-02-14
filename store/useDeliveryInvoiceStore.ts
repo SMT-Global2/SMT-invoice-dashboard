@@ -123,7 +123,7 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
       // Initialize with separate date states
       toDeliverSelectedDate: undefined,
       inTransitSelectedDate: undefined,
-      deliveredSelectedDate: undefined,
+      deliveredSelectedDate: new Date(),
       
       isLoading: false,
       error: null,

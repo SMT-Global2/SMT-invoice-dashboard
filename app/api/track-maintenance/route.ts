@@ -56,18 +56,14 @@ export async function POST(req: NextRequest) {
         }
       });
       
-      // Create default day sections
-      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      
-      const sectionsData = dayNames.map((dayName, index) => ({
-        name: dayName,
-        boardId: board.id,
-        position: index,
-        isFixedDay: true
-      }));
-      
-      await tx.trackSection.createMany({
-        data: sectionsData
+      // Create only one default section
+      await tx.trackSection.create({
+        data: {
+          name: 'Week 1',
+          boardId: board.id,
+          position: 0,
+          isFixedDay: false
+        }
       });
       
       // Return the board with its sections

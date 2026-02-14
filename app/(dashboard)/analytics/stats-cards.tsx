@@ -1,8 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownIcon, ArrowUpIcon, BarChart3, Package, ShoppingCart, Users } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { ArrowDownIcon, ArrowUpIcon, BarChart3, Users } from "lucide-react";
+import React from "react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -18,68 +18,43 @@ interface StatsCardData {
 }
 
 export function StatsCards() {
-  const isLoading = useAnalyticsStore((state: AnalyticsState) => state.isLoading);
-  const fetchAnalyticsData = useAnalyticsStore((state: AnalyticsState) => state.fetchAnalyticsData);
+  const dashboardAnalytics = useAnalyticsStore((state: AnalyticsState) => state.dashboardAnalytics);
+  const dashboardAnalyticsLoading = useAnalyticsStore((state: AnalyticsState) => state.dashboardAnalyticsLoading);
+  const fetchDashboardAnalytics = useAnalyticsStore((state: AnalyticsState) => state.fetchDashboardAnalytics);
 
-  const [date, setDate] = useState<DateRange | undefined>({
+  const [date, setDate] = React.useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
   });
-  
-  const [data, setData] = useState<StatsCardData[]>([]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      useAnalyticsStore.setState({ isLoading: true, error: null });
-      try {
-        const analyticsData = await fetchAnalyticsData(date);
-        
-        const statsData: StatsCardData[] = [
-          {
-            title: "Total Invoices",
-            value: analyticsData.totalInvoices.toString(),
-            icon: <BarChart3 className="h-4 w-4 text-muted-foreground" />,
-            change: analyticsData.invoiceChangePercentage,
-            changeType: analyticsData.invoiceChangePercentage >= 0 ? "increase" : "decrease",
-            changeText: `${Math.abs(analyticsData.invoiceChangePercentage).toFixed(1)}% from previous period`
-          },
-          {
-            title: "Active Users",
-            value: analyticsData.activeUsers.toString(),
-            icon: <Users className="h-4 w-4 text-muted-foreground" />,
-            change: analyticsData.userChangePercentage,
-            changeType: analyticsData.userChangePercentage >= 0 ? "increase" : "decrease",
-            changeText: `${Math.abs(analyticsData.userChangePercentage).toFixed(1)}% from previous period`
-          },
-          // {
-          //   title: "Processed Items",
-          //   value: analyticsData.processedItems.toString(),
-          //   icon: <Package className="h-4 w-4 text-muted-foreground" />,
-          //   change: analyticsData.itemsChangePercentage,
-          //   changeType: analyticsData.itemsChangePercentage >= 0 ? "increase" : "decrease",
-          //   changeText: `${Math.abs(analyticsData.itemsChangePercentage).toFixed(1)}% from previous period`
-          // },
-          // {
-          //   title: "Total Orders",
-          //   value: analyticsData.totalOrders.toString(),
-          //   icon: <ShoppingCart className="h-4 w-4 text-muted-foreground" />,
-          //   change: analyticsData.ordersChangePercentage,
-          //   changeType: analyticsData.ordersChangePercentage >= 0 ? "increase" : "decrease",
-          //   changeText: `${Math.abs(analyticsData.ordersChangePercentage).toFixed(1)}% from previous period`
-          // }
-        ];
-        
-        setData(statsData);
-      } catch (error) {
-        console.error('Error fetching analytics data:', error);
-        useAnalyticsStore.setState({ error: "Failed to fetch overview data." });
-      } finally {
-        useAnalyticsStore.setState({ isLoading: false });
-      }
-    };
+  // Re-fetch when date picker changes (after initial mount)
+  const isFirstRender = React.useRef(true);
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    fetchDashboardAnalytics(date);
+  }, [date, fetchDashboardAnalytics]);
 
-    loadData();
-  }, [date, fetchAnalyticsData]);
+  const data: StatsCardData[] = dashboardAnalytics ? [
+    {
+      title: "Total Invoices",
+      value: dashboardAnalytics.totalInvoices.toString(),
+      icon: <BarChart3 className="h-4 w-4 text-muted-foreground" />,
+      change: dashboardAnalytics.invoiceChangePercentage,
+      changeType: dashboardAnalytics.invoiceChangePercentage >= 0 ? "increase" : "decrease",
+      changeText: `${Math.abs(dashboardAnalytics.invoiceChangePercentage).toFixed(1)}% from previous period`
+    },
+    {
+      title: "Active Users",
+      value: dashboardAnalytics.activeUsers.toString(),
+      icon: <Users className="h-4 w-4 text-muted-foreground" />,
+      change: dashboardAnalytics.userChangePercentage,
+      changeType: dashboardAnalytics.userChangePercentage >= 0 ? "increase" : "decrease",
+      changeText: `${Math.abs(dashboardAnalytics.userChangePercentage).toFixed(1)}% from previous period`
+    },
+  ] : [];
 
   return (
     <div className="space-y-4">
@@ -87,9 +62,9 @@ export function StatsCards() {
         <h2 className="text-2xl font-bold tracking-tight">Dashboard Overview</h2>
         <DatePickerWithRange date={date} setDate={setDate} />
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {isLoading ? (
+        {dashboardAnalyticsLoading ? (
           Array(4).fill(0).map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -126,4 +101,4 @@ export function StatsCards() {
       </div>
     </div>
   );
-} 
+}

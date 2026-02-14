@@ -21,9 +21,10 @@ import { getS3BucketUrl } from '@/lib/helper';
 interface ShowImageProps {
   images: string[];
   text?: string;
+  trigger?: React.ReactNode;
 }
 
-export function ShowImage({ images, text }: ShowImageProps) {
+export function ShowImage({ images, text, trigger }: ShowImageProps) {
   const [processedImages, setProcessedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -168,10 +169,12 @@ export function ShowImage({ images, text }: ShowImageProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="sm" className="flex items-center gap-2">
-          <ImageIcon className="h-4 w-4" />
-          <span>{text ? text : 'View'} {images.length} {images.length === 1 ? '' : ''}</span>
-        </Button>
+        {trigger ? trigger : (
+          <Button size="sm" className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4" />
+            <span>{text ? text : 'View'} {images.length} {images.length === 1 ? '' : ''}</span>
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent 

@@ -4,7 +4,6 @@ import { RoleGuard } from "@/components/auth/role-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import React, { ReactNode } from "react"
-import { Department, UserType } from "@prisma/client"
 import { 
   dashboardCategories, 
   homeItems,
@@ -18,7 +17,7 @@ import { Loader2 } from "lucide-react"
 // Reusable tile component
 interface DashboardTileProps {
   item: DashboardItem;
-  userRoles: (UserType | Department)[];
+  userRoles: string[];
 }
 
 const DashboardTile = ({ item, userRoles }: DashboardTileProps) => {
@@ -90,7 +89,7 @@ export default function DashboardPage() {
   }
   
   const userRoles = [session?.data?.user?.type, ...(session?.data?.user?.department ?? [])]
-    .filter((role): role is UserType | Department => role !== undefined);
+    .filter(role => role !== undefined);
     
   return (
     <div className="w-full overflow-hidden">

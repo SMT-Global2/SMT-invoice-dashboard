@@ -33,48 +33,27 @@ export async function GET(request: Request) {
           }
         },
         {
-          AND : [
-            {
-              city: {
-                not : null,
-              },
-            },
-            {
-              city: {
-                contains: search,
-                mode: 'insensitive'
-              }
-            }
-          ]
+          city: {
+            contains: search,
+            mode: 'insensitive'
+          }
         },
         {
-          AND : [
-            {
-              regionalCode: {
-                not : null,
-              },
-            },
-            {
-              regionalCode: {
-                contains: search,
-                mode: 'insensitive'
-              }
-            }
-          ]
+          regionalCode: {
+            contains: search,
+            mode: 'insensitive'
+          }
         },
         {
-          AND : [
-            {
-              customerName: {
-                not : null,
-              },
-            },
-            {
-              customerName : {
-                contains: search,
-                mode: 'insensitive'
-              }
-            }
+          customerName: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          OR: [
+            { phoneNumber: { has: search } },
+            { phoneNumber: { hasSome: [search] } }
           ]
         },
       ]

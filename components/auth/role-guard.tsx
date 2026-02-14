@@ -1,13 +1,12 @@
 "use client"
 
 import { useSession } from 'next-auth/react'
-import { Department, UserType } from '@prisma/client'
 import { ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 
 interface RoleGuardProps {
   children: ReactNode
-  allowedRoles: (UserType | Department)[]
+  allowedRoles: string[]
   fallback?: ReactNode
 }
 
@@ -35,8 +34,8 @@ export function RoleGuard({
   }
 
   // Get user roles, filtering out undefined values
-  const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
-    .filter((role): role is UserType | Department => role !== undefined);
+  const userRoles: string[] = [session?.user?.type, ...(session?.user?.department ?? [])]
+    .filter(role => role !== undefined);
   
   // If there's no session or user doesn't have any of the allowed roles, show fallback
   if (!allowedRoles.some(role => userRoles.includes(role))) {

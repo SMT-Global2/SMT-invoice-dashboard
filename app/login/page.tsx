@@ -53,11 +53,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 relative">
-      <div className="absolute top-12 w-full flex justify-center">
+    <div className="min-h-screen flex flex-col items-center p-8">
+      <div className="w-full flex justify-center pt-4">
         <Header />
       </div>
-      <div className="w-full flex flex-col items-center">
+      <div className="flex-1 w-full flex flex-col items-center justify-center">
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle className="text-2xl">Login</CardTitle>
@@ -117,7 +117,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </div>
-      <div className="absolute bottom-0 w-full">
+      <div className="w-full">
         <Footer />
       </div>
     </div>

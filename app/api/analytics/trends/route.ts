@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCached, setCache } from '@/lib/api-cache'
+import moment from 'moment-timezone'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -11,12 +13,16 @@ export async function GET(request: Request) {
       message: 'Unauthorized'
     }, { status: 401 });
   }
-  
+
+  const cacheKey = request.url;
+  const cached = getCached(cacheKey);
+  if (cached) return NextResponse.json(cached);
+
   try {
     const { searchParams } = new URL(request.url)
     const fromDate = searchParams.get('from') ? new Date(searchParams.get('from')!) : undefined
     const toDate = searchParams.get('to') ? new Date(searchParams.get('to')!) : undefined
-    
+
     // Build date filter
     const dateFilter: any = {}
     if (fromDate) {
@@ -25,56 +31,43 @@ export async function GET(request: Request) {
     if (toDate) {
       dateFilter.lte = toDate
     }
-    
-    // Calculate trend data by day
+
     const whereClause: any = {}
     if (Object.keys(dateFilter).length > 0) {
       whereClause.invoiceTimestamp = dateFilter
     }
-    
-    // Get invoices with timestamps
-    const invoices = await prisma.invoice.findMany({
+
+    // groupBy generatedDate instead of fetching ALL invoices
+    const dailyGroups = await prisma.invoice.groupBy({
+      by: ['generatedDate'],
       where: whereClause,
-      select: {
-        invoiceTimestamp: true,
-        // We don't need additional fields since we'll calculate items/orders ourselves
-      },
-      orderBy: {
-        invoiceTimestamp: 'asc'
-      }
+      _count: true
     });
-    
-    // Group invoices by day and calculate totals
-    const dailyData = new Map();
-    
-    // Process each invoice
-    invoices.forEach(invoice => {
-      if (invoice.invoiceTimestamp) {
-        const day = invoice.invoiceTimestamp.toISOString().split('T')[0];
-        const current = dailyData.get(day) || {
-          invoiceCount: 0
-        };
-        
-        current.invoiceCount += 1;
-        dailyData.set(day, current);
+
+    // Aggregate by date string (generatedDate may have time components)
+    const dailyData = new Map<string, number>();
+    for (const group of dailyGroups) {
+      if (group.generatedDate) {
+        const day = moment(group.generatedDate).format('YYYY-MM-DD');
+        dailyData.set(day, (dailyData.get(day) || 0) + group._count);
       }
-    });
-    
-    // Convert to array format for the chart
-    const trendData = Array.from(dailyData.entries()).map(([date, data]) => {
-      return {
+    }
+
+    // Convert to array format sorted by date
+    const trendData = Array.from(dailyData.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({
         date,
-        invoiceCount: data.invoiceCount,
-        invoices: data.invoiceCount, // Alias for consistency with UI
-        items: data.invoiceCount, // Use actual invoice count
-        orders: data.invoiceCount // Use actual invoice count
-      };
-    });
-    
-    return NextResponse.json({
-      trendData
-    });
-    
+        invoiceCount: count,
+        invoices: count,
+        items: count,
+        orders: count
+      }));
+
+    const result = { trendData };
+    setCache(cacheKey, result);
+    return NextResponse.json(result);
+
   } catch (error) {
     console.error('Trend API Error:', (error as any).message)
     return Response.json({
@@ -82,4 +75,4 @@ export async function GET(request: Request) {
       message: 'Internal server error'
     }, { status: 500 })
   }
-} 
+}

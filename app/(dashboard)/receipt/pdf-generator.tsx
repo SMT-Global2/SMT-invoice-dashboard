@@ -35,7 +35,7 @@ const PDFGenerator: React.FC<PDFGeneratorProps> = ({ date, userFilter, paymentMe
       
       const data = await response.json();
       setReceipts(data.data);
-      return data.data;
+      return data; // Return the full response including statementImages
     } catch (error) {
       console.error('Error fetching receipt data:', error);
       toast({
@@ -58,7 +58,11 @@ const PDFGenerator: React.FC<PDFGeneratorProps> = ({ date, userFilter, paymentMe
     
     try {
       const blob = await pdf(
-        <ReceiptPDF receipts={data} date={moment(date).format('YYYY-MM-DD')} />
+        <ReceiptPDF 
+          receipts={data.data} 
+          date={moment(date).format('YYYY-MM-DD')} 
+          statementImages={data.statementImages || []}
+        />
       ).toBlob();
       
       const url = URL.createObjectURL(blob);

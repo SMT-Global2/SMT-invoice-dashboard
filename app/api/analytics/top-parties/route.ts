@@ -2,14 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-
-// Define interfaces for the data structures
-interface PartyData {
-  count: number;
-  id: string;
-  code: string;
-  name: string;
-}
+import { getCached, setCache } from '@/lib/api-cache'
 
 interface FormattedPartyData {
   id: string;
@@ -28,12 +21,16 @@ export async function GET(request: Request) {
       message: 'Unauthorized'
     }, { status: 401 });
   }
-  
+
+  const cacheKey = request.url;
+  const cached = getCached(cacheKey);
+  if (cached) return NextResponse.json(cached);
+
   try {
     const { searchParams } = new URL(request.url)
     const fromDate = searchParams.get('from') ? new Date(searchParams.get('from')!) : undefined
     const toDate = searchParams.get('to') ? new Date(searchParams.get('to')!) : undefined
-    
+
     // Build date filter
     const dateFilter: any = {}
     if (fromDate) {
@@ -42,111 +39,96 @@ export async function GET(request: Request) {
     if (toDate) {
       dateFilter.lte = toDate
     }
-    
-    // Base where clause
+
     const whereClause: any = {}
     if (Object.keys(dateFilter).length > 0) {
       whereClause.invoiceTimestamp = dateFilter
     }
-    
-    // Get all invoices matching date filter to process
-    const allInvoices = await prisma.invoice.findMany({
+
+    // groupBy partyCode instead of fetching ALL invoices
+    const partyGroups = await prisma.invoice.groupBy({
+      by: ['partyCode'],
       where: whereClause,
-      select: {
-        partyCode: true,
-        party: {
-          select: {
-            code: true,
-            customerName: true,
-            id: true
-          }
+      _count: true,
+      orderBy: {
+        _count: {
+          partyCode: 'desc'
         }
+      },
+      take: 20
+    });
+
+    // Lookup party details only for top 20 codes
+    const topPartyCodes = partyGroups.map(g => g.partyCode);
+    const parties = await prisma.partyCode.findMany({
+      where: { code: { in: topPartyCodes } },
+      select: {
+        id: true,
+        code: true,
+        customerName: true
       }
     });
-    
-    // In schema.prisma there is no 'type' field for PartyCode
-    // Instead we'll manually group parties by some criteria
-    // For example: agencies might start with 'A-' and clients with 'C-'
-    // or we can make a simple assumption for demo purposes
-    
-    // Count by party code
-    const partyCodeCounts = new Map<string, PartyData>();
-    
-    allInvoices.forEach(invoice => {
-      const currentCount = partyCodeCounts.get(invoice.partyCode) || {
-        count: 0,
-        id: invoice.party.id,
-        code: invoice.partyCode,
-        name: invoice.party.customerName || 'Unknown'
+
+    const partyMap = new Map(parties.map(p => [p.code, p]));
+
+    // Classify parties: codes starting with A, B, or C are agencies, others are clients
+    const agencyCodes: { code: string; count: number; id: string; name: string }[] = [];
+    const clientCodes: { code: string; count: number; id: string; name: string }[] = [];
+
+    for (const group of partyGroups) {
+      const party = partyMap.get(group.partyCode);
+      const entry = {
+        code: group.partyCode,
+        count: group._count,
+        id: party?.id || '',
+        name: party?.customerName || 'Unknown'
       };
-      
-      currentCount.count += 1;
-      partyCodeCounts.set(invoice.partyCode, currentCount);
-    });
-    
-    // For this example, we'll classify parties based on a simple assumption
-    // Let's assume codes starting with A, B, or C are agencies, others are clients
-    const agencyCodes: PartyData[] = [];
-    const clientCodes: PartyData[] = [];
-    
-    // Fix the Map iterator issue by using Array.from()
-    Array.from(partyCodeCounts.entries()).forEach(([code, data]) => {
-      const firstChar = code.charAt(0).toUpperCase();
+
+      const firstChar = group.partyCode.charAt(0).toUpperCase();
       if (['A', 'B', 'C'].includes(firstChar)) {
-        agencyCodes.push(data);
+        agencyCodes.push(entry);
       } else {
-        clientCodes.push(data);
+        clientCodes.push(entry);
       }
-    });
-    
-    // Sort by count (highest first)
-    agencyCodes.sort((a, b) => b.count - a.count);
-    clientCodes.sort((a, b) => b.count - a.count);
-    
-    // Take top 10
+    }
+
+    // Already sorted by count desc from groupBy, take top 10
     const topAgencies = agencyCodes.slice(0, 10);
     const topClients = clientCodes.slice(0, 10);
-    
-    // Calculate totals for percentages
-    const totalAgencyInvoices = topAgencies.reduce((sum, agency) => sum + agency.count, 0);
-    const totalClientInvoices = topClients.reduce((sum, client) => sum + client.count, 0);
-    
-    // Format data with percentages and ranking
-    const formattedAgencies: FormattedPartyData[] = topAgencies.map((agency, index) => {
-      const percentage = totalAgencyInvoices > 0 
-        ? (agency.count / totalAgencyInvoices) * 100 
-        : 0;
-      
-      return {
-        id: agency.id || '',
-        code: agency.code,
-        name: agency.name || 'Unknown',
-        count: agency.count,
-        ranking: index + 1,
-        percentage: Math.round(percentage * 10) / 10 // Round to 1 decimal place
-      };
-    });
-    
-    const formattedClients: FormattedPartyData[] = topClients.map((client, index) => {
-      const percentage = totalClientInvoices > 0 
-        ? (client.count / totalClientInvoices) * 100 
-        : 0;
-      
-      return {
-        id: client.id || '',
-        code: client.code,
-        name: client.name || 'Unknown',
-        count: client.count,
-        ranking: index + 1,
-        percentage: Math.round(percentage * 10) / 10 // Round to 1 decimal place
-      };
-    });
-    
-    return NextResponse.json({
+
+    const totalAgencyInvoices = topAgencies.reduce((sum, a) => sum + a.count, 0);
+    const totalClientInvoices = topClients.reduce((sum, c) => sum + c.count, 0);
+
+    const formattedAgencies: FormattedPartyData[] = topAgencies.map((agency, index) => ({
+      id: agency.id,
+      code: agency.code,
+      name: agency.name,
+      count: agency.count,
+      ranking: index + 1,
+      percentage: totalAgencyInvoices > 0
+        ? Math.round((agency.count / totalAgencyInvoices) * 1000) / 10
+        : 0
+    }));
+
+    const formattedClients: FormattedPartyData[] = topClients.map((client, index) => ({
+      id: client.id,
+      code: client.code,
+      name: client.name,
+      count: client.count,
+      ranking: index + 1,
+      percentage: totalClientInvoices > 0
+        ? Math.round((client.count / totalClientInvoices) * 1000) / 10
+        : 0
+    }));
+
+    const result = {
       topClients: formattedClients,
       topAgencies: formattedAgencies
-    });
-    
+    };
+
+    setCache(cacheKey, result);
+    return NextResponse.json(result);
+
   } catch (error) {
     console.error('Top Parties API Error:', (error as any).message)
     return Response.json({
@@ -154,4 +136,4 @@ export async function GET(request: Request) {
       message: 'Internal server error'
     }, { status: 500 })
   }
-} 
+}

@@ -589,6 +589,11 @@ export default function StatementExcelPage() {
       // Upload the file to S3
       const uploadedImage = await uploadFileToS3(compressedFile, prefixKeyId);
 
+      // Check if upload was successful and key is valid
+      if (!uploadedImage || !uploadedImage.key) {
+        throw new Error('Failed to upload image - no key returned');
+      }
+
       // Update UI state to show the uploaded image URL
       setCapturedImages(prev => {
         // Ensure currentImages is always an array using type assertion
@@ -677,17 +682,30 @@ export default function StatementExcelPage() {
 
     try {
       // Get current location
-      const locationData = await new Promise<GeolocationPosition>((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error('Geolocation is not supported by your browser'));
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
+      let locationData;
+      try {
+        locationData = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('Geolocation is not supported by your browser'));
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          });
         });
-      });
+      } catch (geoError) {
+        toast({
+          title: 'Location Required',
+          description: 'Location permission is required to save the statement. Please allow location access and try again.',
+          variant: 'destructive',
+        });
+        setIsSaving(null);
+        clearInterval(progressInterval);
+        setSavingProgress(0);
+        return;
+      }
 
       // Get the user's name from the session - use full name when available
       const userName = session.user.name || session.user.username || 'Unknown User';
@@ -698,7 +716,10 @@ export default function StatementExcelPage() {
         statementId: selectedFile.id,
         partyCode: partyCode,
         images: capturedImages[partyCode] || [],
-        location: locationData,
+        location: {
+          lat: locationData.coords.latitude,
+          lng: locationData.coords.longitude
+        },
         address: await getAddressFromCoordinates(locationData.coords.latitude, locationData.coords.longitude),
         visitedBy: userName
       };

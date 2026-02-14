@@ -200,9 +200,9 @@ export function ReceiptAnalytics() {
         count: day.count,
         cashCount: Math.round(day.count * (parseInt(receipt?.percentCash || '0')/100)),
         chequeCount: Math.round(day.count * (parseInt(receipt?.percentCheque || '0')/100)),
-        cashAmount: (receipt.totalAmount / receipt.totalCount) * Math.round(day.count * (parseInt(receipt?.percentCash || '0')/100)),
-        chequeAmount: (receipt.totalAmount / receipt.totalCount) * Math.round(day.count * (parseInt(receipt?.percentCheque || '0')/100)),
-        totalAmount: (receipt.totalAmount / receipt.totalCount) * day.count 
+        cashAmount: receipt.totalCount > 0 ? (receipt.totalAmount / receipt.totalCount) * Math.round(day.count * (parseInt(receipt?.percentCash || '0')/100)) : 0,
+        chequeAmount: receipt.totalCount > 0 ? (receipt.totalAmount / receipt.totalCount) * Math.round(day.count * (parseInt(receipt?.percentCheque || '0')/100)) : 0,
+        totalAmount: receipt.totalCount > 0 ? (receipt.totalAmount / receipt.totalCount) * day.count : 0
       }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [receipt]);

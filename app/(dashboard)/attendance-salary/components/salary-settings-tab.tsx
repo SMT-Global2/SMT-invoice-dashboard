@@ -212,8 +212,12 @@ export default function SalarySettingsTab({ dateRange }: SalarySettingsTabProps)
         throw new Error('Failed to fetch users');
       }
       const data = await response.json();
-      setUsers(data);
-      return data;
+      
+      // Filter out ex-employees
+      const activeUsers = data.filter((user: any) => user.employmentStatus !== 'EX_EMPLOYEE');
+      console.log('Fetched users for salary settings:', activeUsers.length);
+      setUsers(activeUsers);
+      return activeUsers;
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({

@@ -289,12 +289,17 @@ export interface AnalyticsState {
   availableRegionalCodes: string[];
   transporters: { id: string, companyName: string }[];
   
+  // Dashboard analytics (shared between StatsCards and StatusBreakdown)
+  dashboardAnalytics: AnalyticsResponse | null;
+  dashboardAnalyticsLoading: boolean;
+
   // Actions
   fetchAnalytics: () => Promise<void>;
+  fetchDashboardAnalytics: (dateRange?: DateRange) => Promise<void>;
   fetchAvailableRegionalCodes: () => Promise<void>;
   fetchTransporters: () => Promise<void>;
   fetchInvoicesForPDF: (date: string, regionalCodes?: string[]) => Promise<IInvoice[]>;
-  
+
   // Analytics API functions
   fetchAnalyticsData: (dateRange?: DateRange) => Promise<AnalyticsResponse>;
   fetchPartiesData: (dateRange?: DateRange) => Promise<PartiesResponse>;
@@ -330,6 +335,8 @@ export interface AnalyticsState {
 const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   isLoading: false,
   error: null,
+  dashboardAnalytics: null,
+  dashboardAnalyticsLoading: false,
 
   allInvoices: {
     invoices: [],
@@ -672,6 +679,17 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
         error: error instanceof Error ? error.message : 'An error occurred',
         isLoading: false 
       });
+    }
+  },
+
+  fetchDashboardAnalytics: async (dateRange) => {
+    try {
+      set({ dashboardAnalyticsLoading: true });
+      const data = await get().fetchAnalyticsData(dateRange);
+      set({ dashboardAnalytics: data, dashboardAnalyticsLoading: false });
+    } catch (error) {
+      console.error('Error fetching dashboard analytics:', error);
+      set({ dashboardAnalyticsLoading: false });
     }
   },
 

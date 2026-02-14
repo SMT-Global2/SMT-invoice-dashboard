@@ -2,6 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { PaymentMethod, ReceiptData } from '@/store/useReceiptStore'; // Assuming this path is correct
 import moment from 'moment';
+import { Image } from '@react-pdf/renderer'; // Added Image import
 
 // --- Configuration ---
 
@@ -812,14 +813,133 @@ const ReportFooter: React.FC<ReportFooterProps> = ({ companyName }) => (
     </>
 );
 
+// --- Statement Images Section Component ---
+interface StatementImage {
+    imageUrl: string;
+    medicalName: string;
+    userName: string;
+    partyCode: string;
+    location?: string;
+    contact?: string;
+    statementFileName?: string; // Add statement file name
+}
+
+interface StatementImagesSectionProps {
+    images: StatementImage[];
+}
+
+const StatementImagesSection: React.FC<StatementImagesSectionProps> = ({ images }) => {
+    // Calculate images per row (4 images per row for A4 optimization)
+    const imagesPerRow = 4; // Changed from 3 to 4
+    const imageWidth = 110; // Reduced width to fit 4 images with spacing
+    const imageHeight = 85; // Reduced height to fit 5 rows
+    const spacing = 12; // Reduced spacing between images
+    
+    // Group images into rows
+    const imageRows = [];
+    for (let i = 0; i < images.length; i += imagesPerRow) {
+        imageRows.push(images.slice(i, i + imagesPerRow));
+    }
+
+    return (
+        <View style={{ marginTop: 0, marginBottom: 10 }}> {/* Removed top margin to start from page beginning */}
+            {/* Section Header */}
+            <View style={{ 
+                backgroundColor: colors.primary, 
+                padding: 6, // Reduced padding
+                marginBottom: 10, // Reduced margin
+                borderRadius: 4
+            }}>
+                <Text style={{ 
+                    color: colors.white, 
+                    fontSize: 12, // Reduced font size
+                    fontWeight: 'bold',
+                    textAlign: 'center'
+                }}>
+                    Statement Images - {images.length} Total
+                </Text>
+            </View>
+
+            {/* Images Grid */}
+            {imageRows.map((row, rowIndex) => (
+                <View key={rowIndex} style={{ 
+                    flexDirection: 'row', 
+                    justifyContent: 'space-between',
+                    marginBottom: 12 // Reduced margin to fit 5 rows
+                }} wrap={false}>
+                    {row.map((image, imageIndex) => (
+                        <View key={imageIndex} style={{ 
+                            width: imageWidth,
+                            alignItems: 'center'
+                        }}>
+                            {/* Image */}
+                            <Image 
+                                src={image.imageUrl} 
+                                style={{ 
+                                    width: imageWidth, 
+                                    height: imageHeight,
+                                    objectFit: 'contain',
+                                    borderRadius: 3, // Reduced border radius
+                                    border: `1px solid ${colors.border}`
+                                }} 
+                            />
+                            
+                            {/* Medical Name with Code in parentheses */}
+                            <Text style={{ 
+                                fontSize: 7, // Reduced font size for 4 columns
+                                fontWeight: 'bold',
+                                color: colors.textPrimary,
+                                textAlign: 'center',
+                                marginTop: 2, // Reduced margin
+                                maxWidth: imageWidth - 6,
+                                lineHeight: 1.0
+                            }}>
+                                {image.medicalName} ({image.partyCode})
+                            </Text>
+                            
+                            {/* File name and username in one line */}
+                            <Text style={{ 
+                                fontSize: 6, // Reduced font size for 4 columns
+                                color: colors.textSecondary,
+                                textAlign: 'center',
+                                marginTop: 1, // Reduced margin
+                                maxWidth: imageWidth - 6,
+                                lineHeight: 1.0
+                            }}>
+                                {image.statementFileName || 'Unknown'}; By: {image.userName}
+                            </Text>
+                        </View>
+                    ))}
+                    
+                    {/* Fill empty spaces in the last row */}
+                    {row.length < imagesPerRow && 
+                        Array.from({ length: imagesPerRow - row.length }).map((_, index) => (
+                            <View key={`empty-${index}`} style={{ width: imageWidth }} />
+                        ))
+                    }
+                </View>
+            ))}
+        </View>
+    );
+};
+
 // --- Main PDF Document Component ---
 interface ReceiptPDFProps {
     receipts: ReceiptData[];
     date: string;
     companyName?: string; // Optional: Pass company name as prop
+    statementImages?: Array<{
+        images: string[];
+        medicalName: string;
+        userName: string;
+        partyCode: string;
+        location?: string;
+        contact?: string;
+        statementFileName?: string;
+    }>;
 }
 
-const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyName = "Sanjivan Medico Traders" }) => { // Added default empty array for receipts
+const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyName = "Sanjivan Medico Traders", statementImages = [] }) => { // Added default empty array for receipts
     const formattedDate = moment(date).format('MMMM D, YYYY');
 
     // Group receipts by username
@@ -840,6 +960,18 @@ const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyNam
     const cashTotal = cashReceipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0); // Added fallback
     const chequeTotal = chequeReceipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0); // Added fallback
 
+    // Flatten all statement images for display
+    const allStatementImages = statementImages.flatMap(section => 
+        section.images.map(imageUrl => ({
+            imageUrl,
+            medicalName: section.medicalName,
+            userName: section.userName,
+            partyCode: section.partyCode,
+            location: section.location,
+            contact: section.contact,
+            statementFileName: section.statementFileName
+        }))
+    );
 
     return (
         <Document title={`Daily Receipt Report - ${formattedDate}`}>
@@ -873,6 +1005,13 @@ const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyNam
                         <Text style={{ fontSize: 12, color: colors.textSecondary }}>
                             No receipts found for this date.
                         </Text>
+                    </View>
+                )}
+
+                {/* Statement Images Section */}
+                {allStatementImages.length > 0 && (
+                    <View style={{ marginTop: 0 }} break={true}>
+                        <StatementImagesSection images={allStatementImages} />
                     </View>
                 )}
 

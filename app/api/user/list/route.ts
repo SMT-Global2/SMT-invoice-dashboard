@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: any) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -11,12 +11,35 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all users excluding sensitive information
-    const users = await prisma.user.findMany({
-      orderBy: {
-        firstName: 'asc',
-      },
-    });
+    // Get date param if present
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get('date');
+    let users;
+    if (dateParam) {
+      const date = new Date(dateParam);
+      users = await prisma.user.findMany({
+        where: {
+          NOT: [
+            {
+              employmentStatus: 'EX_EMPLOYEE',
+              OR: [
+                { employmentEnd: null },
+                { employmentEnd: { lte: date } }
+              ]
+            }
+          ]
+        },
+        orderBy: {
+          firstName: 'asc',
+        },
+      });
+    } else {
+      users = await prisma.user.findMany({
+        orderBy: {
+          firstName: 'asc',
+        },
+      });
+    }
 
     return NextResponse.json(users);
   } catch (error) {

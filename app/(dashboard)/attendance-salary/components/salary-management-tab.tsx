@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { PencilIcon, CalendarIcon, XCircle, InfoIcon } from 'lucide-react';
+import { PencilIcon, CalendarIcon, XCircle, InfoIcon, ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Types
 type User = {
@@ -66,6 +67,8 @@ type User = {
   username: string;
   email: string;
   type: "ADMIN" | "EMPLOYEE";
+  gender?: string;
+  employmentStatus?: string;
 };
 
 type SalarySetting = {
@@ -273,6 +276,40 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
   const [loanHistoryDialogOpen, setLoanHistoryDialogOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
 
+  // Add filter state
+  const [salaryFilter, setSalaryFilter] = useState('none');
+  const [genderFilter, setGenderFilter] = useState<'ALL' | 'MALE' | 'FEMALE'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'EX_EMPLOYEE'>('ALL');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Update filteredSalaryData when filters change
+  useEffect(() => {
+    let data = [...salaryData];
+    // Gender filter
+    if (genderFilter !== 'ALL') {
+      data = data.filter(s => {
+        const user = users.find(u => u.id === s.userId);
+        return user && user.gender === genderFilter;
+      });
+    }
+    // Status filter
+    if (statusFilter !== 'ALL') {
+      data = data.filter(s => {
+        const user = users.find(u => u.id === s.userId);
+        return user && user.employmentStatus === (statusFilter === 'ACTIVE' ? 'ACTIVE' : 'EX_EMPLOYEE');
+      });
+    }
+    // Existing sort/filter logic
+    if (salaryFilter === 'highToLow') {
+      data.sort((a, b) => b.baseSalary - a.baseSalary);
+    } else if (salaryFilter === 'lowToHigh') {
+      data.sort((a, b) => a.baseSalary - b.baseSalary);
+    } else if (salaryFilter === 'activeLoans') {
+      data = data.filter(s => activeLoans.some(l => l.userId === s.userId && l.active));
+    }
+    setFilteredSalaryData(data);
+  }, [salaryFilter, salaryData, activeLoans, users, genderFilter, statusFilter]);
+
   // Fetch attendance counts function
   async function fetchAttendanceCounts() {
     try {
@@ -348,8 +385,17 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
         throw new Error('Failed to fetch users');
       }
       const data = await response.json();
-      setUsers(data);
-      return data;
+      // Do not filter out ex-employees here; include all users
+      setUsers(data.map((user: any) => ({
+        ...user,
+        gender: user.gender,
+        employmentStatus: user.employmentStatus
+      })));
+      return data.map((user: any) => ({
+        ...user,
+        gender: user.gender,
+        employmentStatus: user.employmentStatus
+      }));
     } catch (error) {
       console.error('Error fetching users:', error);
       return [];
@@ -1038,6 +1084,20 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
     }
   }
 
+  const [activeCount, setActiveCount] = useState(0);
+  const [exEmployeeCount, setExEmployeeCount] = useState(0);
+  const [activeMaleCount, setActiveMaleCount] = useState(0);
+  const [activeFemaleCount, setActiveFemaleCount] = useState(0);
+
+  useEffect(() => {
+    const active = users.filter(u => u.employmentStatus === 'ACTIVE' && u.type !== 'ADMIN');
+    const ex = users.filter(u => u.employmentStatus === 'EX_EMPLOYEE' && u.type !== 'ADMIN');
+    setActiveCount(active.length);
+    setExEmployeeCount(ex.length);
+    setActiveMaleCount(active.filter(u => u.gender === 'MALE').length);
+    setActiveFemaleCount(active.filter(u => u.gender === 'FEMALE').length);
+  }, [users]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col space-y-4">
@@ -1048,26 +1108,53 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+        {/* Row 1 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Employees
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-7 w-24" />
             ) : (
-              <div className="text-2xl font-bold">{summaryData.totalEmployees}</div>
+              <div className="text-2xl font-bold">{activeCount + exEmployeeCount}</div>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Monthly Salary Amount
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Active Employees</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-7 w-24" />
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{activeCount}</div>
+                <div className="text-xs text-muted-foreground ml-4 whitespace-nowrap">
+                  Male: {activeMaleCount} | Female: {activeFemaleCount}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ex-Employees</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-7 w-24" />
+            ) : (
+              <div className="text-2xl font-bold">{exEmployeeCount}</div>
+            )}
+          </CardContent>
+        </Card>
+        {/* Row 2 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Monthly Salary Amount</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -1079,23 +1166,7 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Saved
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-7 w-24" />
-            ) : (
-              <div className="text-2xl font-bold">{formatCurrency(summaryData.averageSalary)}</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Payable Salary Amount
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Payable Salary Amount</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -1105,26 +1176,73 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Saved</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-7 w-24" />
+            ) : (
+              <div className="text-2xl font-bold">{formatCurrency(summaryData.averageSalary)}</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Salary Table */}
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <CardTitle>Salary Details for {format(dateRange[0], "MMMM yyyy")}</CardTitle>
             <CardDescription>
               Manage employee salaries and process payments
             </CardDescription>
           </div>
-          <div className="relative mt-2 sm:mt-0 w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search employees..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search employees..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 px-3 flex items-center gap-2">
+                  Filters & Sort <ChevronDown className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-4">
+                <div className="mb-3">
+                  <div className="font-semibold mb-1">Gender</div>
+                  <div className="flex flex-col gap-1">
+                    <Button variant={genderFilter === 'ALL' ? 'default' : 'outline'} onClick={() => setGenderFilter('ALL')} size="sm">All</Button>
+                    <Button variant={genderFilter === 'MALE' ? 'default' : 'outline'} onClick={() => setGenderFilter('MALE')} size="sm">Male</Button>
+                    <Button variant={genderFilter === 'FEMALE' ? 'default' : 'outline'} onClick={() => setGenderFilter('FEMALE')} size="sm">Female</Button>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <div className="font-semibold mb-1">Employee Status</div>
+                  <div className="flex flex-col gap-1">
+                    <Button variant={statusFilter === 'ALL' ? 'default' : 'outline'} onClick={() => setStatusFilter('ALL')} size="sm">All</Button>
+                    <Button variant={statusFilter === 'ACTIVE' ? 'default' : 'outline'} onClick={() => setStatusFilter('ACTIVE')} size="sm">Active Employee</Button>
+                    <Button variant={statusFilter === 'EX_EMPLOYEE' ? 'default' : 'outline'} onClick={() => setStatusFilter('EX_EMPLOYEE')} size="sm">Ex-Employee</Button>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1">Salary Sort</div>
+                  <div className="flex flex-col gap-1">
+                    <Button variant={salaryFilter === 'none' ? 'default' : 'outline'} size="sm" onClick={() => setSalaryFilter('none')}>None</Button>
+                    <Button variant={salaryFilter === 'lowToHigh' ? 'default' : 'outline'} size="sm" onClick={() => setSalaryFilter('lowToHigh')}>Low to High</Button>
+                    <Button variant={salaryFilter === 'highToLow' ? 'default' : 'outline'} size="sm" onClick={() => setSalaryFilter('highToLow')}>High to Low</Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CardHeader>
         <CardContent>
@@ -1159,109 +1277,155 @@ export default function SalaryManagementTab({ dateRange }: { dateRange: [Date, D
                   </TableRow>
                 ))
               ) : filteredSalaryData.length > 0 ? (
-                filteredSalaryData.map((salary) => {
-                  // Total payable uses stored calculated values
-                  const totalPayable = salary.baseSalary - salary.lateDeduction - salary.halfDayDeduction - salary.absentDeduction - salary.loanDeduction + salary.bonusPenalty;
-                  
-                  return (
-                    <TableRow key={salary.userId}>
-                      <TableCell className="font-medium">
-                        {salary.user.firstName} {salary.user.lastName}
-                      </TableCell>
-                      <TableCell>{getOrdinalSuffix(salary.salaryDate || 1)}</TableCell>
-                      <TableCell>{formatCurrency(salary.baseSalary)}</TableCell>
-                      <TableCell>
-                        {formatCurrency(salary.lateDeduction)}
-                        <span className="text-xs text-gray-500 block mt-1">
-                          ({salary.lateDays} × {formatCurrency(salary.lateDeductionRate)})
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(salary.halfDayDeduction)}
-                        <span className="text-xs text-gray-500 block mt-1">
-                          ({salary.halfDays} × {formatCurrency(salary.halfDayDeductionRate)})
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(salary.absentDeduction)}
-                        <span className="text-xs text-gray-500 block mt-1">
-                          ({salary.absentDays} × {formatCurrency(salary.absentDeductionRate)})
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(salary.loanDeduction)}
-                        {salary.loanDeduction > 0 && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="cursor-help">
-                                    <InfoIcon className="h-4 w-4 text-gray-500" />
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Monthly loan deduction amount</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            
-                            {activeLoans.some(loan => loan.userId === salary.userId) && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-6 px-2 text-xs text-primary"
-                                onClick={(e : React.MouseEvent<HTMLButtonElement>) => {
-                                  e.stopPropagation();
-                                  const loan = activeLoans.find(l => l.userId === salary.userId);
-                                  if (loan) handleViewLoanHistory(loan);
-                                }}
-                              >
-                                View History
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {salary.bonusPenalty > 0 ? (
-                          <span className="text-green-600">+{formatCurrency(salary.bonusPenalty)}</span>
-                        ) : salary.bonusPenalty < 0 ? (
-                          <span className="text-red-600">-{formatCurrency(Math.abs(salary.bonusPenalty))}</span>
-                        ) : (
-                          formatCurrency(0)
-                        )}
-                      </TableCell>
-                      <TableCell className="font-semibold">{formatCurrency(totalPayable)}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditSalary(salary)}
-                            disabled={salary.isPaid}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSalaryDisbursement(salary)}
-                            disabled={salary.isPaid}
-                          >
-                            {salary.isPaid ? 'Paid' : 'Pay'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewHistory(salary)}
-                          >
-                            History
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                (() => {
+                  let dividerInserted = false;
+                  return filteredSalaryData
+                    .slice()
+                    .sort((a, b) => {
+                      const userA = users.find(u => u.id === a.userId);
+                      const userB = users.find(u => u.id === b.userId);
+                      const isAdminA = userA?.type === 'ADMIN';
+                      const isAdminB = userB?.type === 'ADMIN';
+                      const isExA = userA?.employmentStatus === 'EX_EMPLOYEE';
+                      const isExB = userB?.employmentStatus === 'EX_EMPLOYEE';
+                      if ((isAdminA && isAdminB) || (isExA && isExB)) return 0;
+                      if (isExA && !isExB) return 1;
+                      if (!isExA && isExB) return -1;
+                      if (isAdminA && !isAdminB) return 1;
+                      if (!isAdminA && isAdminB) return -1;
+                      return 0;
+                    })
+                    .map((salary, idx, arr) => {
+                      const user = users.find(u => u.id === salary.userId);
+                      const isSpecial = user && (user.type === 'ADMIN' || user.employmentStatus === 'EX_EMPLOYEE');
+                      const wasPrevSpecial = idx > 0 && (() => {
+                        const prevUser = users.find(u => u.id === arr[idx - 1].userId);
+                        return prevUser && (prevUser.type === 'ADMIN' || prevUser.employmentStatus === 'EX_EMPLOYEE');
+                      })();
+                      let divider = null;
+                      if (isSpecial && !dividerInserted && (!wasPrevSpecial || idx === 0)) {
+                        dividerInserted = true;
+                        divider = (
+                          <TableRow key={`divider-row`}>
+                            <TableCell colSpan={10} className="bg-muted text-xs text-muted-foreground font-medium text-center">
+                              Ex-Employees & Admin Accounts
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      return [
+                        divider,
+                        (
+                          <TableRow key={salary.userId}>
+                            <TableCell className="font-medium">
+                              {salary.user.firstName} {salary.user.lastName}
+                              {(() => {
+                                const user = users.find(u => u.id === salary.userId);
+                                if (!user) return null;
+                                const isAdmin = user.type === 'ADMIN';
+                                const isEx = user.employmentStatus === 'EX_EMPLOYEE';
+                                if (isAdmin) {
+                                  return (
+                                    <span className="ml-1 text-xs text-muted-foreground align-middle">
+                                      (Admin)
+                                    </span>
+                                  );
+                                }
+                                if (isEx) {
+                                  return (
+                                    <span className="ml-1 text-xs text-muted-foreground align-middle">
+                                      (Ex-Employee)
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </TableCell>
+                            <TableCell>{getOrdinalSuffix(salary.salaryDate || 1)}</TableCell>
+                            <TableCell>{formatCurrency(salary.baseSalary)}</TableCell>
+                            <TableCell>
+                              {formatCurrency(salary.lateDeduction)}
+                              <span className="text-xs text-gray-500 block mt-1">
+                                ({salary.lateDays} × {formatCurrency(salary.lateDeductionRate)})
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {formatCurrency(salary.halfDayDeduction)}
+                              <span className="text-xs text-gray-500 block mt-1">
+                                ({salary.halfDays} × {formatCurrency(salary.halfDayDeductionRate)})
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {formatCurrency(salary.absentDeduction)}
+                              <span className="text-xs text-gray-500 block mt-1">
+                                ({salary.absentDays} × {formatCurrency(salary.absentDeductionRate)})
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-row items-center gap-1">
+                                {formatCurrency(salary.loanDeduction)}
+                                {salary.loanDeduction > 0 && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="cursor-pointer" onClick={() => {
+                                          const loan = activeLoans.find(l => l.userId === salary.userId);
+                                          if (loan) handleViewLoanHistory(loan);
+                                        }}>
+                                          <InfoIcon className="h-4 w-4 text-gray-500" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Monthly loan deduction amount</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {salary.bonusPenalty > 0 ? (
+                                <span className="text-green-600">+{formatCurrency(salary.bonusPenalty)}</span>
+                              ) : salary.bonusPenalty < 0 ? (
+                                <span className="text-red-600">-{formatCurrency(Math.abs(salary.bonusPenalty))}</span>
+                              ) : (
+                                formatCurrency(0)
+                              )}
+                            </TableCell>
+                            <TableCell className="font-semibold">{formatCurrency(salary.baseSalary - salary.lateDeduction - salary.halfDayDeduction - salary.absentDeduction - salary.loanDeduction + salary.bonusPenalty)}</TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditSalary(salary)}
+                                  disabled={salary.isPaid}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSalaryDisbursement(salary)}
+                                  disabled={salary.isPaid}
+                                >
+                                  {salary.isPaid ? 'Paid' : 'Pay'}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleViewHistory(salary)}
+                                  title="View History"
+                                >
+                                  <InfoIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      ].filter(Boolean);
+                    });
+                })()
               ) : (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-4">

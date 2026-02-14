@@ -4,11 +4,13 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import moment from 'moment-timezone';
 import { BilledStatus, CheckStatus, DeliveryStatus, PackageStatus } from '@prisma/client';
-
-//Cache for 2 hours 2 * 60 * 60
-export const revalidate = 7200;
+import { getCached, setCache } from '@/lib/api-cache';
 
 export async function GET(request: Request) {
+  const cacheKey = request.url;
+  const cached = getCached(cacheKey);
+  if (cached) return NextResponse.json(cached);
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.username) {
     return Response.json({
@@ -161,7 +163,7 @@ export async function GET(request: Request) {
         },
         select: { invoiceUsername: true },
         distinct: ['invoiceUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.invoiceUsername)),
       // Count distinct users who checked invoices
       prisma.invoice.findMany({
         where: {
@@ -170,7 +172,7 @@ export async function GET(request: Request) {
         },
         select: { checkUsername: true },
         distinct: ['checkUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.checkUsername)),
       // Count distinct users who packed invoices
       prisma.invoice.findMany({
         where: {
@@ -179,7 +181,7 @@ export async function GET(request: Request) {
         },
         select: { packageUsername: true },
         distinct: ['packageUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.packageUsername)),
       // Count distinct users who delivered invoices
       prisma.invoice.findMany({
         where: {
@@ -188,7 +190,7 @@ export async function GET(request: Request) {
         },
         select: { deliveredUsername: true },
         distinct: ['deliveredUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.deliveredUsername)),
       // Count distinct users who billed invoices
       prisma.invoice.findMany({
         where: {
@@ -197,7 +199,7 @@ export async function GET(request: Request) {
         },
         select: { billedUsername: true },
         distinct: ['billedUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.billedUsername)),
       // Count invoices delivered via transportation
       prisma.invoice.count({ 
         where: { 
@@ -226,7 +228,7 @@ export async function GET(request: Request) {
         },
         select: { invoiceUsername: true },
         distinct: ['invoiceUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.invoiceUsername)),
       // Count distinct users who checked invoices in previous period
       prisma.invoice.findMany({
         where: {
@@ -235,7 +237,7 @@ export async function GET(request: Request) {
         },
         select: { checkUsername: true },
         distinct: ['checkUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.checkUsername)),
       // Count distinct users who packed invoices in previous period
       prisma.invoice.findMany({
         where: {
@@ -244,7 +246,7 @@ export async function GET(request: Request) {
         },
         select: { packageUsername: true },
         distinct: ['packageUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.packageUsername)),
       // Count distinct users who delivered invoices in previous period
       prisma.invoice.findMany({
         where: {
@@ -253,7 +255,7 @@ export async function GET(request: Request) {
         },
         select: { deliveredUsername: true },
         distinct: ['deliveredUsername']
-      }).then(users => users.length),
+      }).then(users => users.map(u => u.deliveredUsername)),
       // Count distinct users who billed invoices in previous period
       prisma.invoice.findMany({
         where: {
@@ -262,7 +264,7 @@ export async function GET(request: Request) {
         },
         select: { billedUsername: true },
         distinct: ['billedUsername']
-      }).then(users => users.length)
+      }).then(users => users.map(u => u.billedUsername))
     ]);
 
     // Get the count of processed items and orders based on invoice count
@@ -275,8 +277,10 @@ export async function GET(request: Request) {
 
     // Calculate total active users from all roles
     // Use Set to avoid counting the same user multiple times
-    const activeUsers = invoiceCreators + checkers + packers + deliverers + billers;
-    const previousActiveUsers = previousInvoiceCreators + previousCheckers + previousPackers + previousDeliverers + previousBillers;
+    const activeUsersSet = new Set([...invoiceCreators, ...checkers, ...packers, ...deliverers, ...billers].filter(Boolean));
+    const activeUsers = activeUsersSet.size;
+    const previousActiveUsersSet = new Set([...previousInvoiceCreators, ...previousCheckers, ...previousPackers, ...previousDeliverers, ...previousBillers].filter(Boolean));
+    const previousActiveUsers = previousActiveUsersSet.size;
 
     // Calculate percentage changes compared to previous period
     const invoiceChangePercentage = previousTotalInvoices ? 
@@ -304,7 +308,7 @@ export async function GET(request: Request) {
     const cashRatio = totalPayments > 0 ? (cashPayments / totalPayments) * 100 : 0;
     const creditRatio = totalPayments > 0 ? (creditPayments / totalPayments) * 100 : 0;
 
-    return NextResponse.json({
+    const result = {
       analytics: {
         totalGenerated: totalGenerated ?? 0,
         totalChecked: totalChecked ?? 0,
@@ -340,7 +344,9 @@ export async function GET(request: Request) {
         delivered: totalDelivered ?? 0,
         billed: totalBilled ?? 0
       }
-    });
+    };
+    setCache(cacheKey, result);
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Analytics API Error:', (error as any).message)

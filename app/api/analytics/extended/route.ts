@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import moment from 'moment-timezone';
-import { BilledStatus, PaymentMethod } from '@prisma/client'; // Import necessary enums
+import { BilledStatus, PaymentMethod } from '@prisma/client';
+import { getCached, setCache } from '@/lib/api-cache';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -37,6 +38,10 @@ export async function GET(request: Request) {
         lte: endDate
       }
     };
+
+    const cacheKey = request.url;
+    const cached = getCached(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     // Specific response based on the type requested
     let response = {};
@@ -681,10 +686,12 @@ export async function GET(request: Request) {
       };
     }
 
-    return Response.json({
+    const result = {
       success: true,
       data: response
-    });
+    };
+    setCache(cacheKey, result);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching extended analytics:', error);
     return Response.json({

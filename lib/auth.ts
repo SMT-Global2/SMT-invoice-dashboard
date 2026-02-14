@@ -10,14 +10,18 @@ declare module 'next-auth' {
     username: string;
     type : UserType;
     department : Department[];
+    sessionToken?: string;
+    profileImage?: string | null;
   }
-  
+
   interface Session {
     user: User & {
       id: string;
       username: string;
       type : UserType;
       department : Department[];
+      sessionToken?: string;
+      profileImage?: string | null;
     }
   }
 }
@@ -28,6 +32,8 @@ declare module 'next-auth/jwt' {
     username: string;
     type : UserType;
     department : Department[];
+    sessionToken?: string;
+    profileImage?: string | null;
   }
 }
 
@@ -54,11 +60,28 @@ export const authOptions: AuthOptions = {
         }
 
         //Check using bcrpyt and prisma
-        const user = await prisma.user.findUnique({ where: { username: credentials.username } });
+        const user = await prisma.user.findUnique({ 
+          where: { username: credentials.username },
+          select: {
+            id: true,
+            username: true,
+            type: true,
+            department: true,
+            sessionToken: true,
+            password: true,
+            employmentStatus: true,
+            profileImage: true,
+          }
+        });
 
         if(!user) {
           console.log('User not found');
           return null;
+        }
+
+        // Prevent ex-employees from logging in
+        if (user.employmentStatus === 'EX_EMPLOYEE') {
+          throw new Error('Access denied: Inactive account (Ex-Employee). Please contact Owner / Admin if this is an error.');
         }
 
         const passwordMatch = await bcrypt.compare(credentials.password, user.password!);
@@ -72,8 +95,10 @@ export const authOptions: AuthOptions = {
           return {
             id: user.id,
             username: user.username,
-            type : user.type,
-            department : user.department ?? []
+            type: user.type,
+            department: user.department ?? [],
+            sessionToken: user.sessionToken || undefined,
+            profileImage: user.profileImage || null
           };
         }
         return null;
@@ -87,7 +112,26 @@ export const authOptions: AuthOptions = {
         token.username = user.username;
         token.type = user.type;
         token.department = user.department;
+        token.sessionToken = user.sessionToken;
+        token.profileImage = user.profileImage;
       }
+      
+      // Verify that the session token is still valid
+      if (token.username && token.sessionToken) {
+        const dbUser = await prisma.user.findUnique({
+          where: { username: token.username },
+          select: { sessionToken: true }
+        });
+        
+        // If the session token doesn't match, invalidate the session
+        if (dbUser && dbUser.sessionToken !== token.sessionToken) {
+          return {
+            ...token,
+            error: "TokenMismatch"
+          };
+        }
+      }
+      
       return token;
     },
     async session({ session, token }) {
@@ -100,7 +144,8 @@ export const authOptions: AuthOptions = {
         const userExists = await prisma.user.findUnique({
           where: {
             username : token.username
-          }
+          },
+          select: { sessionToken: true, profileImage: true }
         });
 
         if(!userExists) {
@@ -108,10 +153,21 @@ export const authOptions: AuthOptions = {
             ...session,
           }
         }
+        
+        // If the session token doesn't match, invalidate the session
+        if (userExists.sessionToken && token.sessionToken && userExists.sessionToken !== token.sessionToken) {
+          return {
+            ...session,
+            expires: new Date(0).toISOString()
+          }
+        }
+        
         session.user.id = token.id;
         session.user.username = token.username;
         session.user.type = token.type;
         session.user.department = token.department;
+        session.user.sessionToken = token.sessionToken;
+        session.user.profileImage = userExists.profileImage || null;
       }
       return session;
     },

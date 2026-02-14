@@ -128,13 +128,21 @@ export async function getPresignedUrl(fileName: string , contentType: string , p
   const fileType = fileName.split('.').pop()?.toLowerCase();
   const fileNameWithoutType = fileName.split('.').slice(0, -1).join('.');
   
+  // Prepare request body based on whether we have prefixKeyId or not
+  const requestBody = prefixKeyId ? {
+    fileName: prefixKeyId,
+    contentType: contentType,
+  } : {
+    fileName: fileName,
+    contentType: contentType,
+    type: 'other', // Default type for non-employee uploads
+    firstName: 'user',
+    lastName: 'upload'
+  };
+  
   const response = await fetch('/api/s3/presignedUrl', {
     method: 'POST',
-    body: JSON.stringify({ 
-        fileName: prefixKeyId,
-        contentType: contentType,
-        // customKey : prefixKeyId + fileName
-      }),
+    body: JSON.stringify(requestBody),
   });
 
   
@@ -151,24 +159,38 @@ export async function uploadFileToS3(file: File , prefixKeyId : string = '') {
     file,
     prefixKeyId
   });
-  const {
-    presignedUrl,
-    key
-  } = await getPresignedUrl(file.name, file.type, prefixKeyId);
-  console.log("presignedUrl", presignedUrl);
-  console.log("key", key);
   
-  await fetch(presignedUrl, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': file.type
+  try {
+    const {
+      presignedUrl,
+      key
+    } = await getPresignedUrl(file.name, file.type, prefixKeyId);
+    console.log("presignedUrl", presignedUrl);
+    console.log("key", key);
+    
+    if (!presignedUrl || !key) {
+      throw new Error('Failed to get presigned URL or key');
     }
-  });
+    
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type
+      }
+    });
 
-  return {
-    success: true,
-    key: key
+    if (!uploadResponse.ok) {
+      throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    return {
+      success: true,
+      key: key
+    };
+  } catch (error) {
+    console.error('Error in uploadFileToS3:', error);
+    throw error; // Re-throw the error so the calling function can handle it
   }
 }
 

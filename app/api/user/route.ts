@@ -44,12 +44,20 @@ const UserSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   username: z.string().min(1),
-  phoneNumber: z.string().min(1),
+  phoneNumber: z.array(z.string().regex(/^\d{0,15}$/, "Phone number must contain only digits").or(z.literal(""))).default([]),
   type: z.enum(['ADMIN', 'USER']),
   password: z.string().min(1),
   department: z.array(z.nativeEnum(Department)),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
+  profileImage: z.string().optional().or(z.literal("")),
+  aadhaarImage: z.string().optional().or(z.literal("")),
+  gender: z.enum(['MALE', 'FEMALE', 'NOT_SPECIFIED']).default('NOT_SPECIFIED'),
+  employmentStatus: z.enum(['ACTIVE', 'EX_EMPLOYEE']).default('ACTIVE'),
+  exitType: z.enum(['RESIGNED', 'TERMINATED']).optional(),
+  exitReason: z.string().optional(),
+  employmentStart: z.coerce.date().default(new Date()),
+  employmentEnd: z.coerce.date().optional(),
 });
 
 
@@ -99,7 +107,15 @@ export async function POST(request: NextRequest) {
         department: validatedData.department,
         email: validatedData.email || undefined,
         address: validatedData.address || undefined,
-       },
+        profileImage: validatedData.profileImage || undefined,
+        aadhaarImage: validatedData.aadhaarImage || undefined,
+        gender: validatedData.gender || 'NOT_SPECIFIED',
+        employmentStatus: validatedData.employmentStatus || 'ACTIVE',
+        exitType: validatedData.exitType,
+        exitReason: validatedData.exitReason,
+        employmentStart: validatedData.employmentStart,
+        employmentEnd: validatedData.employmentEnd,
+      },
     });
 
     return NextResponse.json(user);
@@ -115,12 +131,20 @@ const UserUpdateSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   username: z.string().min(1),
-  phoneNumber: z.string().min(1),
+  phoneNumber: z.array(z.string().regex(/^\d{0,15}$/, "Phone number must contain only digits").or(z.literal(""))),
   type: z.enum(['ADMIN', 'USER']),
   password: z.string().optional().or(z.literal("")),
   department: z.array(z.nativeEnum(Department)),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
+  profileImage: z.string().optional().or(z.literal("")),
+  aadhaarImage: z.string().optional().or(z.literal("")),
+  gender: z.enum(['MALE', 'FEMALE', 'NOT_SPECIFIED']).default('NOT_SPECIFIED'),
+  employmentStatus: z.enum(['ACTIVE', 'EX_EMPLOYEE']).default('ACTIVE'),
+  exitType: z.enum(['RESIGNED', 'TERMINATED']).optional(),
+  exitReason: z.string().optional(),
+  employmentStart: z.coerce.date().default(new Date()),
+  employmentEnd: z.coerce.date().optional(),
 });
 
 
@@ -142,7 +166,12 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const { id, ...data } = body;
-    const validatedData = UserUpdateSchema.partial().parse(data);
+    const validatedData = UserUpdateSchema.partial().parse({
+      ...data,
+      ...(data.phoneNumber !== undefined ? {
+        phoneNumber: Array.isArray(data.phoneNumber) ? data.phoneNumber : (typeof data.phoneNumber === 'string' && data.phoneNumber ? [data.phoneNumber] : [])
+      } : {})
+    });
 
     const visiblePassword = validatedData.password;
 
@@ -163,6 +192,14 @@ export async function PUT(request: NextRequest) {
         department: validatedData.department,
         email: validatedData.email || undefined,
         address: validatedData.address || undefined,
+        profileImage: validatedData.profileImage || undefined,
+        aadhaarImage: validatedData.aadhaarImage || undefined,
+        gender: validatedData.gender || 'NOT_SPECIFIED',
+        employmentStatus: validatedData.employmentStatus || 'ACTIVE',
+        exitType: validatedData.exitType,
+        exitReason: validatedData.exitReason,
+        employmentStart: validatedData.employmentStart,
+        employmentEnd: validatedData.employmentEnd,
       },
     });
 

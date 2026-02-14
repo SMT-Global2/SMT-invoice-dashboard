@@ -13,7 +13,7 @@ export const Footer = () => {
           <div className="col-12 col-md-6 text-center text-sm-end">
             <p className="mb-0" style={{ opacity: 0.8 }}>
               Designed, Developed, and maintained by{" "}
-              <span style={{ color: "#ff4081" }}>Noobacker</span>
+              <a href="https://noobacker.com" target="_blank" rel="noopener noreferrer" style={{ color: "#ff4081", textDecoration: "none" }}>Noobacker</a>
             </p>
           </div>
         </div>

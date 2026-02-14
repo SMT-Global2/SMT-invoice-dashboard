@@ -215,7 +215,8 @@ export default function AttendancePage() {
   async function fetchUsers() {
     setIsUsersLoading(true);
     try {
-      const response = await fetch('/api/user/list');
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const response = await fetch(`/api/user/list?date=${formattedDate}`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -398,6 +399,29 @@ export default function AttendancePage() {
       const failureCount = results.filter(result => result.status === 'rejected').length;
       
       if (failureCount === 0) {
+        // Update local state directly for successful bulk actions
+        const newAttendanceRecords = filteredUsers.map(user => ({
+          id: `temp-${Date.now()}-${user.id}`,
+          userId: user.id,
+          date: selectedDate,
+          type: bulkActionType as 'FULL_DAY' | 'HALF_DAY' | 'LATE' | 'ABSENT',
+          notes: null,
+          user: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username
+          }
+        }));
+
+        setAttendanceRecords(prevRecords => {
+          // Remove existing records for these users
+          const filtered = prevRecords.filter(record => 
+            !filteredUsers.some(user => user.id === record.userId)
+          );
+          // Add new records
+          return [...filtered, ...newAttendanceRecords];
+        });
+
         toast({
           title: "Success",
           description: `Attendance marked for ${successCount} employees`,
@@ -410,7 +434,6 @@ export default function AttendancePage() {
         });
       }
       
-      fetchDailyAttendance(selectedDate);
       setBulkDialogOpen(false);
     } catch (error) {
       console.error('Error in bulk action:', error);
@@ -460,11 +483,25 @@ export default function AttendancePage() {
       const data = await response.json();
       
       if (response.ok) {
+        // Update local state directly instead of refetching
+        const newAttendanceRecord = {
+          id: data.id || existingRecord?.id || `temp-${Date.now()}`,
+          userId,
+          date: selectedDate,
+          type,
+          notes,
+          user: users.find(u => u.id === userId) || { firstName: '', lastName: '', username: '' }
+        };
+
+        setAttendanceRecords(prevRecords => {
+          const filtered = prevRecords.filter(record => record.userId !== userId);
+          return [...filtered, newAttendanceRecord];
+        });
+
         toast({
           title: "Success",
           description: `Attendance marked as ${attendanceTypes.find(t => t.value === type)?.label}`,
         });
-        fetchDailyAttendance(selectedDate);
       } else {
         console.error('API Error Response:', data);
         throw new Error(data.error || 'Failed to mark attendance');
@@ -493,11 +530,15 @@ export default function AttendancePage() {
         }),
       });
       if (response.ok) {
+        // Update local state directly instead of refetching
+        setAttendanceRecords(prevRecords => 
+          prevRecords.filter(record => record.id !== attendanceId)
+        );
+        
         toast({
           title: "Success",
           description: "Attendance deleted successfully",
         });
-        fetchDailyAttendance(selectedDate);
       }
     } catch (error) {
       console.error('Error deleting attendance:', error);
@@ -511,44 +552,13 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6">
+      {/* Main Heading and Controls at the Top */}
       <div className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Employee Attendance Dashboard</h1>
-            <p className="text-muted-foreground">Efficiently manage attendance for all employees</p>
-          </div>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                <span>{format(selectedDate, 'MMM dd, yyyy')}</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                initialFocus
-                modifiers={{
-                  disabled: (date) => {
-                    // Disable future dates for everyone
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return date > today;
-                  }
-                }}
-                classNames={{
-                  day_disabled: "text-gray-300 cursor-not-allowed opacity-50",
-                  day_today: "bg-blue-100 font-bold text-blue-900",
-                }}
-              />
-            </PopoverContent>
-          </Popover>
+        <div className="flex flex-col w-full items-center justify-center">
+          <h1 className="text-2xl font-bold text-center">Employee Attendance Dashboard</h1>
+          <p className="text-muted-foreground text-center">Efficiently manage attendance for all employees</p>
         </div>
-
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
           <div className="relative w-96">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -559,18 +569,89 @@ export default function AttendancePage() {
               disabled={isLoading}
             />
           </div>
-          
-          <Button 
-            onClick={() => setBulkDialogOpen(true)}
-            variant="default"
-            disabled={!isDateEditable(selectedDate, session?.user?.type || '') || isLoading}
-          >
-            Bulk Actions
-            {!isDateEditable(selectedDate, session?.user?.type || '') && (
-              <span className="ml-2 text-xs">(Date not editable)</span>
-            )}
-          </Button>
+          <div className="flex flex-row items-center gap-2 ml-auto">
+            <Button 
+              onClick={() => setBulkDialogOpen(true)}
+              variant="default"
+              disabled={!isDateEditable(selectedDate, session?.user?.type || '') || isLoading}
+            >
+              Bulk Actions
+              {!isDateEditable(selectedDate, session?.user?.type || '') && (
+                <span className="ml-2 text-xs">(Date not editable)</span>
+              )}
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>{format(selectedDate, 'MMM dd, yyyy')}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  initialFocus
+                  modifiers={{
+                    disabled: (date) => {
+                      // Disable future dates for everyone
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return date > today;
+                    }
+                  }}
+                  classNames={{
+                    day_disabled: "text-gray-300 cursor-not-allowed opacity-50",
+                    day_today: "bg-blue-100 font-bold text-blue-900",
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
+      </div>
+
+      {/* Attendance Summary Cards below controls */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {isLoading && filteredUsers.length === 0 ? (
+          // Loading skeletons for summary cards
+          Array(4).fill(0).map((_, index) => (
+            <Card key={`summary-skeleton-${index}`} className="border">
+              <CardContent className="flex flex-col items-center justify-center pt-6 text-center">
+                <Skeleton className="h-12 w-12 mx-auto mb-2" />
+                <Skeleton className="h-4 w-16 mx-auto" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
+            <Card className="border border-green-200">
+              <CardContent className="flex flex-col items-center justify-center pt-6 text-center">
+                <div className="text-4xl font-bold text-green-600">{summary.present}</div>
+                <div className="text-base font-medium text-green-700">Present</div>
+              </CardContent>
+            </Card>
+            <Card className="border border-yellow-200">
+              <CardContent className="flex flex-col items-center justify-center pt-6 text-center">
+                <div className="text-4xl font-bold text-yellow-600">{summary.late}</div>
+                <div className="text-base font-medium text-yellow-700">Late</div>
+              </CardContent>
+            </Card>
+            <Card className="border border-orange-200">
+              <CardContent className="flex flex-col items-center justify-center pt-6 text-center">
+                <div className="text-4xl font-bold text-orange-600">{summary.halfDay}</div>
+                <div className="text-base font-medium text-orange-700">Half Day</div>
+              </CardContent>
+            </Card>
+            <Card className="border border-red-200">
+              <CardContent className="flex flex-col items-center justify-center pt-6 text-center">
+                <div className="text-4xl font-bold text-red-600">{summary.absent}</div>
+                <div className="text-base font-medium text-red-700">Absent</div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Attendance Table */}
@@ -733,51 +814,6 @@ export default function AttendancePage() {
             )}
           </TableBody>
         </Table>
-      </div>
-
-      {/* Summary Cards with lighter colors */}
-      <div className="grid grid-cols-4 gap-4">
-        {isLoading && filteredUsers.length === 0 ? (
-          // Loading skeletons for summary cards
-          Array(4).fill(0).map((_, index) => (
-            <Card key={`summary-skeleton-${index}`} className="border">
-              <CardContent className="pt-6 text-center">
-                <Skeleton className="h-12 w-12 mx-auto mb-2" />
-                <Skeleton className="h-4 w-16 mx-auto" />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <>
-            <Card className="border border-green-200">
-              <CardContent className="pt-6 text-center">
-                <div className="text-4xl font-bold text-green-600">{summary.present}</div>
-                <div className="text-base font-medium text-green-700">Present</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-yellow-200">
-              <CardContent className="pt-6 text-center">
-                <div className="text-4xl font-bold text-yellow-600">{summary.late}</div>
-                <div className="text-base font-medium text-yellow-700">Late</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-orange-200">
-              <CardContent className="pt-6 text-center">
-                <div className="text-4xl font-bold text-orange-600">{summary.halfDay}</div>
-                <div className="text-base font-medium text-orange-700">Half Day</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-red-200">
-              <CardContent className="pt-6 text-center">
-                <div className="text-4xl font-bold text-red-600">{summary.absent}</div>
-                <div className="text-base font-medium text-red-700">Absent</div>
-              </CardContent>
-            </Card>
-          </>
-        )}
       </div>
 
       {/* Notes Dialog */}

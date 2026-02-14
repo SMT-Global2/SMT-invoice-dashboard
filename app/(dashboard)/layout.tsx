@@ -23,8 +23,9 @@ import { SMTLogo } from '@/components/icons';
 import Providers from './providers';
 import { ModeToggle, ThemeProvider } from "@/components/theme-provider";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
+import { getS3BucketUrl } from '@/lib/helper';
 import { SearchInput } from './search';
 import { 
   Sidebar, 
@@ -55,22 +56,22 @@ export default function DashboardLayout({
 }) {
   const { data: session } = useSession();
   const userRoles = [session?.user?.type, ...(session?.user?.department ?? [])]
-    .filter((role): role is UserType | Department => role !== undefined);
+    .filter(role => role !== undefined);
   
   return (
     <Providers>
       <SidebarProvider defaultOpen={false}>
         <div className="flex min-h-screen w-full max-w-[100vw] overflow-hidden">
-          <div className="fixed left-0 top-0 bottom-0 z-50">
-            <Sidebar variant="floating" collapsible="icon">
+          <div className="fixed left-0 top-0 bottom-0 z-50 h-screen">
+            <Sidebar variant="floating" collapsible="icon" className="h-full">
               <SidebarHeader className="flex items-center gap-2 p-3 border-b">
-                <Link href="/" className="flex items-center gap-2">
-                  <SMTLogo className="h-7 w-7" />
-                  <span className="font-semibold text-lg">SMT Dashboard</span>
+                <Link href="/" className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+                  <SMTLogo className="h-7 w-7 flex-shrink-0" />
+                  <span className="font-semibold text-lg transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0">SMT Dashboard</span>
                 </Link>
               </SidebarHeader>
               
-              <SidebarContent className="space-y-[0.1rem] mt-0 gap-0 p-0">
+              <SidebarContent className="space-y-[0.1rem] mt-0 gap-0 p-0 h-full">
                 {/* Dashboard Home */}
                 <SidebarGroup>
                   <SidebarMenu>
@@ -80,7 +81,7 @@ export default function DashboardLayout({
                         <SidebarMenuItem key={item.id}>
                           <Link href={item.href} passHref legacyBehavior>
                             <SidebarMenuButton tooltip={item.title}>
-                              <ItemIcon className="h-5 w-5" />
+                              <ItemIcon className="h-5 w-5 flex-shrink-0" />
                               <span>{item.title}</span>
                             </SidebarMenuButton>
                           </Link>
@@ -118,7 +119,7 @@ export default function DashboardLayout({
                                 <SidebarMenuItem key={item.id}>
                                   <Link href={item.href} passHref legacyBehavior>
                                     <SidebarMenuButton tooltip={item.title}>
-                                      <ItemIcon className="h-5 w-5" />
+                                      <ItemIcon className="h-5 w-5 flex-shrink-0" />
                                       <span>{item.title}</span>
                                     </SidebarMenuButton>
                                   </Link>
@@ -190,20 +191,25 @@ function UserProfile() {
   const firstLetter = username.charAt(0).toUpperCase();
 
   return (
-    <div className="px-2">
+    <div className={cn(state === "expanded" ? "px-2" : "px-0 flex justify-center")}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className={cn(
-            "flex items-center gap-2 w-full hover:bg-accent",
-            state === "expanded" ? "justify-start" : "justify-center"
+            "flex items-center hover:bg-accent",
+            state === "expanded" ? "w-full justify-start gap-2" : "h-8 w-8 p-0 justify-center"
           )}>
             <Avatar className="h-8 w-8 flex-shrink-0">
+              {session.user?.profileImage && (
+                <AvatarImage src={getS3BucketUrl(session.user.profileImage)} alt={username} />
+              )}
               <AvatarFallback className="bg-primary/10 text-primary">{firstLetter}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col items-start">
-              <span className="text-sm font-medium">{username}</span>
-              <span className="text-xs text-muted-foreground">{session.user?.type}</span>
-            </div>
+            {state === "expanded" && (
+              <div className="flex flex-col items-start overflow-hidden">
+                <span className="text-sm font-medium truncate">{username}</span>
+                <span className="text-xs text-muted-foreground truncate">{session.user?.type}</span>
+              </div>
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
@@ -237,6 +243,9 @@ function UserProfileNavbar() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
+              {session.user?.profileImage && (
+                <AvatarImage src={getS3BucketUrl(session.user.profileImage)} alt={username} />
+              )}
               <AvatarFallback className="bg-primary/10 text-primary">{firstLetter}</AvatarFallback>
             </Avatar>
           </Button>

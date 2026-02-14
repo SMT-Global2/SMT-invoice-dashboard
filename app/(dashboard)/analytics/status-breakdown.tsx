@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
@@ -23,68 +23,36 @@ export function StatusBreakdown({
   title = "Invoice Status Breakdown",
   description = "Distribution of invoices by current status"
 }: StatusBreakdownProps) {
-  const { fetchAnalyticsData } = useAnalyticsStore();
-  const [date, setDate] = useState<DateRange | undefined>({
+  const dashboardAnalytics = useAnalyticsStore(state => state.dashboardAnalytics);
+  const dashboardAnalyticsLoading = useAnalyticsStore(state => state.dashboardAnalyticsLoading);
+  const fetchDashboardAnalytics = useAnalyticsStore(state => state.fetchDashboardAnalytics);
+
+  const [date, setDate] = React.useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
   });
-  
-  const [data, setData] = useState<StatusData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalValue, setTotalValue] = useState(0);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const analyticsData = await fetchAnalyticsData(date);
-        
-        // Format the status data
-        const statusData: StatusData[] = [
-          {
-            name: "Created",
-            value: analyticsData.statusBreakdown?.created || 0,
-            color: "#8884d8"
-          },
-          {
-            name: "Checked",
-            value: analyticsData.statusBreakdown?.checked || 0,
-            color: "#82ca9d"
-          },
-          {
-            name: "Packed",
-            value: analyticsData.statusBreakdown?.packed || 0,
-            color: "#ffc658"
-          },
-          {
-            name: "Delivered",
-            value: analyticsData.statusBreakdown?.delivered || 0,
-            color: "#ff8042"
-          },
-          {
-            name: "Billed",
-            value: analyticsData.statusBreakdown?.billed || 0,
-            color: "#0088fe"
-          }
-        ];
-        
-        // Filter out zero values for better visualization
-        const filteredData = statusData.filter(item => item.value > 0);
-        setData(filteredData);
-        
-        // Calculate total for percentage calculations
-        setTotalValue(filteredData.reduce((sum, item) => sum + item.value, 0));
-      } catch (error) {
-        console.error('Error fetching status breakdown data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Re-fetch when date picker changes (after initial mount)
+  const isFirstRender = React.useRef(true);
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    fetchDashboardAnalytics(date);
+  }, [date, fetchDashboardAnalytics]);
 
-    loadData();
-  }, [date, fetchAnalyticsData]);
+  // Derive status data from store
+  const statusData: StatusData[] = dashboardAnalytics?.statusBreakdown ? [
+    { name: "Created", value: dashboardAnalytics.statusBreakdown.created || 0, color: "#8884d8" },
+    { name: "Checked", value: dashboardAnalytics.statusBreakdown.checked || 0, color: "#82ca9d" },
+    { name: "Packed", value: dashboardAnalytics.statusBreakdown.packed || 0, color: "#ffc658" },
+    { name: "Delivered", value: dashboardAnalytics.statusBreakdown.delivered || 0, color: "#ff8042" },
+    { name: "Billed", value: dashboardAnalytics.statusBreakdown.billed || 0, color: "#0088fe" }
+  ].filter(item => item.value > 0) : [];
 
-  // Custom tooltip formatter
+  const totalValue = statusData.reduce((sum, item) => sum + item.value, 0);
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -96,7 +64,6 @@ export function StatusBreakdown({
         </div>
       );
     }
-  
     return null;
   };
 
@@ -107,7 +74,6 @@ export function StatusBreakdown({
     innerRadius,
     outerRadius,
     percent,
-    index,
   }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -138,11 +104,11 @@ export function StatusBreakdown({
         <DatePickerWithRange date={date} setDate={setDate} />
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {dashboardAnalyticsLoading ? (
           <div className="flex items-center justify-center h-[300px]">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : data.length === 0 ? (
+        ) : statusData.length === 0 ? (
           <div className="flex items-center justify-center h-[300px] text-muted-foreground">
             No status data available for the selected period
           </div>
@@ -151,7 +117,7 @@ export function StatusBreakdown({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={statusData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -160,7 +126,7 @@ export function StatusBreakdown({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {data.map((entry, index) => (
+                  {statusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -173,4 +139,4 @@ export function StatusBreakdown({
       </CardContent>
     </Card>
   );
-} 
+}

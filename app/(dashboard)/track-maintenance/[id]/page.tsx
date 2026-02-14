@@ -86,12 +86,10 @@ export default function BoardDetailPage() {
       }
       
       const response = await fetch(`/api/track-maintenance/board/${boardId}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch board');
-      }
-      
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch board');
+      }
       setBoard(data);
     } catch (error: any) {
       console.error('Error fetching board:', error);

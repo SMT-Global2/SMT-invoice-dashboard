@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         data: {
           isSaved: true,
           savedTimestamp: new Date(),
-          images: data.images || [],
+          images: (data.images || []).filter((img: string | null | undefined) => img !== null && img !== undefined), // Filter out null/undefined values
           latitude: location?.lat || null,
           longitude: location?.lng || null,
           address: address || null,

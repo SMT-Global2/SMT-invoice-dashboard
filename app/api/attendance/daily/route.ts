@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             username: true,
             ...(includeUserDetails ? {
               email: true,
-              role: true,
+              type: true,
             } : {})
           },
         },

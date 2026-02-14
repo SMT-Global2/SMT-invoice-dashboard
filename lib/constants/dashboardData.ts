@@ -29,7 +29,7 @@ import {
   Map
 } from 'lucide-react';
 
-import { Department, UserType } from '@prisma/client';
+import { UserType } from '@prisma/client';
 
 // Define the structure for each dashboard item
 export interface DashboardItem {
@@ -38,7 +38,7 @@ export interface DashboardItem {
   href: string;
   icon: LucideIcon;
   description: string;
-  roles?: (UserType | Department)[];
+  roles?: (UserType | string)[];
   searchTerms?: string[]; // Additional search terms to improve findability
 }
 
@@ -89,7 +89,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/invoice',
         icon: FileSpreadsheet,
         description: 'Create and Generate Invoices',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT'],
         searchTerms: ['invoice', 'create', 'generate', 'bill', 'billing']
       },
       {
@@ -98,7 +98,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/checking',
         icon: ClipboardCheck,
         description: 'Review and Verify Generated Invoices',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT'],
         searchTerms: ['checking', 'verify', 'review', 'validation', 'check']
       },
       {
@@ -107,7 +107,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/packing',
         icon: Boxes,
         description: 'Prepare and Pack Verified Invoices',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT'],
         searchTerms: ['packing', 'prepare', 'pack', 'package', 'box']
       },
       {
@@ -116,7 +116,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/delivery',
         icon: Truck,
         description: 'Pick Up, Ship, and Deliver Orders',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT, Department.RECEIPT_MANAGEMENT],
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT', 'RECEIPT_MANAGEMENT'],
         searchTerms: ['delivery', 'shipping', 'transport', 'logistics', 'send']
       },
       {
@@ -125,7 +125,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/billing',
         icon: DollarSign,
         description: 'Billing Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT],
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT'],
         searchTerms: ['billing', 'payment', 'invoice management', 'financial']
       }
     ]
@@ -141,7 +141,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/receipt',
         icon: Receipt,
         description: 'Receipt Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.RECEIPT_MANAGEMENT]
+        roles: ['ADMIN', 'ALL_ROUNDER', 'RECEIPT_MANAGEMENT']
       }
     ]
   },
@@ -156,7 +156,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/inventory',
         icon: ShoppingBag,
         description: 'Inventory Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.PURCHASE_MANAGEMENT]
+        roles: ['ADMIN', 'ALL_ROUNDER', 'PURCHASE_MANAGEMENT']
       },
       {
         id: 'delivery-memo',
@@ -164,7 +164,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/deliverymemo',
         icon: ClipboardList,
         description: 'Delivery Memo Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT, Department.DELIVERY_MEMO_MANAGEMENT]
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT', 'DELIVERY_MEMO_MANAGEMENT']
       },
       {
         id: 'expiry',
@@ -172,7 +172,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/expiry',
         icon: TimerOff,
         description: 'Expiry Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.INVOICE_MANAGEMENT , Department.RECEIPT_MANAGEMENT]
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT', 'RECEIPT_MANAGEMENT']
       },
       {
         id: 'statement',
@@ -180,7 +180,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/statement-excel',
         icon: FileCheck,
         description: 'Statement Management',
-        roles: ['ADMIN', Department.ALL_ROUNDER, Department.RECEIPT_MANAGEMENT, Department.INVOICE_MANAGEMENT]
+        roles: ['ADMIN', 'ALL_ROUNDER', 'RECEIPT_MANAGEMENT', 'INVOICE_MANAGEMENT']
       },
       {
         id: 'track-maintenance',
@@ -188,7 +188,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/track-maintenance',
         icon: Map,
         description: 'Day-wise party and city track planning',
-        roles: ['ADMIN', Department.ALL_ROUNDER],
+        roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT', 'DELIVERY_MEMO_MANAGEMENT'],
         searchTerms: ['track', 'city', 'planning', 'party', 'maintenance', 'day', 'week', 'schedule']
       },
       {
@@ -198,7 +198,7 @@ export const dashboardCategories: DashboardCategory[] = [
         icon: Clock,
         description: 'Mark and manage employee attendance',
         searchTerms: ['attendance', 'presence', 'timesheet', 'absent', 'late', 'half-day', 'full-day'],
-        roles: ['ADMIN', Department.ATTENDANCE_MANAGEMENT]
+        roles: ['ADMIN', 'ATTENDANCE_MANAGEMENT']
       }
     ]
   },
@@ -222,7 +222,7 @@ export const dashboardCategories: DashboardCategory[] = [
         href: '/agency',
         icon: Building2,
         description: 'Agency Management',
-        roles: ['ADMIN', Department.PURCHASE_MANAGEMENT]
+        roles: ['ADMIN', 'PURCHASE_MANAGEMENT']
       },
       {
         id: 'transportation',
@@ -250,24 +250,24 @@ export const dashboardCategories: DashboardCategory[] = [
         searchTerms: ['contact', 'feedback', 'complaints', 'forms', 'customer service'],
         roles: ['ADMIN']
       },
-      {
-        id: 'attendance-salary',
-        title: 'Attendance, Salary & Loan',
-        href: '/attendance-salary',
-        icon: Wallet,
-        description: 'Manage employee attendance, salaries and loans records',
-        searchTerms: ['salary', 'pay', 'wages', 'compensation', 'loan', 'advance', 'attendance', 'payroll'],
-        roles: ['ADMIN']
-      }
       // {
       //   id: 'backup',
-      //   title: 'System Backup',
+      //   title: 'Backup',
       //   href: '/backup',
       //   icon: Database,
-      //   description: 'Create and manage system-wide backups',
-      //   searchTerms: ['backup', 'archive', 'export', 'download', 'data backup', 'system backup'],
+      //   description: 'Manage system backups',
+      //   searchTerms: ['backup', 'restore', 'data', 'archive', 'recovery'],
       //   roles: ['ADMIN']
-      // }
+      // },
+      {
+        id: 'salary',
+        title: 'Salary Management',
+        href: '/attendance-salary',
+        icon: Wallet,
+        description: 'Manage employee salaries and payments',
+        searchTerms: ['salary', 'payment', 'compensation', 'payroll', 'wages'],
+        roles: ['ADMIN']
+      }
     ]
   }
 ];
