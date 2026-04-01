@@ -127,10 +127,11 @@ async function downloadS3Image(imageUrl: string, destinationPath: string): Promi
     console.log(`Downloading image from S3: ${imageUrl}`);
     
     // Get S3 bucket name from environment
-    const bucketName = process.env.S3_BUCKET_NAME || 'smt-images-bucket';
-    if (!bucketName) {
-      throw new Error('S3_BUCKET_NAME environment variable is not set');
-    }
+    const bucketName = process.env.S3_BUCKET_NAME;
+
+if (!bucketName) {
+  throw new Error("S3_BUCKET_NAME is not set");
+}
 
     // Parse the key from the URL or path
     let key = imageUrl;

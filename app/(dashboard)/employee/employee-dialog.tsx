@@ -37,7 +37,7 @@ import Image from "next/image"
 import dynamic from 'next/dynamic'
 
 // Add your S3 bucket and region here
-const S3_BUCKET = 'smt-images-bucket';
+const S3_BUCKET = process.env.S3_BUCKET_NAME;
 const S3_REGION = 'ap-south-1';
 
 const Webcam = dynamic(() => import('react-webcam') as any, { ssr: false }) as any;

@@ -106,7 +106,11 @@ export async function GET(req: NextRequest) {
     const formattedStatementImages = filteredStatementImages.map(section => ({
       images: section.images.map(imageKey => {
         // Convert S3 key to full URL
-        const bucketName = process.env.S3_BUCKET_NAME || 'smt-images-bucket';
+        const bucketName = process.env.S3_BUCKET_NAME;
+
+if (!bucketName) {
+  throw new Error("S3_BUCKET_NAME is not set");
+}
         const region = process.env.S3_REGION || 'ap-south-1';
         return `https://${bucketName}.s3.${region}.amazonaws.com/${encodeURIComponent(imageKey)}`;
       }),
