@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     if (dateParam) {
         const selectedDate = moment(dateParam);
         dateFilter = {
-            pickupTimestamp: {
+            invoiceTimestamp: {
                 not: null,
                 gte: selectedDate.startOf('day').toDate(),
                 lte: selectedDate.endOf('day').toDate(),
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         };
     } else {
         dateFilter = {
-            pickupTimestamp: {
+            invoiceTimestamp: {
                 not: null,
             }
         };
@@ -75,14 +75,13 @@ export async function GET(request: NextRequest) {
     }
 
     let orderBy : any = {
-        invoiceNumber: 'asc'
+        invoiceTimestamp: 'desc'
     }
     if(regionalCodesParam){
-        orderBy = {
-            party: {
-                regionalCode: 'asc'
-            }
-        }
+        orderBy = [
+            { party: { regionalCode: 'asc' } },
+            { invoiceTimestamp: 'desc' }
+        ]
     }
 
     const [totalCount, data] = await Promise.all([
@@ -92,7 +91,7 @@ export async function GET(request: NextRequest) {
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,
-                deliveryStatus: DeliveryStatus.PICKED_UP
+                deliveryStatus: { in: [DeliveryStatus.NOT_DELIVERED, DeliveryStatus.PICKED_UP] }
             }
         }),
         prisma.invoice.findMany({
@@ -101,7 +100,7 @@ export async function GET(request: NextRequest) {
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,
-                deliveryStatus: DeliveryStatus.PICKED_UP
+                deliveryStatus: { in: [DeliveryStatus.NOT_DELIVERED, DeliveryStatus.PICKED_UP] }
             },
             include: {
                 party: true,

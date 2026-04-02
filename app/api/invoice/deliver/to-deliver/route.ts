@@ -1,6 +1,6 @@
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma'
-import { DeliveryStatus, PackageStatus } from '@prisma/client';
+import { DeliveryStatus } from '@prisma/client';
 import moment from 'moment';
 import { getServerSession } from 'next-auth';
 import { NextRequest } from 'next/server';
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     if (dateParam) {
         const selectedDate = moment(dateParam);
         dateFilter = {
-            packageTimestamp: {
+            invoiceTimestamp: {
                 not: null,
                 gte: selectedDate.startOf('day').toDate(),
                 lte: selectedDate.endOf('day').toDate(),
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         };
     } else {
         dateFilter = {
-            packageTimestamp: {
+            invoiceTimestamp: {
                 not: null,
             }
         };
@@ -74,14 +74,13 @@ export async function GET(request: NextRequest) {
     }
 
     let orderBy : any = {
-        invoiceNumber: 'asc'
+        invoiceTimestamp: 'desc'
     }
     if(regionalCodesParam){
-        orderBy = {
-            party: {
-                regionalCode: 'asc'
-            }
-        }
+        orderBy = [
+            { party: { regionalCode: 'asc' } },
+            { invoiceTimestamp: 'desc' }
+        ]
     }
 
     const [totalCount, data] = await Promise.all([
@@ -91,7 +90,6 @@ export async function GET(request: NextRequest) {
                 ...dateFilter, 
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,
-                packageStatus: PackageStatus.PACKED,
                 deliveryStatus: DeliveryStatus.NOT_DELIVERED
             }
         }),
@@ -101,7 +99,6 @@ export async function GET(request: NextRequest) {
                 ...dateFilter,
                 ...(searchTerm ? searchFilter : {}),
                 ...regionalCodesFilter,
-                packageStatus: PackageStatus.PACKED,
                 deliveryStatus: DeliveryStatus.NOT_DELIVERED
             },
             include: {

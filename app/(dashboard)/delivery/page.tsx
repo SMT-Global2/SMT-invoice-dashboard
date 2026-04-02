@@ -20,7 +20,7 @@ export default function DeliveryPage() {
         <h1 className="text-2xl font-bold">Invoice Delivery</h1>
       </div>
       
-      <Tabs defaultValue="to-deliver" className="w-full">
+      <Tabs defaultValue="in-transit" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="to-deliver">To Deliver</TabsTrigger>
           <TabsTrigger value="in-transit">In Transit</TabsTrigger>

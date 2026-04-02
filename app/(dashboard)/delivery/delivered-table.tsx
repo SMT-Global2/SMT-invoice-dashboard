@@ -220,8 +220,8 @@ export function DeliveredTable() {
                     <TableCell>{invoice.medicalName}</TableCell>
                     <TableCell>{invoice.city}</TableCell>
                     <TableCell>{invoice.regionalCode}</TableCell>
-                    <TableCell>{tweleHrFormatDateString(invoice.pickupTimestamp!)}</TableCell>
-                    <TableCell>{tweleHrFormatDateString(invoice.deliveredTimestamp!)}</TableCell>
+                    <TableCell>{invoice.pickupTimestamp ? tweleHrFormatDateString(invoice.pickupTimestamp) : '-'}</TableCell>
+                    <TableCell>{invoice.deliveredTimestamp ? tweleHrFormatDateString(invoice.deliveredTimestamp) : '-'}</TableCell>
                     <TableCell>{invoice.paymodeMode}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

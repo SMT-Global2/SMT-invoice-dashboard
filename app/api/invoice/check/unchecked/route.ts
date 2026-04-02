@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       } : {
         not: null,
       },
-      checkStatus: CheckStatus.NOT_CHECKED
+      checkStatus: CheckStatus.NOT_CHECKED,
     };
     
     // Add search filter if provided

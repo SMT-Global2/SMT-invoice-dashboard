@@ -18,8 +18,9 @@ export async function GET(request: Request) {
 
     // Build where clause
     const where: any = {
+      isOtc: false,
       packageStatus: PackageStatus.NOT_PACKED,
-      checkTimestamp: date ? {
+      invoiceTimestamp: date ? {
         not: null,
         gte: moment(date).startOf('day').toDate(),
         lte: moment(date).endOf('day').toDate(),

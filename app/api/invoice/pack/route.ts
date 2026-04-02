@@ -1,6 +1,6 @@
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma'
-import { CheckStatus, PackageStatus } from '@prisma/client';
+import { PackageStatus } from '@prisma/client';
 import moment from 'moment';
 import { getServerSession } from 'next-auth';
 import { NextRequest } from 'next/server';
@@ -21,10 +21,8 @@ export async function GET(request: NextRequest) {
       isOtc : false,
       OR: [
         {
-          AND: [
-            { checkStatus: CheckStatus.CHECKED },
-            { packageStatus: PackageStatus.NOT_PACKED }
-          ]
+          packageStatus: PackageStatus.NOT_PACKED,
+          invoiceTimestamp: { not: null }
         },
         {
           AND: [

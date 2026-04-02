@@ -573,7 +573,9 @@ export const useDeliveryInvoiceStore = create<DeliveryInvoiceState>()(
         try {
           set({ isLoading: true });
           
-          const invoice = get().inTransitInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
+          const invoice = 
+            get().inTransitInvoices.find(inv => inv.invoiceNumber === invoiceNumber) ||
+            get().toDeliverInvoices.find(inv => inv.invoiceNumber === invoiceNumber);
           
           if (!invoice) {
             throw new Error('Invoice not found');
