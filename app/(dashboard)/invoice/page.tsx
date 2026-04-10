@@ -66,6 +66,7 @@ export default function InvoicePage() {
   const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
   const [invoiceSearchTerm, setInvoiceSearchTerm] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isMissingDownloading, setIsMissingDownloading] = useState(false);
   
   const {
     invoices,
@@ -410,6 +411,81 @@ export default function InvoicePage() {
     }
   };
 
+  const handleDownloadMissingPDF = async () => {
+    setIsMissingDownloading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedDate) params.append('date', moment(selectedDate).format('YYYY-MM-DD'));
+      if (selectedRegionalCodes.length > 0) {
+        params.append('regionalCodes', JSON.stringify(selectedRegionalCodes));
+      }
+
+      const response = await fetch(`/api/analytics/missing-invoices?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch missing invoices');
+      const data = await response.json();
+      
+      if (!data.success || !data.invoices || data.invoices.length === 0) {
+        toast({
+          variant: "default",
+          title: "No Data",
+          description: "No missing invoices found for the selected filters.",
+        });
+        return;
+      }
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 14;
+      const reportDate = selectedDate ? format(new Date(selectedDate), 'dd MMM yyyy') : 'All Dates';
+
+      const headerFontSize = 16;
+      const subHeaderFontSize = 12;
+      const subHeaderY = 22;
+
+      doc.setFontSize(headerFontSize);
+      doc.setFont('helvetica', 'bold');
+      const headerText = 'Sanjivan Medico Traders';
+      doc.text(headerText, (pageWidth - doc.getTextWidth(headerText)) / 2, 15);
+
+      doc.setFontSize(subHeaderFontSize);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Missing Invoices Report - ${reportDate}`, margin, 22);
+
+      const tableColumns = ["Sr.", "Invoice No.", "Status"];
+      const tableRows = data.invoices.map((inv: any, idx: number) => [
+        idx + 1,
+        inv.invoiceNumber,
+        'MISSING'
+      ]);
+
+      autoTable(doc, {
+        head: [tableColumns],
+        body: tableRows,
+        startY: subHeaderY + 5,
+        theme: 'grid',
+        styles: { fontSize: 8.5, cellPadding: 2 },
+        headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 30 },
+        },
+      });
+
+      doc.save(`Missing-Invoices-${reportDate.replace(/ /g, '_')}.pdf`);
+    } catch (error) {
+      console.error("Missing PDF Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate missing invoices PDF.",
+      });
+    } finally {
+      setIsMissingDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-4 overflow-hidden max-w-full px-2 sm:px-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mt-2">
       <div className="flex items-center justify-between mb-4">
@@ -462,6 +538,27 @@ export default function InvoicePage() {
                       <>
                         <Download className="h-4 w-4 mr-1" />
                         Download PDF
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadMissingPDF}
+                    disabled={isMissingDownloading}
+                    className="h-9 inline-flex items-center gap-1 px-3"
+                  >
+                    {isMissingDownloading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-1" />
+                        Missing Invoices
                       </>
                     )}
                   </Button>

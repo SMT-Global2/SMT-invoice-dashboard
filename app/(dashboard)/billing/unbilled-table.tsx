@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BilledStatus } from '@prisma/client';
 import { useEffect, useState } from 'react';
-import { Calendar, FilterX } from 'lucide-react';
+import { Calendar, FilterX, Download } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import TableSkeleton from '@/components/table-skeleton';
 import { TakeImage } from '@/components/take-image';
@@ -40,6 +40,9 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import moment from 'moment';
 
 export function UnbilledTable() {
   const { toast } = useToast();
@@ -66,10 +69,93 @@ export function UnbilledTable() {
 
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const [lastInteractedInvoice, setLastInteractedInvoice] = useState<number | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     fetchUnbilledInvoices();
   }, [fetchUnbilledInvoices]);
+
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '9999'); // fetch all
+      if (unbilledSelectedDate) {
+        params.append('date', moment(unbilledSelectedDate).format('YYYY-MM-DD'));
+      }
+
+      const response = await fetch(`/api/invoice/bill/unbilled?${params.toString()}`);
+      const result = await response.json();
+      const invoicesToDownload = (result.data || []).map((item: any) => ({
+        ...item,
+        medicalName: item?.party?.customerName || '-',
+        city: item?.party?.city || '-',
+      }));
+
+      if (invoicesToDownload.length === 0) {
+        toast({ variant: 'default', title: 'No Data', description: 'No unbilled invoices found for the selected filters.' });
+        return;
+      }
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 14;
+
+      // Header
+      const headerText = 'Sanjivan Medico Traders';
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(headerText, (pageWidth - doc.getTextWidth(headerText)) / 2, 15);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      const reportDate = unbilledSelectedDate ? format(unbilledSelectedDate, 'dd MMM yyyy') : 'All Dates';
+      doc.text(`UnBilled Invoices Report - ${reportDate}`, margin, 22);
+
+      const tableColumns = ['Sr.', 'Inv No', 'Date', 'Party Code', 'Medical Name', 'City', 'Paymode', 'Type'];
+      const tableRows = invoicesToDownload.map((invoice: any, index: number) => [
+        index + 1,
+        invoice.invoiceNumber,
+        invoice.generatedDate ? format(new Date(invoice.generatedDate), 'dd/MM/yy') : '-',
+        invoice.partyCode || '-',
+        invoice.medicalName || '-',
+        invoice.city || '-',
+        invoice.paymodeMode || '-',
+        invoice.isOtc ? 'OTC' : 'Regular',
+      ]);
+
+      autoTable(doc, {
+        head: [tableColumns],
+        body: tableRows,
+        startY: 27,
+        theme: 'grid',
+        styles: { fontSize: 8.5, cellPadding: 2 },
+        headStyles: { fillColor: [29, 78, 216], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 15 },
+          2: { cellWidth: 16 },
+          3: { cellWidth: 16 },
+          6: { cellWidth: 15 },
+          7: { cellWidth: 15 },
+        },
+        didDrawPage: (data) => {
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(`Page ${data.pageNumber}`, data.settings.margin.left, doc.internal.pageSize.height - 6);
+        }
+      });
+
+      doc.save(`UnBilled-Invoices-${reportDate.replace(/ /g, '_')}.pdf`);
+    } catch (error) {
+      console.error('PDF Error:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to generate PDF.' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleImageUpload = (invoiceNumber: number) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -210,6 +296,28 @@ export function UnbilledTable() {
               >
                 <FilterX className="h-4 w-4" />
                 <span>Clear All</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+                className="flex items-center gap-1"
+                size="sm"
+              >
+                {isDownloading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Downloading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    <span>Download PDF</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>

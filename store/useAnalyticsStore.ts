@@ -175,7 +175,7 @@ interface Analytics {
 
 type SortOrder = 'asc' | 'desc';
 type SortField = 'invoiceNumber' | 'invoiceTimestamp';
-type ProgressStage = 'all' | 'generated' | 'checked' | 'packed' | 'picked_up' | 'delivered' | 'billed' | 'incomplete' | 'complete';
+type ProgressStage = 'all' | 'generated' | 'checked' | 'packed' | 'picked_up' | 'delivered' | 'billed' | 'incomplete' | 'complete' | 'missing_invoices' | 'unbilled_invoices';
 
 interface FilterState {
   searchQuery: string;
@@ -299,6 +299,8 @@ export interface AnalyticsState {
   fetchAvailableRegionalCodes: () => Promise<void>;
   fetchTransporters: () => Promise<void>;
   fetchInvoicesForPDF: (date: string, regionalCodes?: string[]) => Promise<IInvoice[]>;
+  fetchMissingInvoicesForPDF: (date?: string, regionalCodes?: string[]) => Promise<any[]>;
+  fetchUnbilledInvoicesForPDF: (date?: string, regionalCodes?: string[]) => Promise<IInvoice[]>;
 
   // Analytics API functions
   fetchAnalyticsData: (dateRange?: DateRange) => Promise<AnalyticsResponse>;
@@ -552,6 +554,36 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       const { selectedRegionalCodes, transporterFilter } = get().filters;
+      const progressStage = get().filters.progressStage;
+      const date = get().filters.date;
+
+      // Handle missing_invoices specially — fetch from dedicated API
+      if (progressStage === 'missing_invoices') {
+        const missingParams = new URLSearchParams();
+        if (date) missingParams.append('date', date);
+        if (selectedRegionalCodes.length > 0) {
+          missingParams.append('regionalCodes', JSON.stringify(selectedRegionalCodes));
+        }
+        const missingData = await fetch(`/api/analytics/missing-invoices?${missingParams.toString()}`).then(res => res.json());
+        const missingInvoices = missingData.invoices || [];
+        const page = get().pagination.page;
+        const limit = get().pagination.limit;
+        const paginated = missingInvoices.slice(page * limit, (page + 1) * limit);
+        const emptyAnalytics = {
+          totalGenerated: 0, totalChecked: 0, totalPacked: 0, totalPickedUp: 0,
+          totalDelivered: 0, totalTransportDeliveries: 0, totalOTC: 0, totalBilled: 0,
+          processingEfficiency: 0, billingRate: 0,
+          paymentDistribution: { cash: 0, credit: 0, cashRatio: 0, creditRatio: 0 }
+        };
+        set({
+          allInvoices: { invoices: paginated as any, total: missingInvoices.length },
+          analytics: emptyAnalytics,
+          filteredAnalytics: emptyAnalytics,
+          totalPages: Math.ceil(missingInvoices.length / limit),
+          isLoading: false
+        });
+        return;
+      }
       
       // Create query parameters
       const params = new URLSearchParams();
@@ -560,8 +592,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       params.append('search', get().filters.searchQuery);
       params.append('sortField', get().filters.sortField);
       params.append('sortOrder', get().filters.sortOrder);
-      params.append('progressStage', get().filters.progressStage);
-      const date = get().filters.date;
+      params.append('progressStage', progressStage);
       if (date) {
         params.append('date', date);
       }
@@ -581,7 +612,6 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       
       // Process invoices based on progress stage filter if needed
       let filteredInvoices = invoiceData.invoices || [];
-      const progressStage = get().filters.progressStage;
       
       // Helper function to calculate invoice completeness
       const calculateInvoiceCompleteness = (invoice: any) => {
@@ -658,6 +688,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       });
     }
   },
+
 
   fetchDashboardAnalytics: async (dateRange) => {
     try {
@@ -756,8 +787,60 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       return data.invoices || [];
     } catch (error) {
       console.error("Error in fetchInvoicesForPDF:", error);
-      // Optionally show a toast or set an error state here
-      return []; // Return empty array on error
+      return [];
+    }
+  },
+
+  fetchMissingInvoicesForPDF: async (date, regionalCodes) => {
+    try {
+      const params = new URLSearchParams();
+      if (date) params.append('date', date);
+      if (regionalCodes && regionalCodes.length > 0) {
+        params.append('regionalCodes', JSON.stringify(regionalCodes));
+      }
+      const response = await fetch(`/api/analytics/missing-invoices?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch missing invoices');
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message || 'Failed to fetch missing invoices');
+      return data.invoices || [];
+    } catch (error) {
+      console.error("Error in fetchMissingInvoicesForPDF:", error);
+      return [];
+    }
+  },
+
+  fetchUnbilledInvoicesForPDF: async (date, regionalCodes) => {
+    try {
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '9999'); // fetch all
+      if (date) params.append('date', date);
+      if (regionalCodes && regionalCodes.length > 0) {
+        params.append('regionalCodes', JSON.stringify(regionalCodes));
+      }
+      // Use the invoice/all endpoint with unbilled_invoices stage for full data
+      const allParams = new URLSearchParams();
+      allParams.append('page', '0');
+      allParams.append('limit', '9999');
+      allParams.append('progressStage', 'unbilled_invoices');
+      allParams.append('sortField', 'invoiceTimestamp');
+      allParams.append('sortOrder', 'asc');
+      if (date) allParams.append('date', date);
+      if (regionalCodes && regionalCodes.length > 0) {
+        allParams.append('regionalCodes', JSON.stringify(regionalCodes));
+      }
+      const response = await fetch(`/api/invoice/all?${allParams.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch unbilled invoices for PDF');
+      const data = await response.json();
+      return (data.invoices || []).map((inv: any) => ({
+        ...inv,
+        partyName: inv.party?.customerName,
+        cityName: inv.party?.city,
+        regionalCode: inv.party?.regionalCode,
+      }));
+    } catch (error) {
+      console.error("Error in fetchUnbilledInvoicesForPDF:", error);
+      return [];
     }
   },
 

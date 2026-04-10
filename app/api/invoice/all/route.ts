@@ -133,6 +133,10 @@ export async function GET(request: Request) {
           billedStatus: BilledStatus.BILLED
         })
         break
+      case 'unbilled_invoices':
+        // Generated but not yet billed — ignore other stages
+        where.AND.push({ billedStatus: BilledStatus.NOT_BILLED })
+        break
     }
 
     // Add transportation filter if specified

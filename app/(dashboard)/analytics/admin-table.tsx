@@ -69,7 +69,9 @@ export default function AdminInvoiceTable() {
     setSelectedRegionalCodes,
     transporters,
     clearAllFilters,
-    fetchInvoicesForPDF
+    fetchInvoicesForPDF,
+    fetchMissingInvoicesForPDF,
+    fetchUnbilledInvoicesForPDF
   } = useAnalyticsStore()
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
@@ -176,7 +178,11 @@ export default function AdminInvoiceTable() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!filters.date) {
+    const isMissingFilter = filters.progressStage === 'missing_invoices';
+    const isUnbilledFilter = filters.progressStage === 'unbilled_invoices';
+    const isSpecialFilter = isMissingFilter || isUnbilledFilter;
+
+    if (!filters.date && !isSpecialFilter) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -187,28 +193,140 @@ export default function AdminInvoiceTable() {
 
     setIsDownloading(true);
     try {
-      const invoicesToDownload = await fetchInvoicesForPDF(
-        filters.date,
-        filters.selectedRegionalCodes
-      );
+      let invoicesToDownload: any[] = [];
+
+      if (isMissingFilter) {
+        invoicesToDownload = await fetchMissingInvoicesForPDF(
+          filters.date ?? undefined,
+          filters.selectedRegionalCodes.length > 0 ? filters.selectedRegionalCodes : undefined
+        );
+      } else if (isUnbilledFilter) {
+        invoicesToDownload = await fetchUnbilledInvoicesForPDF(
+          filters.date ?? undefined,
+          filters.selectedRegionalCodes.length > 0 ? filters.selectedRegionalCodes : undefined
+        );
+      } else {
+        invoicesToDownload = await fetchInvoicesForPDF(
+          filters.date!,
+          filters.selectedRegionalCodes
+        );
+      }
 
       if (invoicesToDownload.length === 0) {
         toast({
           variant: "default",
           title: "No Data",
-          description: "No invoices found for the selected date and filters.",
+          description: "No invoices found for the selected filters.",
         });
         return;
       }
 
       const doc = new jsPDF();
-      const tableRows: any[] = [];
-      const tableColumns = [
-        "Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", ""
-      ];
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const headerText = 'Sanjivan Medico Traders';
+      const headerFontSize = 16;
+      const subHeaderFontSize = 12;
+      const margin = 14;
 
-      invoicesToDownload.forEach((invoice: any, index: number) => {
-        const invoiceData = [
+      doc.setFontSize(headerFontSize);
+      doc.setFont('helvetica', 'bold');
+      const headerWidth = doc.getTextWidth(headerText);
+      const headerX = (pageWidth - headerWidth) / 2;
+      doc.text(headerText, headerX, 15);
+
+      doc.setFontSize(subHeaderFontSize);
+      doc.setFont('helvetica', 'normal');
+
+      const reportDate = filters.date ? format(new Date(filters.date), 'dd MMM yyyy') : 'All Dates';
+      const regionsText = `Regions: ${
+        filters.selectedRegionalCodes.length > 0 ? filters.selectedRegionalCodes.join(', ') : 'All'
+      }`;
+      const regionsTextWidth = doc.getTextWidth(regionsText);
+      const subHeaderY = 22;
+
+      if (isMissingFilter) {
+        const titleText = `Missing Invoices Report - ${reportDate}`;
+        doc.text(titleText, margin, subHeaderY);
+        doc.text(regionsText, pageWidth - margin - regionsTextWidth, subHeaderY);
+
+        const tableColumns = ["Sr.", "Invoice No.", "Status"];
+        const tableRows = invoicesToDownload.map((inv: any, idx: number) => [
+          idx + 1,
+          inv.invoiceNumber,
+          'MISSING'
+        ]);
+
+        autoTable(doc, {
+          head: [tableColumns],
+          body: tableRows,
+          startY: subHeaderY + 5,
+          theme: 'grid',
+          styles: { fontSize: 8.5, cellPadding: 2 },
+          headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+          columnStyles: {
+            0: { cellWidth: 12, halign: 'center' },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 30 },
+          },
+          didDrawPage: (data) => {
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Page ${data.pageNumber}`, data.settings.margin.left, doc.internal.pageSize.height - 6);
+          }
+        });
+
+        doc.save(`Missing-Invoices-${reportDate.replace(/ /g, '_')}.pdf`);
+      } else if (isUnbilledFilter) {
+        const titleText = `UnBilled Invoices Report - ${reportDate}`;
+        doc.text(titleText, margin, subHeaderY);
+        doc.text(regionsText, pageWidth - margin - regionsTextWidth, subHeaderY);
+
+        const tableColumns = ["Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", ""];
+        const tableRows = invoicesToDownload.map((invoice: any, index: number) => [
+          index + 1,
+          invoice.invoiceNumber,
+          invoice.invoiceTimestamp ? format(new Date(invoice.invoiceTimestamp), 'dd/MM/yy') : '-',
+          invoice.partyCode,
+          invoice.partyName || invoice.party?.customerName || '-',
+          invoice.cityName || invoice.party?.city || '-',
+          invoice.regionalCode || invoice.party?.regionalCode || '-',
+          invoice.paymodeMode,
+          ''
+        ]);
+
+        autoTable(doc, {
+          head: [tableColumns],
+          body: tableRows,
+          startY: subHeaderY + 5,
+          theme: 'grid',
+          styles: { fontSize: 8.5, cellPadding: 2 },
+          headStyles: { fillColor: [29, 78, 216], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+          columnStyles: {
+            0: { cellWidth: 8, halign: 'center' },
+            1: { cellWidth: 15 },
+            2: { cellWidth: 16 },
+            3: { cellWidth: 16 },
+            7: { cellWidth: 15 },
+            8: { cellWidth: 20 }
+          },
+          didDrawPage: (data) => {
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Page ${data.pageNumber}`, data.settings.margin.left, doc.internal.pageSize.height - 6);
+          }
+        });
+
+        doc.save(`UnBilled-Invoices-${reportDate.replace(/ /g, '_')}.pdf`);
+      } else {
+        // Standard report
+        const dateText = `Invoice Report - ${reportDate}`;
+        doc.text(dateText, margin, subHeaderY);
+        doc.text(regionsText, pageWidth - margin - regionsTextWidth, subHeaderY);
+
+        const tableColumns = ["Sr.", "Inv No", "Date", "Party Code", "Medical Name", "City", "Region", "Paymode", ""];
+        const tableRows = invoicesToDownload.map((invoice: any, index: number) => [
           index + 1,
           invoice.invoiceNumber,
           format(new Date(invoice.generatedDate!), 'dd/MM/yy'),
@@ -218,83 +336,33 @@ export default function AdminInvoiceTable() {
           invoice.regionalCode || '-',
           invoice.paymodeMode,
           ''
-        ];
-        tableRows.push(invoiceData);
-      });
+        ]);
 
-      const reportDate = format(new Date(filters.date), 'dd MMM yyyy');
-      
-      // --- PDF Header --- 
-      const headerText = 'Sanjivan Medico Traders';
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const headerFontSize = 16;
-      const subHeaderFontSize = 12; // Use a consistent font size for the sub-header line
+        autoTable(doc, {
+          head: [tableColumns],
+          body: tableRows,
+          startY: subHeaderY + 5,
+          theme: 'grid',
+          styles: { fontSize: 8.5, cellPadding: 2 },
+          headStyles: { fillColor: [29, 78, 216], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+          columnStyles: {
+            0: { cellWidth: 8, halign: 'center' },
+            1: { cellWidth: 15 },
+            2: { cellWidth: 16 },
+            3: { cellWidth: 16 },
+            7: { cellWidth: 15 },
+            8: { cellWidth: 20 }
+          },
+          didDrawPage: (data) => {
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Page ${data.pageNumber}`, data.settings.margin.left, doc.internal.pageSize.height - 6);
+          }
+        });
 
-      doc.setFontSize(headerFontSize);
-      doc.setFont('helvetica', 'bold');
-      const headerWidth = doc.getTextWidth(headerText);
-      const headerX = (pageWidth - headerWidth) / 2;
-      doc.text(headerText, headerX, 15);
-
-      doc.setFontSize(subHeaderFontSize); // Set font size for the sub-header line
-      doc.setFont('helvetica', 'normal'); // Reset font style if needed
-
-      // Sub-header line: Title on left, Regions on right
-      const dateText = `Invoice Report - ${reportDate}`;
-      const regionsText = `Regions: ${
-        filters.selectedRegionalCodes.length > 0 ? filters.selectedRegionalCodes.join(', ') : 'All'
-      }`;
-
-      const regionsTextWidth = doc.getTextWidth(regionsText);
-
-      const margin = 14; // Left and right margin for the page
-      const dateTextX = margin; // Position date text at left margin
-      const regionsTextX = pageWidth - margin - regionsTextWidth; // Position regions text aligned to the right margin
-      const subHeaderY = 22; // Y position for this single line containing both texts
-
-      // Draw both text elements at the same Y coordinate (subHeaderY)
-      doc.text(dateText, dateTextX, subHeaderY);
-      doc.text(regionsText, regionsTextX, subHeaderY);
-
-      // --- PDF Table --- 
-      autoTable(doc, {
-        head: [tableColumns],
-        body: tableRows,
-        startY: subHeaderY + 5,
-        theme: 'grid',
-        styles: {
-          fontSize: 8.5,
-          cellPadding: 2,
-        },
-        headStyles: { 
-          fillColor: [29, 78, 216], 
-          textColor: 255, 
-          fontSize: 9, 
-          fontStyle: 'bold' 
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245] 
-        },
-        columnStyles: {
-          0: { cellWidth: 8, halign: 'center' },
-          1: { cellWidth: 15 },
-          2: { cellWidth: 16 },
-          3: { cellWidth: 16 },
-          7: { cellWidth: 15 },
-          8: { cellWidth: 20 }
-        },
-        didDrawPage: (data) => {
-          doc.setFontSize(8);
-          doc.setTextColor(150);
-          doc.text(
-            `Page ${data.pageNumber}`,
-            data.settings.margin.left,
-            doc.internal.pageSize.height - 6
-          );
-        }
-      });
-
-      doc.save(`Invoice-Report-${reportDate.replace(/ /g, '_')}.pdf`);
+        doc.save(`Invoice-Report-${reportDate.replace(/ /g, '_')}.pdf`);
+      }
 
     } catch (error) {
       console.error("PDF Generation Error:", error);
@@ -412,6 +480,8 @@ export default function AdminInvoiceTable() {
                 <SelectItem value="picked_up">Picked Up</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
                 <SelectItem value="billed">Billed</SelectItem>
+                <SelectItem value="missing_invoices">Missing Invoices</SelectItem>
+                <SelectItem value="unbilled_invoices">UnBilled Invoices</SelectItem>
               </SelectContent>
             </Select>
 
@@ -442,7 +512,7 @@ export default function AdminInvoiceTable() {
               <Button
                 variant="outline"
                 onClick={handleDownloadPDF}
-                disabled={!filters.date || isDownloading}
+                disabled={(filters.progressStage !== 'missing_invoices' && filters.progressStage !== 'unbilled_invoices' && !filters.date) || isDownloading}
                 className="h-9 flex items-center gap-1"
               >
                 {isDownloading ? (
@@ -678,32 +748,55 @@ export default function AdminInvoiceTable() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    allInvoices.invoices.map((invoice, index) => (
-                      <TableRow key={invoice.invoiceNumber}>
-                        <TableCell className="text-center">{index + 1}</TableCell>
+                    allInvoices.invoices.map((invoice: any, index) => (
+                      <TableRow key={invoice.invoiceNumber + '-' + index} className={invoice.status === 'MISSING' ? 'bg-red-50 dark:bg-red-950/20' : ''}>
+                        <TableCell className="text-center">{index + 1 + pagination.page * pagination.limit}</TableCell>
                         <TableCell>{invoice.invoiceNumber}</TableCell>
-                        <TableCell>{format(new Date(invoice.invoiceTimestamp!), 'd MMM yyyy')}</TableCell>
-                        <TableCell>{invoice.partyCode}</TableCell>
-                        <TableCell className="truncate max-w-[140px]">{invoice.party?.customerName}</TableCell>
-                        <TableCell>{invoice.party?.city}</TableCell>
-                        <TableCell>{invoice.party?.regionalCode}</TableCell>
-                        <TableCell className="text-center"><StatusBadge status={!!invoice.invoiceTimestamp} /></TableCell>
-                        <TableCell className="text-center"><StatusBadge status={!!invoice.checkTimestamp} /></TableCell>
-                        <TableCell className="text-center"><StatusBadge status={!!invoice.packageTimestamp} /></TableCell>
-                        <TableCell className="text-center"><StatusBadge status={!!invoice.pickupTimestamp} /></TableCell>
-                        <TableCell className="text-center"><StatusBadge status={!!invoice.deliveredTimestamp} /></TableCell>
-                        <TableCell className="text-center"><StatusBadge status={!!invoice.billedTimestamp} /></TableCell>
-                        <TableCell>{tweleHrFormatDateString(new Date(invoice.updatedAt))}</TableCell>
                         <TableCell>
-                          <Capsule
-                            text={invoice.isOtc ? 'OTC' : 'Normal'}
-                            bgColor={invoice.isOtc ? 'bg-yellow-100' : 'bg-green-100'}
-                            textColor={invoice.isOtc ? 'text-yellow-800' : 'text-green-800'}
-                            showIcon='none'
-                          />
+                          {invoice.status === 'MISSING'
+                            ? '-'
+                            : invoice.invoiceTimestamp ? format(new Date(invoice.invoiceTimestamp), 'd MMM yyyy') : '-'}
+                        </TableCell>
+                        <TableCell>{invoice.partyCode || '-'}</TableCell>
+                        <TableCell className="truncate max-w-[140px]">{invoice.party?.customerName || '-'}</TableCell>
+                        <TableCell>{invoice.party?.city || '-'}</TableCell>
+                        <TableCell>{invoice.party?.regionalCode || '-'}</TableCell>
+                        <TableCell className="text-center">
+                          {invoice.status === 'MISSING'
+                            ? <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">MISSING</span>
+                            : <StatusBadge status={!!invoice.invoiceTimestamp} />}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {invoice.status !== 'MISSING' ? <StatusBadge status={!!invoice.checkTimestamp} /> : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {invoice.status !== 'MISSING' ? <StatusBadge status={!!invoice.packageTimestamp} /> : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {invoice.status !== 'MISSING' ? <StatusBadge status={!!invoice.pickupTimestamp} /> : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {invoice.status !== 'MISSING' ? <StatusBadge status={!!invoice.deliveredTimestamp} /> : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {invoice.status !== 'MISSING' ? <StatusBadge status={!!invoice.billedTimestamp} /> : <span className="text-muted-foreground">-</span>}
                         </TableCell>
                         <TableCell>
-                          <InvoiceCard invoice={invoice} />
+                          {invoice.status !== 'MISSING' && invoice.updatedAt
+                            ? tweleHrFormatDateString(new Date(invoice.updatedAt)) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {invoice.status !== 'MISSING'
+                            ? <Capsule
+                                text={invoice.isOtc ? 'OTC' : 'Normal'}
+                                bgColor={invoice.isOtc ? 'bg-yellow-100' : 'bg-green-100'}
+                                textColor={invoice.isOtc ? 'text-yellow-800' : 'text-green-800'}
+                                showIcon='none'
+                              />
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {invoice.status !== 'MISSING' ? <InvoiceCard invoice={invoice} /> : '-'}
                         </TableCell>
                       </TableRow>
                     ))
