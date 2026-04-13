@@ -112,32 +112,35 @@ export async function POST(request: NextRequest) {
         }
       });
     } else {
-      // Create new DM
-      result = await prisma.deliveryMemo.create({
-        data: {
-          dmNumber: dmNumber,
-          partyCode: partyCode,
-          generatedDate: moment(generatedDate).toDate(),
-          goodsCollectedUsername: session.user.username,
-          goodsCollectedTimestamp: new Date()
-        },
-        include: {
-          party: true
-        }
-      });
-
-      // Update day start record with end number if needed
-      const dayStart = await findOrCreateDayStart(moment(generatedDate).toDate());
-      if (!dayStart.invoiceEndNo || dmNumber > dayStart.invoiceEndNo) {
-        await prisma.dayStartDeliveryMemo.update({
-          where: {
-            date: moment(generatedDate).format('YYYY-MM-DD')
-          },
+      // Create new DM and update end number in a transaction
+      result = await prisma.$transaction(async (prismaTxn) => {
+        const dm = await prismaTxn.deliveryMemo.create({
           data: {
-            invoiceEndNo: dmNumber
+            dmNumber: dmNumber,
+            partyCode: partyCode,
+            generatedDate: moment(generatedDate).toDate(),
+            goodsCollectedUsername: session.user.username,
+            goodsCollectedTimestamp: new Date()
+          },
+          include: {
+            party: true
           }
         });
-      }
+
+        // Update day start record with end number if needed
+        const dayStart = await findOrCreateDayStart(moment(generatedDate).toDate(), prismaTxn);
+        if (!dayStart.invoiceEndNo || dmNumber > dayStart.invoiceEndNo) {
+          await prismaTxn.dayStartDeliveryMemo.update({
+            where: {
+              date: moment(generatedDate).format('YYYY-MM-DD')
+            },
+            data: {
+              invoiceEndNo: dmNumber
+            }
+          });
+        }
+        return dm;
+      });
     }
 
     return Response.json({
@@ -284,7 +287,7 @@ export async function DELETE(request: NextRequest) {
       // Delete delivery memo
       let result;
       if (isChecked) {
-        result = await prisma.deliveryMemo.update({
+        result = await prismaTxn.deliveryMemo.update({
           where: {
             dmNumber: parseInt(dmNumber)
           },
@@ -295,7 +298,7 @@ export async function DELETE(request: NextRequest) {
           }
         });
       } else {
-        result = await prisma.deliveryMemo.delete({
+        result = await prismaTxn.deliveryMemo.delete({
           where: {
             dmNumber: parseInt(dmNumber)
           },
@@ -304,8 +307,8 @@ export async function DELETE(request: NextRequest) {
 
       // Check if this was the end number and update day start record if needed
       if (moment(dm.generatedDate).isSame(moment(), 'day')) {
-        const maxDmNumber = await findOrCreateDayStart(moment().toDate());
-        if (maxDmNumber.invoiceEndNo && maxDmNumber.invoiceEndNo === parseInt(dmNumber)) {
+        const dayStart = await findOrCreateDayStart(moment().toDate(), prismaTxn);
+        if (dayStart.invoiceEndNo && dayStart.invoiceEndNo === parseInt(dmNumber)) {
           // Find 2nd highest number or set to null
           const secondBest = await prismaTxn.deliveryMemo.findFirst({
             where: {

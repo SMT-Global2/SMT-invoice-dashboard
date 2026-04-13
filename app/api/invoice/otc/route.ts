@@ -32,15 +32,14 @@ export async function POST(req: Request) {
         // Validate request data
         const validatedData = invoiceSchema.parse(body);
 
-        //Check if invoice exist 
-
+        // Check if invoice exist 
         const existingInvoice = await prisma.invoice.findUnique({
             where: {
                 invoiceNumber: validatedData.invoiceNumber
             }
         })
 
-        const data = {
+        const data: any = {
             isOtc: true,
             image: validatedData.image,
 
@@ -60,6 +59,7 @@ export async function POST(req: Request) {
             deliveredTimestamp: moment().toDate(),
             deliveryStatus: DeliveryStatus.DELIVERED
         }
+
         let result = null;
         if (existingInvoice) {
             result = await prisma.invoice.update({
@@ -71,36 +71,14 @@ export async function POST(req: Request) {
                 }
             })
         } else {
-
-            //Check if image length is greater than 0
-            // if (validatedData.image.length === 0) {
-            //     return Response.json({
-            //         success: false,
-            //         message: 'Atleast one image is required'
-            //     }, { status: 400 });
-            // }
-            // Invocie number should be greater than the current maximum invoice number
-            // const maxInvoiceNumber = await prisma.invoice.findFirst({
-            //     orderBy: {
-            //         invoiceNumber: 'desc'
-            //     }
-            // });
-    
-            // if (validatedData.invoiceNumber <= (maxInvoiceNumber?.invoiceNumber || 0)) {
-            //     return Response.json({
-            //         success: false,
-            //         message: 'Invoice number should be greater than the current maximum invoice number'
-            //     }, { status: 400 });
-            // }
-    
             // Create invoice with validated data
-
             result = await prisma.$transaction(async (prismaTxn) => {
-                //get todays number
-                const maxInvoiceNumber = await findOrCreateDayStart(moment().toDate());
+                // Get todays number
+                const dayStart = await findOrCreateDayStart(moment().toDate(), prismaTxn);
 
-                const newMax = Math.max(validatedData.invoiceNumber , maxInvoiceNumber?.invoiceEndNo || 0)
-                //Update max and create invoice
+                const newMax = Math.max(validatedData.invoiceNumber , dayStart?.invoiceEndNo || 0)
+                
+                // Update max and create invoice
                 await prismaTxn.dayStartInvoice.update({
                     where: {
                         date: moment().format('YYYY-MM-DD')
@@ -109,11 +87,12 @@ export async function POST(req: Request) {
                         invoiceEndNo: newMax
                     }
                 })
+
                 const result = await prismaTxn.invoice.create({
                     data: {
                         partyCode: validatedData.partyCode,
                         invoiceNumber: validatedData.invoiceNumber,
-                        generatedDate: validatedData.generatedDate,
+                        generatedDate: new Date(validatedData.generatedDate),
                         invoiceTimestamp: moment().toDate(),
                         invoiceUsername: session.user.username,
                         paymodeMode: validatedData.paymodeMode,
@@ -130,18 +109,20 @@ export async function POST(req: Request) {
             data: result
         });
 
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof z.ZodError) {
             return Response.json({
                 success: false,
-                message: 'Validation failed : ' + error.errors.map(err => err.message).join(', '),
+                message: 'Validation failed: ' + error.errors.map(err => err.message).join(', '),
                 errors: error.errors.map(err => err.message)
             }, { status: 400 });
         }
 
+        console.error('Save OTC Invoice Error:', error);
+
         return Response.json({
             success: false,
-            message: 'Internal server error'
+            message: error instanceof Error ? error.message : 'Internal server error'
         }, { status: 500 });
     }
 }

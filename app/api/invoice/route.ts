@@ -90,18 +90,18 @@ export async function DELETE(request: NextRequest) {
     }
 
     const result = await prisma.$transaction(async (prismaTxn) => {
-      //Delete invoice
-      const result = await prisma.invoice.delete({
+      // Delete invoice
+      const result = await prismaTxn.invoice.delete({
         where: {
           invoiceNumber: parseInt(invoiceNumber)
         },
       });
 
-      //get todays number
+      // get todays number
       if (moment(invoice.generatedDate).isSame(moment() , 'day')) {
-        const maxInvoiceNumber = await findOrCreateDayStart(moment().toDate());
-        if(maxInvoiceNumber.invoiceEndNo && maxInvoiceNumber.invoiceEndNo === parseInt(invoiceNumber)) {
-          //Find 2nd best or set to null
+        const dayStart = await findOrCreateDayStart(moment().toDate(), prismaTxn);
+        if(dayStart.invoiceEndNo && dayStart.invoiceEndNo === parseInt(invoiceNumber)) {
+          // Find 2nd best or set to null
           const secondBest = await prismaTxn.invoice.findFirst({
             where: {
               generatedDate: {
@@ -135,11 +135,11 @@ export async function DELETE(request: NextRequest) {
     });
 
 
-  } catch (error) {
-    
+  } catch (error: any) {
+    console.error('Delete Invoice Error:', error);
     return Response.json({
       success: false,
-      message: 'Internal server error'
+      message: error instanceof Error ? error.message : 'Internal server error'
     }, { status: 500 });
   }
 }

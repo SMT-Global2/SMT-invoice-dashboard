@@ -33,27 +33,25 @@ export async function POST(req: Request) {
         // Validate request data
         const validatedData = invoiceSchema.parse(body);
 
-        // Invocie number should be greater than the current maximum invoice number
-        // const maxInvoiceNumber = await prisma.invoice.findFirst({
-        //     orderBy: {
-        //         invoiceNumber: 'desc'
-        //     }
-        // });
-
-        // if (validatedData.invoiceNumber <= (maxInvoiceNumber?.invoiceNumber || 0)) {
-        //     return Response.json({
-        //         success: false,
-        //         message: 'Invoice number should be greater than the current maximum invoice number'
-        //     }, { status: 400 });
-        // }
-
         // Create invoice with validated data
         const result = await prisma.$transaction(async (prismaTxn) => {
-            //get todays number
-            const maxInvoiceNumber = await findOrCreateDayStart(moment().toDate());
+            // Check if invoice already exists
+            const existing = await prismaTxn.invoice.findUnique({
+                where: {
+                    invoiceNumber: validatedData.invoiceNumber
+                }
+            });
 
-            const newMax = Math.max(validatedData.invoiceNumber , maxInvoiceNumber?.invoiceEndNo || 0)
-            //Update max and create invoice
+            if (existing) {
+                throw new Error(`Invoice number ${validatedData.invoiceNumber} already exists`);
+            }
+
+            // Get todays number
+            const dayStart = await findOrCreateDayStart(moment().toDate(), prismaTxn);
+
+            const newMax = Math.max(validatedData.invoiceNumber , dayStart?.invoiceEndNo || 0)
+            
+            // Update max and create invoice
             await prismaTxn.dayStartInvoice.update({
                 where: {
                     date: moment().format('YYYY-MM-DD')
@@ -62,9 +60,12 @@ export async function POST(req: Request) {
                     invoiceEndNo: newMax
                 }
             })
+
             const result = await prismaTxn.invoice.create({
                 data: {
                     ...validatedData,
+                    generatedDate: new Date(validatedData.generatedDate),
+                    invoiceTimestamp: new Date(validatedData.invoiceTimestamp),
                     invoiceUsername: session.user.username
                 }
             })
@@ -77,18 +78,24 @@ export async function POST(req: Request) {
             data: result
         });
 
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof z.ZodError) {
             return Response.json({
                 success: false,
-                message: 'Validation failed : ' + error.errors.map(err => err.message).join(', '),
+                message: 'Validation failed: ' + error.errors.map(err => err.message).join(', '),
                 errors: error.errors.map(err => err.message)
             }, { status: 400 });
         }
 
+        console.error('Save Invoice Error:', error);
+
+        // Handle specific Prisma errors or custom errors
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        const status = error.message?.includes('already exists') ? 409 : 500;
+
         return Response.json({
             success: false,
-            message: 'Internal server error'
-        }, { status: 500 });
+            message: message
+        }, { status });
     }
 }

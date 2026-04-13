@@ -21,14 +21,11 @@ export async function GET(request: NextRequest) {
     });
   }
   
-  const {
-    invoiceStartNo,
-    invoiceEndNo
-  } = await findOrCreateDayStart(moment(dateFilter).toDate());
+  const result = await findOrCreateDayStart(moment(dateFilter).toDate());
 
   return Response.json({
-    invoiceStartNo,
-    invoiceEndNo
+    invoiceStartNo: result.invoiceStartNo,
+    invoiceEndNo: result.invoiceEndNo
   });
 }
 

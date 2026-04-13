@@ -1,95 +1,121 @@
-import { prisma } from '@/lib/prisma'
+import { prisma as globalPrisma } from '@/lib/prisma'
 import moment from 'moment';
-import { NextRequest } from 'next/server';
 
-export async function findOrCreateDayStart(dateFilter : Date) {
-    const result = await prisma.$transaction(async (prismaTxn) => {
+export async function findOrCreateDayStart(dateFilter: Date, tx?: any) {
+  const client = tx || globalPrisma;
   
+  const defaultInvoiceStartNo = 1
 
-      const defaultInvoiceStartNo = 1
+  const alreadyExist = await client.dayStartInvoice.findUnique({
+    where: {
+      date: moment(dateFilter).format('YYYY-MM-DD')
+    }
+  }) 
 
-      const alreadtExist = await prisma.dayStartInvoice.findUnique({
-        where: {
-          date: moment(dateFilter).format('YYYY-MM-DD')
+  if (alreadyExist) return {
+    invoiceStartNo: alreadyExist.invoiceStartNo,
+    invoiceEndNo: alreadyExist.invoiceEndNo
+  };
+
+  // Create
+  let invoiceStartNo = null;
+  let invoiceEndNo = null;
+
+  if (moment(dateFilter).isSame(moment(), 'day')) {
+    // Create Start Date
+    const maxInvoiceNumber = await client.invoice.findFirst({
+      where: {
+        generatedDate: {
+          lt: moment(dateFilter).startOf('day').toDate()
         }
-      }) 
-
-      if(alreadtExist) return {
-        invoiceStartNo: alreadtExist.invoiceStartNo,
-        invoiceEndNo: alreadtExist.invoiceEndNo
-      };
-  
-      //Create
-      let invoiceStartNo = null;
-      let invoiceEndNo = null;
-  
-      if(moment(dateFilter).isSame(moment() , 'day')) {
-        //Create Start Date
-        const maxInvoiceNumber = await prisma.invoice.findFirst({
-          where : {
-            generatedDate : {
-              lt: moment(dateFilter).startOf('day').toDate()
-            }
-          },
-          orderBy: {
-            invoiceNumber: 'desc',
-          }
-        });
-        if(maxInvoiceNumber){
-          invoiceStartNo = maxInvoiceNumber.invoiceNumber + 1;
-        } else {
-          invoiceStartNo = defaultInvoiceStartNo;
-        }
-        await prisma.dayStartInvoice.create({
-          data: {
-            date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
-            invoiceStartNo,
-          }
-        })
-      } else {
-  
-        //Create Start Date
-        const lowestInvoiceNumber = await prisma.invoice.findFirst({
-          where : {
-            generatedDate : {
-              lte: moment(dateFilter).startOf('day').toDate()
-            }
-          },
-          orderBy: {
-            invoiceNumber: 'desc',
-          }
-        }) 
-        const maxInvoiceNumber = await prisma.invoice.findFirst({
-          where : {
-            generatedDate : {
-              gte: moment(dateFilter).startOf('day').toDate(),
-              lte: moment(dateFilter).endOf('day').toDate(),
-            }
-          },
-          orderBy: {
-            invoiceNumber: 'desc',
-          }
-        });
-  
-        invoiceStartNo = lowestInvoiceNumber?.invoiceNumber ? lowestInvoiceNumber.invoiceNumber + 1 : defaultInvoiceStartNo;
-        invoiceEndNo = maxInvoiceNumber?.invoiceNumber ? maxInvoiceNumber.invoiceNumber : null;
-  
-        await prisma.dayStartInvoice.create({
-          data: {
-            date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
-            invoiceStartNo,
-            invoiceEndNo
-          }
-        })
-  
+      },
+      orderBy: {
+        invoiceNumber: 'desc',
       }
-      
-      return {
-        invoiceStartNo,
-        invoiceEndNo
+    });
+
+    if (maxInvoiceNumber) {
+      invoiceStartNo = maxInvoiceNumber.invoiceNumber + 1;
+    } else {
+      invoiceStartNo = defaultInvoiceStartNo;
+    }
+
+    try {
+      await client.dayStartInvoice.create({
+        data: {
+          date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
+          invoiceStartNo,
+        }
+      })
+    } catch (error: any) {
+      // If record was created by another process, find it
+      if (error.code === 'P2002') {
+        const existing = await client.dayStartInvoice.findUnique({
+          where: {
+            date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
+          }
+        });
+        return {
+          invoiceStartNo: existing?.invoiceStartNo || invoiceStartNo,
+          invoiceEndNo: existing?.invoiceEndNo || null
+        };
+      }
+      throw error;
+    }
+  } else {
+    // Create Start Date for past dates
+    const lowestInvoiceNumber = await client.invoice.findFirst({
+      where: {
+        generatedDate: {
+          lte: moment(dateFilter).startOf('day').toDate()
+        }
+      },
+      orderBy: {
+        invoiceNumber: 'desc',
       }
     })
-  
-    return result;
+
+    const maxInvoiceNumber = await client.invoice.findFirst({
+      where: {
+        generatedDate: {
+          gte: moment(dateFilter).startOf('day').toDate(),
+          lte: moment(dateFilter).endOf('day').toDate(),
+        }
+      },
+      orderBy: {
+        invoiceNumber: 'desc',
+      }
+    });
+
+    invoiceStartNo = lowestInvoiceNumber?.invoiceNumber ? lowestInvoiceNumber.invoiceNumber + 1 : defaultInvoiceStartNo;
+    invoiceEndNo = maxInvoiceNumber?.invoiceNumber ? maxInvoiceNumber.invoiceNumber : null;
+
+    try {
+      await client.dayStartInvoice.create({
+        data: {
+          date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
+          invoiceStartNo,
+          invoiceEndNo
+        }
+      })
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const existing = await client.dayStartInvoice.findUnique({
+          where: {
+            date: moment(dateFilter).startOf('day').format('YYYY-MM-DD'),
+          }
+        });
+        return {
+          invoiceStartNo: existing?.invoiceStartNo || invoiceStartNo,
+          invoiceEndNo: existing?.invoiceEndNo || invoiceEndNo
+        };
+      }
+      throw error;
+    }
   }
-  
+
+  return {
+    invoiceStartNo,
+    invoiceEndNo
+  }
+}
