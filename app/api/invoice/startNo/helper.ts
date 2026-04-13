@@ -23,12 +23,8 @@ export async function findOrCreateDayStart(dateFilter: Date, tx?: any) {
 
   if (moment(dateFilter).isSame(moment(), 'day')) {
     // Create Start Date
+    // Create Start Date - always look for the absolute maximum to prevent collisions
     const maxInvoiceNumber = await client.invoice.findFirst({
-      where: {
-        generatedDate: {
-          lt: moment(dateFilter).startOf('day').toDate()
-        }
-      },
       orderBy: {
         invoiceNumber: 'desc',
       }
