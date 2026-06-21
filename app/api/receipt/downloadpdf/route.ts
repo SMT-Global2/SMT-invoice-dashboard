@@ -122,11 +122,25 @@ if (!bucketName) {
       statementFileName: section.statement?.name || 'Unknown Statement' // Add statement file name
     }));
     
+    // Fetch user-reported daily denominations for the same date
+    const denominationRecords = await prisma.userDailyDenomination.findMany({
+      where: {
+        date: dateParam,
+        username: userFilter ? userFilter : undefined,
+      },
+    });
+
+    const dailyDenominations = denominationRecords.map((r) => ({
+      username: r.username,
+      bills: r.bills ?? { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0 },
+    }));
+
     // Return receipt data with statement images
     return NextResponse.json({
       success: true,
       data: receipts,
       statementImages: formattedStatementImages,
+      dailyDenominations,
       date: dateParam
     });
     

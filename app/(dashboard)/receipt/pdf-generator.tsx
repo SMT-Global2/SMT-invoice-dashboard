@@ -58,10 +58,11 @@ const PDFGenerator: React.FC<PDFGeneratorProps> = ({ date, userFilter, paymentMe
     
     try {
       const blob = await pdf(
-        <ReceiptPDF 
-          receipts={data.data} 
-          date={moment(date).format('YYYY-MM-DD')} 
+        <ReceiptPDF
+          receipts={data.data}
+          date={moment(date).format('YYYY-MM-DD')}
           statementImages={data.statementImages || []}
+          dailyDenominations={data.dailyDenominations || []}
         />
       ).toBlob();
       

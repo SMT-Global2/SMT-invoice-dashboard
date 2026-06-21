@@ -35,15 +35,16 @@ export async function POST(req: Request) {
 
         // Create invoice with validated data
         const result = await prisma.$transaction(async (prismaTxn) => {
-            // Check if invoice already exists
+            // If a stale invoice with this number exists (e.g. from a misconfigured sequence),
+            // delete it so the new one can take its place.
             const existing = await prismaTxn.invoice.findUnique({
-                where: {
-                    invoiceNumber: validatedData.invoiceNumber
-                }
+                where: { invoiceNumber: validatedData.invoiceNumber }
             });
 
             if (existing) {
-                throw new Error(`Invoice number ${validatedData.invoiceNumber} already exists`);
+                await prismaTxn.invoice.delete({
+                    where: { invoiceNumber: validatedData.invoiceNumber }
+                });
             }
 
             // Get todays number

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import PDFGenerator from './pdf-generator';
 import ExcelGenerator from './excel-generator';
+import { UserCollectionsCard } from './user-collections-card';
+import { TodayDenominationCard } from './today-denomination-card';
 
 export default function ReceiptPage() {
   const { toast } = useToast();
@@ -149,6 +151,10 @@ export default function ReceiptPage() {
 
         </div>
       </div>
+
+      <UserCollectionsCard />
+
+      <TodayDenominationCard />
 
       <RecordTable
         receiptItems={receiptItems}

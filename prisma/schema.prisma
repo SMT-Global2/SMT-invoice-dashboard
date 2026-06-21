@@ -73,9 +73,36 @@ model AgencyCode {
     shortName    String?
 
     inventory Inventory[]
+    agencyDeliveryMemos AgencyDeliveryMemo[]
 
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
+}
+
+model AgencyDeliveryMemo {
+  id            String    @id @map("_id") @default(auto()) @db.ObjectId
+  adNumber      Int       @unique
+  generatedDate DateTime
+
+  agencyCode    String
+  agency        AgencyCode @relation(fields: [agencyCode], references: [code], onDelete: NoAction)
+
+  voucherNumber String?
+  lrNumber      String?
+  lrDate        DateTime
+
+  image         String[]
+  createdBy     String
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model DayStartAgencyDeliveryMemo {
+  id      String @id @map("_id") @default(auto()) @db.ObjectId
+  date    String @unique
+  startNo Int
+  endNo   Int?
 }
 
 model Expiry {
@@ -348,6 +375,29 @@ model DayStartInvoice {
   date           String    @unique
   invoiceStartNo Int
   invoiceEndNo   Int?
+}
+
+model UserDailyDenomination {
+  id         String         @id @map("_id") @default(auto()) @db.ObjectId
+  date       String
+  username   String
+  bills      CurrencyBills?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([date, username])
+}
+
+model InvoiceSequenceHistory {
+  id           String   @id @map("_id") @default(auto()) @db.ObjectId
+  date         String
+  changedBy    String
+  changedAt    DateTime @default(now())
+  prevStartNo  Int
+  prevEndNo    Int?
+  newStartNo   Int
+  newEndNo     Int?
+  deletedCount Int      @default(0)
 }
 
 model DayStartDeliveryMemo {

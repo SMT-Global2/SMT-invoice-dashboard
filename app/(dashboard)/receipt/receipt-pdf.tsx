@@ -352,23 +352,36 @@ const styles = StyleSheet.create({
   },
   denominationItem: {
     width: '31%', // Three columns
-    padding: 5,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 2,
-    marginBottom: 5,
-    backgroundColor: colors.backgroundLight,
+    borderRadius: 3,
+    marginBottom: 6,
+    backgroundColor: colors.white,
   },
-  denominationLabel: {
+  denominationHeader: {
+    backgroundColor: '#e8eaf6', // Indigo 50 (matches primary)
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    alignItems: 'center',
+  },
+  denominationHeaderText: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.primary,
+  },
+  denominationBody: {
+    padding: 6,
+    alignItems: 'center',
+  },
+  denominationCountText: {
+    fontSize: 12,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.textPrimary,
+  },
+  denominationTotalText: {
     fontSize: 8,
     color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  denominationValue: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold', // Use 'Roboto-Bold'
-    color: colors.textPrimary,
-    textAlign: 'center',
     marginTop: 2,
   },
   cashTotalRow: {
@@ -665,8 +678,13 @@ const CashDenominationSummary: React.FC<CashDenominationSummaryProps> = ({ recei
             <View style={styles.denominationGrid}>
                 {summary.map(({ denom, count, amount }) => (
                     <View key={denom} style={styles.denominationItem}>
-                        <Text style={styles.denominationLabel}>{denom} x {count}</Text>
-                        <Text style={styles.denominationValue}>{formatAmount(amount)}</Text>
+                        <View style={styles.denominationHeader}>
+                            <Text style={styles.denominationHeaderText}>Rs. {denom}</Text>
+                        </View>
+                        <View style={styles.denominationBody}>
+                            <Text style={styles.denominationCountText}>{count}</Text>
+                            <Text style={styles.denominationTotalText}>{formatAmount(amount)}</Text>
+                        </View>
                     </View>
                 ))}
             </View>
@@ -702,12 +720,50 @@ const PaymentTypeSection: React.FC<PaymentTypeSectionProps> = ({ title, iconBgCo
     );
 };
 
+interface DailyDenominationBlockProps {
+    bills: Record<string, number>;
+}
+const DailyDenominationBlock: React.FC<DailyDenominationBlockProps> = ({ bills }) => {
+    const denominations = ['500', '200', '100', '50', '20', '10'];
+    let total = 0;
+    const rows = denominations.map((denom) => {
+        const count = bills?.[denom] || 0;
+        const amount = parseInt(denom) * count;
+        total += amount;
+        return { denom, count, amount };
+    });
+
+    return (
+        <View style={styles.cashSummaryContainer} wrap={false}>
+            <Text style={styles.cashSummaryTitle}>Today&apos;s Denomination (User-Reported)</Text>
+            <View style={styles.denominationGrid}>
+                {rows.map(({ denom, count, amount }) => (
+                    <View key={denom} style={styles.denominationItem}>
+                        <View style={styles.denominationHeader}>
+                            <Text style={styles.denominationHeaderText}>Rs. {denom}</Text>
+                        </View>
+                        <View style={styles.denominationBody}>
+                            <Text style={styles.denominationCountText}>{count}</Text>
+                            <Text style={styles.denominationTotalText}>{formatAmount(amount)}</Text>
+                        </View>
+                    </View>
+                ))}
+            </View>
+            <View style={styles.cashTotalRow}>
+                <Text style={styles.cashTotalLabel}>Denomination Total:</Text>
+                <Text style={styles.cashTotalValue}>{formatAmount(total)}</Text>
+            </View>
+        </View>
+    );
+};
+
 interface UserSectionProps {
     username: string;
     receipts: ReceiptData[];
     isFirstUser: boolean;
+    dailyBills?: Record<string, number>;
 }
-const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUser }) => {
+const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUser, dailyBills }) => {
     const userTotalAmount = receipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0); // Added fallback for amount
 
     const functionThatHandlesTheBlankRangesBetweenReceiptNumbers = (receipts: ReceiptData[] , paymentMethod : PaymentMethod) => {
@@ -766,6 +822,11 @@ const UserSection: React.FC<UserSectionProps> = ({ username, receipts, isFirstUs
             {/* --- END USER SECTION HEADER --- */}
 
             <View style={styles.userSectionBody}>
+                {/* Today's Denomination (user-reported, per-day) */}
+                {dailyBills && (
+                    <DailyDenominationBlock bills={dailyBills} />
+                )}
+
                 {/* Cheque Section */}
                 {userChequeReceipts.length > 0 && (
                     <PaymentTypeSection
@@ -937,9 +998,13 @@ interface ReceiptPDFProps {
         contact?: string;
         statementFileName?: string;
     }>;
+    dailyDenominations?: Array<{
+        username: string;
+        bills: Record<string, number>;
+    }>;
 }
 
-const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyName = "Sanjivan Medico Traders", statementImages = [] }) => { // Added default empty array for receipts
+const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyName = "Sanjivan Medico Traders", statementImages = [], dailyDenominations = [] }) => { // Added default empty array for receipts
     const formattedDate = moment(date).format('MMMM D, YYYY');
 
     // Group receipts by username
@@ -990,14 +1055,18 @@ const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ receipts = [], date, companyNam
                 />
 
                 {/* Receipts by User Sections */}
-                {Object.entries(groupedReceipts).map(([username, userReceipts], index) => (
-                    <UserSection
-                      key={username}
-                      username={username}
-                      receipts={userReceipts}
-                      isFirstUser={index === 0} // Pass flag to control page break
-                    />
-                ))}
+                {Object.entries(groupedReceipts).map(([username, userReceipts], index) => {
+                    const dailyBills = dailyDenominations.find((d) => d.username === username)?.bills;
+                    return (
+                        <UserSection
+                          key={username}
+                          username={username}
+                          receipts={userReceipts}
+                          isFirstUser={index === 0} // Pass flag to control page break
+                          dailyBills={dailyBills}
+                        />
+                    );
+                })}
 
                  {/* Message if no receipts found at all */}
                 {receipts.length === 0 && (

@@ -657,12 +657,7 @@ export function ReceiptDialog({
                   ))}
                 </div>
 
-                <div className="mt-4 py-2 text-right font-semibold text-primary border-t">
-                  Calculated Total: {formatCurrency(calculatedTotal)}
-                  <div className="text-sm text-muted-foreground mt-1">
-                    (This is just a calculation and does not affect the form amount)
-                  </div>
-                </div>
+
 
               </div>
             )}
@@ -752,6 +747,12 @@ export function ReceiptDialog({
               </div>
             )}
 
+            <div className="mt-4 py-2 text-right font-semibold text-primary border-t">
+              Calculated Total: {formatCurrency(calculatedTotal)}
+              <div className="text-sm text-muted-foreground mt-1">
+                (This is just a calculation and does not affect the form amount)
+              </div>
+            </div>
             <DialogFooter>
               <Button
                 type="button"

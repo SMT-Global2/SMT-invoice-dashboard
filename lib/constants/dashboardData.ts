@@ -1,16 +1,16 @@
-import { 
-  BarChart, 
+import {
+  BarChart,
   Building,
   Briefcase,
-  CheckCircle, 
-  FileText, 
+  CheckCircle,
+  FileText,
   Home,
   Receipt,
   DollarSign,
-  Package, 
-  Truck, 
+  Package,
+  Truck,
   Users,
-  User, 
+  User,
   LucideIcon,
   Calendar,
   ClipboardCheck,
@@ -26,7 +26,8 @@ import {
   Database,
   Clock,
   Wallet,
-  Map
+  Map,
+  Hash
 } from 'lucide-react';
 
 import { UserType } from '@prisma/client';
@@ -167,6 +168,15 @@ export const dashboardCategories: DashboardCategory[] = [
         roles: ['ADMIN', 'ALL_ROUNDER', 'INVOICE_MANAGEMENT', 'DELIVERY_MEMO_MANAGEMENT']
       },
       {
+        id: 'agency-delivery-memo',
+        title: 'Agency Delivery Memo',
+        href: '/agency-delivery-memo',
+        icon: FileText,
+        description: 'Create and manage agency delivery memos with LR numbers',
+        searchTerms: ['agency', 'delivery', 'memo', 'lr', 'voucher', 'ad memo', 'agency memo'],
+        roles: ['ADMIN', 'ALL_ROUNDER', 'PURCHASE_MANAGEMENT', 'DELIVERY_MEMO_MANAGEMENT']
+      },
+      {
         id: 'expiry',
         title: 'Expiry',
         href: '/expiry',
@@ -266,6 +276,15 @@ export const dashboardCategories: DashboardCategory[] = [
         icon: Wallet,
         description: 'Manage employee salaries and payments',
         searchTerms: ['salary', 'payment', 'compensation', 'payroll', 'wages'],
+        roles: ['ADMIN']
+      },
+      {
+        id: 'invoice-sequence',
+        title: 'Invoice Sequence',
+        href: '/invoice-sequence',
+        icon: Hash,
+        description: 'View and correct invoice sequence start/end numbers per day',
+        searchTerms: ['invoice', 'sequence', 'start', 'end', 'number', 'day start', 'fix', 'correct'],
         roles: ['ADMIN']
       }
     ]

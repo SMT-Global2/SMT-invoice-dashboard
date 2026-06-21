@@ -294,10 +294,15 @@ export const useInvoiceStore = create<InvoiceState>()(
           set({ invoices: updatedInvoices, isLoading: false });
 
         } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Failed to save invoice', 
-            isLoading: false 
+          set({
+            error: error instanceof Error ? error.message : 'Failed to save invoice',
+            isLoading: false
           });
+          // Refresh the list so a stale "empty" slot (whose number exists on a different date)
+          // is cleared back to its true state rather than staying filled with unsaved data.
+          if (error instanceof Error && error.message.includes('already exists')) {
+            get().handleInvoices();
+          }
           throw error;
         }
       },
